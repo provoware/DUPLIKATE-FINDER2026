@@ -3,7 +3,14 @@ from __future__ import annotations
 from pathlib import Path
 
 from app.file_browser.classification import classify_path, known_extensions
-from app.file_browser.preview import MAX_TEXT_PREVIEW_BYTES, build_preview, read_image_preview, read_text_preview
+from app.file_browser.preview import (
+    MAX_TEXT_PREVIEW_BYTES,
+    build_preview,
+    media_metadata,
+    read_image_preview,
+    read_text_preview,
+    text_preview_info,
+)
 
 
 def test_file_kinds_cover_planned_groups(tmp_path: Path):
@@ -56,3 +63,47 @@ def test_audio_video_preview_does_not_require_player(tmp_path: Path):
     assert data.kind == "video"
     assert data.image is None
     assert "Extern öffnen" in data.text
+
+
+def test_text_preview_reports_encoding_and_counts(tmp_path: Path):
+    path = tmp_path / "notiz.txt"
+    path.write_text("eins zwei\ndrei vier\n", encoding="utf-8")
+    info = text_preview_info(path)
+    assert info.encoding == "utf-8-sig"
+    assert info.line_count == 2
+    assert info.word_count == 4
+    assert info.character_count >= 18
+    assert info.truncated is False
+
+
+def test_json_preview_is_pretty_printed(tmp_path: Path):
+    path = tmp_path / "daten.json"
+    path.write_text('{"name":"PROVOWARE","wert":8}', encoding="utf-8")
+    data = build_preview(path)
+    assert '"name": "PROVOWARE"' in data.text
+    assert "Zeichenkodierung:" in data.details
+    assert "Wörter:" in data.details
+
+
+def test_wav_metadata_uses_python_standard_library(tmp_path: Path):
+    import wave
+
+    path = tmp_path / "ton.wav"
+    with wave.open(str(path), "wb") as wav:
+        wav.setnchannels(2)
+        wav.setsampwidth(2)
+        wav.setframerate(44100)
+        wav.writeframes(b"\x00\x00\x00\x00" * 44100)
+
+    details = "\n".join(media_metadata(path))
+    assert "Dauer: 1.00 Sekunden" in details
+    assert "Kanäle: 2" in details
+    assert "Abtastrate: 44100 Hz" in details
+    assert "Auflösung: 16 Bit" in details
+
+
+def test_non_wav_media_explains_metadata_limit(tmp_path: Path):
+    path = tmp_path / "clip.mp4"
+    path.write_bytes(b"placeholder")
+    details = "\n".join(media_metadata(path))
+    assert "ohne zusätzliche Medienbibliothek" in details
