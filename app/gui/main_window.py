@@ -813,6 +813,10 @@ class MainWindow(QMainWindow):
         self.progress_bar.setValue(0)
         QMessageBox.critical(self, "Suche gestoppt", f"Die Suche wurde sicher beendet.\n\n{message}\n\nLösung: {entry['solution']}")
 
+    def _active_worker(self):
+        """Kompatibilitätsbrücke für Erweiterungen, die den aktiven Worker abfragen."""
+        return self.process_controller.active_worker()
+
     def _set_process_idle(self) -> None:
         """Kompatibilitätsbrücke für bestehende Abschluss- und Regressionstests."""
         self.process_controller.set_idle()
