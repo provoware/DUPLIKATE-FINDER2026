@@ -220,3 +220,71 @@ class Database:
             CollectionItem(int(row["collection_id"]), Path(row["path"]), row["note"])
             for row in rows
         ]
+
+    def export_virtual_state(self) -> dict:
+        with self.connect() as connection:
+            collections=[
+                {"id":int(row["id"]),"name":row["name"],"note":row["note"]}
+                for row in connection.execute("SELECT id,name,note FROM collections ORDER BY id")
+            ]
+            collection_items=[
+                {"collection_id":int(row["collection_id"]),"path":row["path"],"note":row["note"]}
+                for row in connection.execute(
+                    "SELECT collection_id,path,note FROM collection_items ORDER BY collection_id,path"
+                )
+            ]
+            virtual_items=[
+                {"path":row["path"],"marked":bool(row["marked"]),"note":row["note"]}
+                for row in connection.execute("SELECT path,marked,note FROM virtual_items ORDER BY path")
+            ]
+        return {
+            "collections":collections,
+            "collection_items":collection_items,
+            "virtual_items":virtual_items,
+        }
+
+    def import_virtual_state(self, state: dict) -> None:
+        collections=state.get("collections",[])
+        items=state.get("collection_items",[])
+        virtual=state.get("virtual_items",[])
+        with self.connect() as connection:
+            id_map={}
+            for row in collections:
+                name=str(row.get("name","")).strip()
+                if not name:
+                    continue
+                note=str(row.get("note",""))
+                existing=connection.execute(
+                    "SELECT id FROM collections WHERE name=?",(name,)
+                ).fetchone()
+                if existing is None:
+                    cur=connection.execute(
+                        "INSERT INTO collections(name,note) VALUES(?,?)",(name,note)
+                    )
+                    new_id=int(cur.lastrowid)
+                else:
+                    new_id=int(existing["id"])
+                    connection.execute("UPDATE collections SET note=? WHERE id=?",(note,new_id))
+                id_map[int(row.get("id",new_id))]=new_id
+
+            for row in items:
+                old_id=int(row.get("collection_id",-1))
+                new_id=id_map.get(old_id)
+                path=str(row.get("path","")).strip()
+                if new_id is None or not path:
+                    continue
+                connection.execute(
+                    "INSERT INTO collection_items(collection_id,path,note) VALUES(?,?,?) "
+                    "ON CONFLICT(collection_id,path) DO UPDATE SET note=excluded.note",
+                    (new_id,path,str(row.get("note",""))),
+                )
+
+            for row in virtual:
+                path=str(row.get("path","")).strip()
+                if not path:
+                    continue
+                connection.execute(
+                    "INSERT INTO virtual_items(path,marked,note,updated_at) VALUES(?,?,?,CURRENT_TIMESTAMP) "
+                    "ON CONFLICT(path) DO UPDATE SET marked=excluded.marked,note=excluded.note,updated_at=CURRENT_TIMESTAMP",
+                    (path,int(bool(row.get("marked",False))),str(row.get("note",""))),
+                )
