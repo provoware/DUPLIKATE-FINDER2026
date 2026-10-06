@@ -26,9 +26,8 @@ def _migration_2(connection: sqlite3.Connection) -> None:
     _add_column(connection, "duplicate_members", "size INTEGER NOT NULL DEFAULT 0")
     _add_column(connection, "duplicate_members", "mtime_ns INTEGER NOT NULL DEFAULT 0")
 
-    connection.executescript(
-        """
-        CREATE TABLE IF NOT EXISTS scan_runs (
+    statements = (
+        """CREATE TABLE IF NOT EXISTS scan_runs (
             id INTEGER PRIMARY KEY,
             kind TEXT NOT NULL,
             root TEXT NOT NULL,
@@ -37,8 +36,8 @@ def _migration_2(connection: sqlite3.Connection) -> None:
             error_count INTEGER NOT NULL DEFAULT 0,
             created_at TEXT NOT NULL DEFAULT CURRENT_TIMESTAMP,
             finished_at TEXT
-        );
-        CREATE TABLE IF NOT EXISTS scan_inventory (
+        )""",
+        """CREATE TABLE IF NOT EXISTS scan_inventory (
             run_id INTEGER NOT NULL REFERENCES scan_runs(id) ON DELETE CASCADE,
             path TEXT NOT NULL,
             size INTEGER NOT NULL,
@@ -48,25 +47,22 @@ def _migration_2(connection: sqlite3.Connection) -> None:
             quick_hash TEXT,
             sha256 TEXT,
             PRIMARY KEY(run_id, path)
-        );
-        CREATE INDEX IF NOT EXISTS idx_scan_inventory_run_size
-            ON scan_inventory(run_id, size);
-        CREATE INDEX IF NOT EXISTS idx_scan_inventory_run_quick
-            ON scan_inventory(run_id, size, quick_hash);
-        CREATE INDEX IF NOT EXISTS idx_scan_inventory_run_sha
-            ON scan_inventory(run_id, size, sha256);
-        CREATE TABLE IF NOT EXISTS scan_errors (
+        )""",
+        "CREATE INDEX IF NOT EXISTS idx_scan_inventory_run_size ON scan_inventory(run_id,size)",
+        "CREATE INDEX IF NOT EXISTS idx_scan_inventory_run_quick ON scan_inventory(run_id,size,quick_hash)",
+        "CREATE INDEX IF NOT EXISTS idx_scan_inventory_run_sha ON scan_inventory(run_id,size,sha256)",
+        """CREATE TABLE IF NOT EXISTS scan_errors (
             id INTEGER PRIMARY KEY,
             run_id INTEGER REFERENCES scan_runs(id) ON DELETE CASCADE,
             path TEXT NOT NULL,
             stage TEXT NOT NULL,
             message TEXT NOT NULL,
             created_at TEXT NOT NULL DEFAULT CURRENT_TIMESTAMP
-        );
-        CREATE INDEX IF NOT EXISTS idx_scan_errors_run_id
-            ON scan_errors(run_id, id);
-        """
+        )""",
+        "CREATE INDEX IF NOT EXISTS idx_scan_errors_run_id ON scan_errors(run_id,id)",
     )
+    for statement in statements:
+        connection.execute(statement)
 
 
 MIGRATIONS: dict[int, Callable[[sqlite3.Connection], None]] = {
@@ -111,4 +107,5 @@ def apply_migrations(connection: sqlite3.Connection) -> int:
             connection.execute(f"ROLLBACK TO SAVEPOINT {savepoint}")
             connection.execute(f"RELEASE SAVEPOINT {savepoint}")
             raise
-    return LATEST_SCHEMA_VERSION
+        current = target
+    return current
