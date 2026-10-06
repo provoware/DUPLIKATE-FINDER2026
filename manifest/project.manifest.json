@@ -81,5 +81,36 @@
       "processed_bytes",
       "byte_weighted_eta"
     ]
+  },
+  "governance": {
+    "frozen_areas": [
+      {
+        "id": "ui_process_control",
+        "name": "Bedienoberfläche / Prozesssteuerung",
+        "status": "FROZEN",
+        "since_version": "0.5.0",
+        "frozen_on": "2026-10-06",
+        "scope": [
+          "app/gui/**",
+          "app/process_control.py",
+          "app/progress_format.py",
+          "app/resource_monitor.py",
+          "app/cpu_limit.py",
+          "app/settings_store.py"
+        ],
+        "allowed_without_reopen": [
+          "safety_correction",
+          "regression_correction",
+          "required_platform_compatibility"
+        ],
+        "reopen_requires": [
+          "explicit_scope_decision",
+          "pre_validation",
+          "targeted_tests",
+          "full_800x600_100_150_200_acceptance",
+          "post_validation"
+        ]
+      }
+    ]
   }
 }
