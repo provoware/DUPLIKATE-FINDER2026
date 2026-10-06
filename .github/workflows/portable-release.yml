@@ -162,10 +162,11 @@ jobs:
           cd "$P"
           "$P/runtime/bin/python3" tools/autonomous_acceptance.py --output "$OUT"             | tee "$GITHUB_WORKSPACE/e2e/evidence/acceptance.txt"
 
-          "$P/runtime/bin/python3" - <<'PY'
+          "$P/runtime/bin/python3" - "$OUT/report.json" <<'PY'
           import json
+          import sys
           from pathlib import Path
-          report = json.loads(Path("../evidence/abnahme/report.json").read_text(encoding="utf-8"))
+          report = json.loads(Path(sys.argv[1]).read_text(encoding="utf-8"))
           results = report["results"]
           assert len(results) == 73, len(results)
           assert all(item["ok"] for item in results)
