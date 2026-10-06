@@ -291,7 +291,15 @@ class MainWindow(QMainWindow):
     def _update_dashboard_card_layout(self) -> None:
         if not hasattr(self, "dashboard_card_layout"):
             return
-        columns = 2 if int(self.property("uiZoom") or 100) >= 150 else 4
+        zoom = int(self.property("uiZoom") or 100)
+        columns = 2 if zoom >= 150 else 4
+        if hasattr(self, "workflow_guide"):
+            self.workflow_guide.setText(
+                "1. Ordner wählen → 2. Prüfen → 3. Treffer → 4. Virtuell organisieren"
+                if zoom >= 150
+                else "1. Ordner wählen  →  2. Suchen oder Duplikate prüfen  →  "
+                     "3. Treffer ansehen  →  4. Virtuell organisieren"
+            )
         for index, card in enumerate(self.dashboard_cards):
             self.dashboard_card_layout.removeWidget(card)
             self.dashboard_card_layout.addWidget(card, index // columns, index % columns)
@@ -311,12 +319,12 @@ class MainWindow(QMainWindow):
         layout.setSpacing(4)
         layout.addWidget(self._heading("Übersicht"))
 
-        guide = QLabel("1. Ordner wählen  →  2. Suchen oder Duplikate prüfen  →  3. Treffer ansehen  →  4. Virtuell organisieren")
-        guide.setObjectName("workflow_guide")
-        guide.setProperty("workflowGuide", True)
-        guide.setWordWrap(True)
-        guide.setAccessibleName("Kurzanleitung für den Arbeitsablauf")
-        layout.addWidget(guide)
+        self.workflow_guide = QLabel("1. Ordner wählen  →  2. Suchen oder Duplikate prüfen  →  3. Treffer ansehen  →  4. Virtuell organisieren")
+        self.workflow_guide.setObjectName("workflow_guide")
+        self.workflow_guide.setProperty("workflowGuide", True)
+        self.workflow_guide.setWordWrap(True)
+        self.workflow_guide.setAccessibleName("Kurzanleitung für den Arbeitsablauf")
+        layout.addWidget(self.workflow_guide)
 
         cards = QGridLayout()
         self.dashboard_card_layout = cards
