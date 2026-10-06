@@ -29,8 +29,7 @@ def _file_details(path: Path) -> str:
     changed = datetime.fromtimestamp(stat.st_mtime).strftime("%d.%m.%Y %H:%M:%S")
     return (
         f"Pfad: {path}\n"
-        f"Typ: {classify_path(path).label}\n"
-        f"Größe: {format_bytes(stat.st_size)}\n"
+        f"Typ: {classify_path(path).label} · Größe: {format_bytes(stat.st_size)}\n"
         f"Geändert: {changed}"
     )
 
