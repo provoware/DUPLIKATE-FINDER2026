@@ -1,5 +1,5 @@
 {
-  "catalog_version": "1.1.0",
+  "catalog_version": "1.2.0",
   "locale": "de-DE",
   "startup": {
     "title": "PROVOWARE startet",
@@ -49,6 +49,8 @@
     "no_selection_title": "Keine Auswahl",
     "no_selection_message": "Bitte einen Sammlungseintrag auswählen.",
     "status_created": "OK · Virtuelle Sammlung angelegt",
-    "status_removed": "OK · Eintrag nur aus der virtuellen Sammlung entfernt"
+    "status_removed": "OK · Eintrag nur aus der virtuellen Sammlung entfernt",
+    "error_duplicate_name": "Eine Sammlung mit diesem Namen existiert bereits.",
+    "error_database": "Die lokale Datenbank konnte die Sammlung nicht speichern. Bitte den Selbsttest ausführen und es danach erneut versuchen."
   }
 }
