@@ -95,7 +95,10 @@
       "atomic_settings_write",
       "atomic_state_export",
       "transactional_state_import",
-      "visible_scan_errors"
+      "visible_scan_errors",
+      "bounded_text_line_search",
+      "changed_file_search_guard",
+      "strict_test_sandbox_cleanup"
     ],
     "portable_profiles": [
       "lite_without_duplicate_repair_payload",
@@ -122,7 +125,12 @@
       "state_portability_controller",
       "shared_paged_table_model_contract",
       "shared_search_database_pipeline",
-      "file_browser_no_cosmetic_split_boundary"
+      "file_browser_no_cosmetic_split_boundary",
+      "wcag_aa_critical_contrast_contract",
+      "central_status_theme",
+      "bounded_text_line_search",
+      "changed_file_search_guard",
+      "strict_test_sandbox_cleanup"
     ],
     "file_browser": [
       "lazy_qt_filesystem_model",
@@ -235,6 +243,16 @@
           "app/gui/enhancements.py",
           "app/gui/resource_dashboard_controller.py",
           "app/gui/state_portability_controller.py"
+        ],
+        "latest_quality_reopened_on": "2026-10-07",
+        "latest_quality_reopen_reason": "Ausdrücklicher Nutzerauftrag: Farben, Kontraste, Fehlerbehandlung, Robustheit, Codedisziplin und Wartbarkeit erneut vollständig prüfen und gezielt verbessern.",
+        "latest_quality_scope": [
+          "app/gui/theme.py",
+          "app/gui/design_tokens.py",
+          "app/gui/main_window.py",
+          "app/gui/enhancements.py",
+          "app/gui/collection_controller.py",
+          "app/gui/state_portability_controller.py"
         ]
       },
       {
@@ -287,6 +305,12 @@
           "app/gui/workers.py",
           "app/core/search_pipeline.py",
           "app/cli.py"
+        ],
+        "latest_quality_reopened_on": "2026-10-07",
+        "latest_quality_reopen_reason": "Ausdrücklicher Nutzerauftrag: Extremfälle der Textsuche und TestSandbox-Sicherheit gezielt härten.",
+        "latest_quality_scope": [
+          "app/core/search.py",
+          "app/testing/sandbox.py"
         ]
       },
       {
