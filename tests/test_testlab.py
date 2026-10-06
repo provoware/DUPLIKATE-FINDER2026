@@ -23,6 +23,10 @@ def test_sandbox_requires_marker_before_cleanup(tmp_path: Path):
     marker.unlink()
     with pytest.raises(RuntimeError, match="Test-Markierung fehlt"):
         sandbox.cleanup()
+    assert sandbox.root.exists()
+    marker.write_text("PROVOWARE test sandbox\n", encoding="utf-8")
+    sandbox.cleanup()
+    assert not sandbox.root.exists()
 
 
 def test_small_performance_profile_counts_all_files():
