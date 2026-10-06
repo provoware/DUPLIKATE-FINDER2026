@@ -5,6 +5,30 @@
 ### Geplant
 - weitere Dateiformate und spätere, separat freizugebende Schreibfunktionen
 
+## [0.8.0] – 2026-10-06
+
+### Dateien & Vorschau
+- eigener modularer Nur-Lesen-Dateibrowser auf Basis des Qt-Dateisystemmodells
+- Dateiname- und Dateigruppenfilter ohne vollständigen Verzeichnisbestand in Python zu laden
+- sichere Textvorschau mit 512-KiB-Grenze und mehreren üblichen Zeichenkodierungen
+- skalierte Bildvorschau für verbreitete Bildformate
+- PDF-Erstseitenvorschau über vorhandenes QtPdf ohne neue schwere Fremdbibliothek
+- Audio/Video zunächst nur als Metadaten plus Öffnen im Standardprogramm
+- Pfad kopieren, Ordner anzeigen, extern öffnen
+- virtuelle Markierung und Sammlungszuordnung
+- symbolische Verknüpfungen werden nicht automatisch verfolgt
+- sichere Benutzer-Mounts unter /run/media gezielt erlaubt; /run bleibt gesperrt
+
+### Erscheinungsbild
+- jeder Hauptbereich besitzt eine eigene kontrastreiche Akzentfarbe
+- einheitliche dunkle Basis bleibt erhalten
+- Dateien-&-Vorschau-Bereich nutzt Orange/Gold als klaren eigenen Funktionsakzent
+
+### Qualität
+- Dateityp-, Text-, Bild- und Medienfallback-Tests
+- Datei-Browser in gezielte Prüfplanung und autonome UI-Abnahme aufgenommen
+- UI-/Prozessbereich für diesen Auftrag kontrolliert wieder geöffnet; Re-Freeze erst nach vollständiger Abnahme
+
 ## [0.7.1] – 2026-10-06
 
 ### Wartbarkeit und Entwicklung
