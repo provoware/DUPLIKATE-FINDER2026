@@ -113,13 +113,14 @@ class UiEnhancements(QObject):
 
         screen = self.window.screen() or QApplication.primaryScreen()
         geometry = screen.availableGeometry() if screen else None
-        screen_text = f"🖥 {geometry.width()}×{geometry.height()}" if geometry else "🖥 unbekannt"
+        screen_text = f"Bildschirm {geometry.width()} × {geometry.height()}" if geometry else "Bildschirm unbekannt"
         self.screen_info = QLabel(screen_text)
         self.screen_info.setToolTip("Automatisch erkannter nutzbarer Bildschirmbereich.")
         grid.addWidget(self.screen_info, 0, 0)
 
         self.zoom_combo = QComboBox()
         self.zoom_combo.setObjectName("zoom_selector")
+        self.zoom_combo.setAccessibleName("Schrift- und Seitenzoom")
         for value in ZOOM_STEPS:
             self.zoom_combo.addItem(f"Zoom {value} %", value)
         self.zoom_combo.setCurrentText("Zoom 100 %")
@@ -129,6 +130,7 @@ class UiEnhancements(QObject):
 
         self.size_combo = QComboBox()
         self.size_combo.setObjectName("size_selector")
+        self.size_combo.setAccessibleName("Fenstergröße")
         self.size_combo.addItem("Fenster: Auto", None)
         for width, height in ((800, 600), (1024, 768), (1280, 800)):
             self.size_combo.addItem(f"Fenster {width}×{height}", (width, height))
@@ -138,6 +140,7 @@ class UiEnhancements(QObject):
 
         self.cpu_combo=QComboBox()
         self.cpu_combo.setObjectName("cpu_limiter")
+        self.cpu_combo.setAccessibleName("Rechenleistung für dieses Programm")
         available=self.cpu_limiter.available
         self.cpu_combo.addItem(f"CPU: 100 % · {available}", 0)
         choices=[]
@@ -151,15 +154,16 @@ class UiEnhancements(QObject):
         self.cpu_combo.setToolTip("Begrenzt nur PROVOWARE. Weniger Kerne lassen mehr Rechenleistung für andere Programme frei.")
         grid.addWidget(self.cpu_combo, 1, 0)
 
-        tools_button=QPushButton("🧰 Werkzeuge")
+        tools_button=QPushButton("Werkzeuge")
         tools_button.setObjectName("dashboard_tools")
         tools_button.setProperty("compact", True)
         tools_button.setToolTip("Selbsttest, Protokolle, Export und Import öffnen.")
         tools_button.clicked.connect(self._open_tools_dialog)
         grid.addWidget(tools_button, 1, 1)
 
-        self.autosave_info=QLabel("💾 Auto: ≤ 5 min")
+        self.autosave_info=QLabel("Autosicherung: alle 5 Minuten")
         self.autosave_info.setObjectName("autosave_info")
+        self.autosave_info.setAccessibleName("Status der automatischen Sicherung")
         self.autosave_info.setToolTip("Fenster-, Zoom-, CPU- und Filtereinstellungen werden alle fünf Minuten gesichert. Markierungen und Sammlungen werden sofort in der lokalen Datenbank gespeichert.")
         grid.addWidget(self.autosave_info, 1, 2)
 
@@ -198,23 +202,23 @@ class UiEnhancements(QObject):
         info.setWordWrap(True)
         layout.addWidget(info)
 
-        selftest=QPushButton("🩺 Selbsttest ausführen")
+        selftest=QPushButton("Selbsttest ausführen")
         selftest.setObjectName("tools_selftest")
         selftest.clicked.connect(self._show_selftest)
         layout.addWidget(selftest)
 
-        logs=QPushButton("📂 Protokollordner öffnen")
+        logs=QPushButton("Protokollordner öffnen")
         logs.setObjectName("tools_logs")
         logs.clicked.connect(lambda: QDesktopServices.openUrl(QUrl.fromLocalFile(str(self.base_dir / "logs"))))
         layout.addWidget(logs)
 
-        export_button=QPushButton("⬆ Zustand exportieren")
+        export_button=QPushButton("Zustand exportieren")
         export_button.setObjectName("dashboard_export")
         export_button.setToolTip("Exportiert Einstellungen, Markierungen und virtuelle Sammlungen als JSON.")
         export_button.clicked.connect(self._export_state)
         layout.addWidget(export_button)
 
-        import_button=QPushButton("⬇ Zustand importieren")
+        import_button=QPushButton("Zustand importieren")
         import_button.setObjectName("dashboard_import")
         import_button.setToolTip("Prüft und importiert nur PROVOWARE-Einstellungen und virtuelle Organisation.")
         import_button.clicked.connect(self._import_state)
@@ -272,9 +276,9 @@ class UiEnhancements(QObject):
         self.store.save(self.settings)
         stamp=datetime.now().strftime("%H:%M")
         if hasattr(self,"autosave_info"):
-            self.autosave_info.setText(f"💾 Gesichert {stamp}")
+            self.autosave_info.setText(f"Gesichert um {stamp}")
         if self.window._active_worker() is None:
-            self.window.status_label.setText("🟢 Einstellungen automatisch gesichert")
+            self.window.status_label.setText("OK · Einstellungen automatisch gesichert")
 
     def _cpu_changed(self) -> None:
         requested=int(self.cpu_combo.currentData() or 0)
@@ -282,7 +286,7 @@ class UiEnhancements(QObject):
         self.settings["cpu_cores"]=requested
         self.store.save(self._collect_settings())
         label="alle verfügbaren" if requested == 0 else str(active)
-        self.window.status_label.setText(f"🟢 CPU-Begrenzung: {label} Kern(e) für PROVOWARE")
+        self.window.status_label.setText(f"OK · CPU-Begrenzung: {label} Kern(e) für PROVOWARE")
 
     def _export_state(self) -> None:
         default=self.base_dir/"exports"/"PROVOWARE-Zustand.json"
@@ -297,7 +301,7 @@ class UiEnhancements(QObject):
         except Exception as exc:
             QMessageBox.critical(self.window,"Export fehlgeschlagen",f"Der Export wurde sicher gestoppt.\n\n{exc}")
             return
-        self.window.status_label.setText("🟢 Export geprüft und gespeichert")
+        self.window.status_label.setText("OK · Export geprüft und gespeichert")
         QMessageBox.information(
             self.window,"Export abgeschlossen",
             f"Virtuelle Organisation und Einstellungen wurden exportiert.\n\n{target}\n\nOriginaldateien wurden nicht kopiert."
@@ -329,7 +333,7 @@ class UiEnhancements(QObject):
             self.store.save(self.settings)
             self._apply_loaded_settings()
         self.window._refresh_collections()
-        self.window.status_label.setText("🟢 Import vor- und nachgeprüft")
+        self.window.status_label.setText("OK · Import vor- und nachgeprüft")
         QMessageBox.information(
             self.window,
             "Import abgeschlossen",
@@ -363,7 +367,7 @@ class UiEnhancements(QObject):
             width = min(width, area.width())
             height = min(height, area.height())
         self.window.resize(width, height)
-        self.window.status_label.setText(f"🟢 Fenstergröße {width} × {height}")
+        self.window.status_label.setText(f"OK · Fenstergröße {width} × {height}")
         self.store.save(self._collect_settings())
 
     def _zoom_from_combo(self) -> None:
@@ -373,6 +377,9 @@ class UiEnhancements(QObject):
 
     def _apply_zoom(self, value: int) -> None:
         self.zoom = value
+        self.window.setProperty("uiZoom", value)
+        self.window._update_feature_layout()
+        self.window._update_dashboard_card_layout()
         app = QApplication.instance()
         if app is None:
             return
@@ -383,19 +390,29 @@ class UiEnhancements(QObject):
                 font.setBold(True)
                 font.setPointSize(max(12, round(14 * value / 100)))
                 label.setFont(font)
+            elif label.property("cardTitle"):
+                font=label.font()
+                font.setBold(True)
+                font.setPointSize(max(11,round(8*value/100)))
+                label.setFont(font)
+            elif label.property("cardValue"):
+                font=label.font()
+                font.setBold(True)
+                font.setPointSize(max(13,round(8*value/100)))
+                label.setFont(font)
         index = self.zoom_combo.findData(value)
         if index >= 0 and self.zoom_combo.currentIndex() != index:
             self.zoom_combo.blockSignals(True)
             self.zoom_combo.setCurrentIndex(index)
             self.zoom_combo.blockSignals(False)
-        self.window.status_label.setText(f"🟢 Seitenzoom {value} %")
+        self.window.status_label.setText(f"OK · Seitenzoom {value} %")
         if hasattr(self, "cpu_combo"):
             self.store.save(self._collect_settings())
 
     def _show_selftest(self) -> None:
         checks = run_selftest(self.base_dir, require_gui=True)
         bad = [c for c in checks if not c.ok]
-        text = "\n".join(("✅ " if c.ok else "❌ ") + f"{c.name}: {c.detail}" for c in checks)
+        text = "\n".join(("OK · " if c.ok else "FEHLER · ") + f"{c.name}: {c.detail}" for c in checks)
         if bad:
             QMessageBox.warning(self.window, "Selbsttest – Prüfung nötig", text)
         else:
@@ -403,9 +420,9 @@ class UiEnhancements(QObject):
 
     def _refresh_status_style(self) -> None:
         text = self.window.status_label.text()
-        if text.startswith("🔴"):
+        if text.startswith(("Fehler", "Abbruch", "Abgebrochen")):
             style = "font-weight:900; color:#ffd9e2; background:#35121d; border:1px solid #ff4d79; border-radius:6px; padding:5px 8px;"
-        elif text.startswith("🟡"):
+        elif text.startswith(("Hinweis", "Läuft")):
             style = "font-weight:900; color:#fff2b0; background:#322a0d; border:1px solid #ffe45e; border-radius:6px; padding:5px 8px;"
         else:
             style = "font-weight:900; color:#d8ffe9; background:#0e2b20; border:1px solid #39e58c; border-radius:6px; padding:5px 8px;"
@@ -452,7 +469,7 @@ class UiEnhancements(QObject):
                 if collection_id is not None and path.exists():
                     self.database.add_collection_item(int(collection_id), path)
                     self.window._refresh_collections(select_id=int(collection_id))
-                    self.window.status_label.setText("🟢 Treffer per Drag & Drop virtuell einsortiert")
+                    self.window.status_label.setText("OK · Treffer virtuell einsortiert")
                     event.acceptProposedAction()
                 return True
         return super().eventFilter(obj, event)

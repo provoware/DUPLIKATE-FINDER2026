@@ -6,6 +6,7 @@ import importlib.metadata as metadata
 import json
 import platform
 import sys
+import tomllib
 import uuid
 from datetime import datetime, timezone
 from pathlib import Path
@@ -29,12 +30,21 @@ def dependencies()->list[dict[str,str]]:
     return result
 
 
+def project_version()->str:
+    metadata_file=Path(__file__).resolve().parents[1]/"pyproject.toml"
+    try:
+        project=tomllib.loads(metadata_file.read_text(encoding="utf-8"))["project"]
+        return str(project["version"])
+    except (OSError,KeyError,tomllib.TOMLDecodeError):
+        return "0+unbekannt"
+
+
 def main()->int:
     p=argparse.ArgumentParser()
     p.add_argument("--archive",type=Path,required=True)
     p.add_argument("--output-dir",type=Path,required=True)
     p.add_argument("--commit",required=True)
-    p.add_argument("--project-version",default="0.3.0-dev")
+    p.add_argument("--project-version",default=project_version())
     args=p.parse_args()
     args.output_dir.mkdir(parents=True,exist_ok=True)
     created=datetime.now(timezone.utc).isoformat()

@@ -92,7 +92,7 @@ Maschinenlesbar gilt `manifest/agents.manifest.json`.
 
 ## Freeze – Bedienoberfläche / Prozesssteuerung
 
-Seit v0.5.0 ist der Bereich **Bedienoberfläche / Prozesssteuerung = FROZEN**.
+Seit v0.6.0 ist der Bereich **Bedienoberfläche / Prozesssteuerung = FROZEN**. Er wurde am 2026-10-06 auf ausdrücklichen Nutzerauftrag aus dem Stand v0.5.1 wieder geöffnet und nach gezielten Korrekturen sowie vollständiger 800×600-/100/150/200-%-Abnahme erneut eingefroren. Der konkrete Verlauf ist in `manifest/project.manifest.json` und `docs/FREEZE_BEDIENUNG_PROZESS.md` festgehalten.
 
 Ohne ausdrückliche Wiederöffnung keine neuen Komfortfunktionen, kosmetischen Umbauten oder neuen Prozesssteuerungsvarianten beginnen.
 

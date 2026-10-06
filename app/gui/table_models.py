@@ -96,7 +96,7 @@ class SearchResultsModel(QAbstractTableModel):
         if role!=Qt.ItemDataRole.DisplayRole:
             return None
         if index.column()==0:
-            return "★" if marked else ""
+            return "Ja" if marked else ""
         if index.column()==1:
             return hit.source
         if index.column()==2:
@@ -116,17 +116,22 @@ class SearchResultsModel(QAbstractTableModel):
         return hit.path if hit else None
 
     def set_marked(self,path:Path,marked:bool)->None:
+        changed_rows=[]
         for page_number,page in list(self._pages.items()):
             changed=False
             updated=[]
-            for hit,current in page:
+            for local_row,(hit,current) in enumerate(page):
                 new_value=bool(marked) if hit.path==path else current
                 changed=changed or (new_value!=current)
                 updated.append((hit,new_value))
+                if new_value!=current:
+                    changed_rows.append(page_number*self.page_size+local_row)
             if changed:
                 self._pages[page_number]=updated
-        if self._count:
-            self.dataChanged.emit(self.index(0,0),self.index(self._count-1,0),[Qt.ItemDataRole.DisplayRole])
+        for row in changed_rows:
+            self.dataChanged.emit(
+                self.index(row,0),self.index(row,0),[Qt.ItemDataRole.DisplayRole]
+            )
 
     def sort(self,column:int,order:Qt.SortOrder=Qt.SortOrder.AscendingOrder)->None:
         self.layoutAboutToBeChanged.emit()

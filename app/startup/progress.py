@@ -30,7 +30,7 @@ class StartupProgressDialog(QDialog):
         self.progress=QProgressBar()
         self.progress.setRange(0,100)
         self.progress.setValue(0)
-        self.status=QLabel("🟡 Startprüfung läuft")
+        self.status=QLabel("Hinweis · Startprüfung läuft")
         self.status.setWordWrap(True)
         self.details=QLabel("")
         self.details.setWordWrap(True)
@@ -43,11 +43,11 @@ class StartupProgressDialog(QDialog):
     def checkpoint(self, index:int, total:int, name:str, ok:bool, detail:str) -> None:
         self.activity.setText(name)
         self.progress.setValue(round(index/total*100))
-        icon="🟢" if ok else "🔴"
-        self.status.setText(f"{icon} {name}")
+        state="OK" if ok else "FEHLER"
+        self.status.setText(f"{state} · {name}")
         self.details.setText(detail)
 
     def ready(self) -> None:
         self.progress.setValue(100)
         self.activity.setText("Start abgeschlossen")
-        self.status.setText("🟢 Alles bereit")
+        self.status.setText("OK · Alles bereit")

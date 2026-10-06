@@ -13,6 +13,7 @@ from PySide6.QtWidgets import QApplication, QPushButton, QLineEdit, QCheckBox, Q
 from app.gui.main_window import MainWindow  # noqa: E402
 from app.gui.theme import apply_accessible_theme  # noqa: E402
 from app.storage.database import Database  # noqa: E402
+from app.gui.enhancements import UiEnhancements  # noqa: E402
 
 
 CRITICAL_BY_PAGE = {
@@ -45,6 +46,8 @@ def main() -> int:
         db = Database(base / "data" / "ui.sqlite3")
         db.initialize()
         window = MainWindow(base, db)
+        enhancements = UiEnhancements(window, base, db, install_global_filter=False)
+        enhancements._apply_zoom(args.zoom)
         window.resize(1280, 800)
         window.show()
         app.processEvents()
@@ -80,6 +83,7 @@ def main() -> int:
         window.nav.setCurrentRow(0)
         app.processEvents()
         window.grab().save(str(args.output))
+        enhancements.dispose()
         window.close()
 
         if failures:
