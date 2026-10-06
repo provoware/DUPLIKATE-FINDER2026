@@ -9,7 +9,6 @@ from PySide6.QtWidgets import (
     QApplication,
     QCheckBox,
     QComboBox,
-    QFileDialog,
     QFrame,
     QDialog,
     QGridLayout,
@@ -32,12 +31,13 @@ from app.gui.collection_controller import CollectionController
 from app.gui.duplicate_controller import DuplicateController
 from app.gui.navigation import NAVIGATION, navigation_titles
 from app.gui.process_controller import ProcessUiController
+from app.gui.result_controller import ResultController
+from app.gui.scan_root_controller import ScanRootController
 from app.gui.search_controller import SearchController
 from app.gui.table_models import CollectionItemsModel, DuplicateMembersModel, SearchResultsModel
 from app.core.scanner import ScanOptions
 from app.safety.policy import WRITE_FEATURES
 from app.storage.database import Database
-from app.validation import validate_scan_root
 from app.gui.design_tokens import BASE_SPACING, OUTER_MARGIN
 from app.texts import text as ui_text
 from app.file_browser.widget import FileBrowserWidget
@@ -70,6 +70,8 @@ class MainWindow(QMainWindow):
         self.search_controller = SearchController(self)
         self.duplicate_controller = DuplicateController(self)
         self.collection_controller = CollectionController(self)
+        self.result_controller = ResultController(self)
+        self.scan_root_controller = ScanRootController(self)
 
         self.setWindowTitle("PROVOWARE DUPLIKATE-FINDER 2026 – Nur-Lesen-Modus")
         app = QApplication.instance()
@@ -420,7 +422,7 @@ class MainWindow(QMainWindow):
         label.setReadOnly(True)
         label.setPlaceholderText("Noch kein Ordner gewählt")
         choose = QPushButton("Ordner wählen")
-        choose.clicked.connect(self._choose_root)
+        choose.clicked.connect(self.scan_root_controller.choose)
         row.addWidget(label, 1)
         row.addWidget(choose)
         return row, label, choose
@@ -521,7 +523,7 @@ class MainWindow(QMainWindow):
         self.results.setSelectionMode(QAbstractItemView.SingleSelection)
         self.results.setEditTriggers(QAbstractItemView.NoEditTriggers)
         self.results.selectionModel().selectionChanged.connect(
-            lambda _selected, _deselected: self._load_selected_result_state()
+            lambda _selected, _deselected: self.result_controller.load_selected_state()
         )
         layout.addWidget(self.results, 1)
 
@@ -533,12 +535,12 @@ class MainWindow(QMainWindow):
         self.result_note.setPlaceholderText("Notiz zum ausgewählten Treffer")
         save_meta = QPushButton("Markierung und Notiz speichern")
         save_meta.setObjectName("result_save_meta")
-        save_meta.clicked.connect(self._save_selected_result_state)
+        save_meta.clicked.connect(self.result_controller.save_selected_state)
         self.result_collection = QComboBox()
         self.result_collection.setObjectName("result_collection")
         add_collection = QPushButton("In Sammlung aufnehmen")
         add_collection.setObjectName("result_add_collection")
-        add_collection.clicked.connect(self._add_selected_result_to_collection)
+        add_collection.clicked.connect(self.result_controller.add_selected_to_collection)
         meta.addWidget(self.result_mark, 0, 0)
         meta.addWidget(self.result_note, 0, 1, 1, 2)
         meta.addWidget(save_meta, 1, 0, 1, 3)
@@ -726,18 +728,6 @@ class MainWindow(QMainWindow):
         layout.addStretch(1)
         return page
 
-    def _choose_root(self) -> None:
-        chosen = QFileDialog.getExistingDirectory(self, "Suchordner wählen", str(Path.home()))
-        if not chosen:
-            return
-        validation = validate_scan_root(Path(chosen))
-        if not validation.ok:
-            QMessageBox.information(self, validation.title, validation.message)
-            return
-        self.selected_root = Path(chosen)
-        self.root_label.setText(chosen)
-        self.duplicate_root.setText(f"Suchordner: {chosen}")
-
     def _active_worker(self):
         """Kompatibilitätsbrücke für Erweiterungen, die den aktiven Worker abfragen."""
         return self.process_controller.active_worker()
@@ -768,41 +758,6 @@ class MainWindow(QMainWindow):
         type_text = ", ".join(extensions) if extensions else "keine zusätzlichen Dateitypen"
         if hasattr(self, "duplicate_filter_info"):
             self.duplicate_filter_info.setText(f"Ausschlüsse: {python_text} · {type_text}")
-
-    def _selected_result_path(self) -> Path | None:
-        index = self.results.currentIndex()
-        return self.results_model.path_at(index.row()) if index.isValid() else None
-
-    def _load_selected_result_state(self) -> None:
-        path = self._selected_result_path()
-        if path is None:
-            return
-        state = self.database.virtual_item(path)
-        self.result_mark.setChecked(state.marked)
-        self.result_note.setText(state.note)
-
-    def _save_selected_result_state(self) -> None:
-        path = self._selected_result_path()
-        if path is None:
-            QMessageBox.information(self, "Kein Treffer", "Bitte zuerst einen Treffer auswählen.")
-            return
-        marked=self.result_mark.isChecked()
-        self.database.set_virtual_item(path, marked, self.result_note.text())
-        self.results_model.set_marked(path,marked)
-        self.status_label.setText("OK · Virtuelle Markierung gespeichert")
-
-    def _add_selected_result_to_collection(self) -> None:
-        path = self._selected_result_path()
-        collection_id = self.result_collection.currentData()
-        if path is None:
-            QMessageBox.information(self, "Kein Treffer", "Bitte zuerst einen Treffer auswählen.")
-            return
-        if collection_id is None:
-            QMessageBox.information(self, "Keine Sammlung", "Bitte zuerst eine Sammlung anlegen.")
-            return
-        self.database.add_collection_item(int(collection_id), path, self.result_note.text())
-        self.collection_controller.show(self.collection_list.currentRow())
-        self.status_label.setText("OK · Treffer virtuell zur Sammlung hinzugefügt")
 
     def _refresh_collections(self, select_id: int | None = None) -> None:
         """Kompatibilitätsbrücke für Erweiterungen mit bestehendem Refresh-Vertrag."""
