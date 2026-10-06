@@ -4,19 +4,23 @@ on:
   workflow_dispatch:
   push:
     tags: ["v*"]
-    branches: ["feature/release-e2e-*"]
+    branches: ["feature/release-e2e-*", "feature/provoware-autonomie-standard-*"]
 
 permissions:
   contents: read
+
+concurrency:
+  group: provoware-portable-${{ github.workflow }}-${{ github.ref }}
+  cancel-in-progress: true
 
 jobs:
   build:
     name: Linux x86_64 portabel · E2E
     runs-on: ubuntu-24.04
     env:
-      VERSION: "0.2.0"
+      VERSION: "0.3.0"
       PACKAGE_DIR: PROVOWARE-DUPLIKATE-FINDER-2026
-      ARCHIVE: PROVOWARE-DUPLIKATE-FINDER-2026-v0.2.0-linux-x86_64.tar.gz
+      ARCHIVE: PROVOWARE-DUPLIKATE-FINDER-2026-v0.3.0-linux-x86_64.tar.gz
       PYTHON_ARCHIVE: cpython-3.12.15+20261003-x86_64-unknown-linux-gnu-install_only_stripped.tar.gz
       PYTHON_SHA256: 731af898886c5f821890dc901eca3c651cca8e51fa7308c159d12a1194aeac91
       PYTHON_URL: https://github.com/astral-sh/python-build-standalone/releases/download/20261003/cpython-3.12.15%2B20261003-x86_64-unknown-linux-gnu-install_only_stripped.tar.gz
@@ -51,9 +55,9 @@ jobs:
 
           "$R/runtime/bin/python3" -m pip install             --disable-pip-version-check             --no-index             --find-links "$R/wheelhouse"             "PySide6>=6.8,<7"
 
-          cp -a app docs agents STARTEN.sh STARTEN_KONSOLE.sh STARTEN.desktop             README.md SECURITY.md CHANGELOG.md pyproject.toml "$R/"
+          cp -a app docs agents manifest standards schemas templates resources             STARTEN.sh STARTEN_KONSOLE.sh STARTEN.desktop             README.md SECURITY.md CHANGELOG.md pyproject.toml dependencies.env "$R/"
           mkdir -p "$R/tools"
-          cp tools/autonomous_acceptance.py "$R/tools/"
+          cp tools/autonomous_acceptance.py tools/build_metadata.py "$R/tools/"
 
           mkdir -p "$R/data" "$R/logs" "$R/recovery" "$R/quarantine"
           touch "$R/data/.gitkeep" "$R/logs/.gitkeep" "$R/recovery/.gitkeep" "$R/quarantine/.gitkeep"
@@ -63,8 +67,8 @@ jobs:
           import tomllib
           from pathlib import Path
           cfg = tomllib.loads(Path("release/PROVOWARE-DUPLIKATE-FINDER-2026/pyproject.toml").read_text(encoding="utf-8"))
-          assert cfg["project"]["version"] == "0.2.0"
-          print("OK | Paketversion 0.2.0")
+          assert cfg["project"]["version"] == "0.3.0"
+          print("OK | Paketversion 0.3.0")
           PY
 
       - name: Selbsttest vor Archivierung
@@ -84,13 +88,21 @@ jobs:
           raise SystemExit(1 if bad else 0)
           PY
 
-      - name: Archiv und SHA-256 erzeugen
+      - name: Reproduzierbares Archiv und SHA-256 erzeugen
         run: |
           set -euo pipefail
+          SOURCE_DATE_EPOCH="$(git log -1 --format=%ct)"
           cd release
-          tar -czf "$ARCHIVE" "$PACKAGE_DIR"
+          tar --sort=name --mtime="@${SOURCE_DATE_EPOCH}" --owner=0 --group=0 --numeric-owner -cf - "$PACKAGE_DIR" | gzip -n > "$ARCHIVE"
           sha256sum "$ARCHIVE" > "$ARCHIVE.sha256"
           sha256sum --check --strict "$ARCHIVE.sha256"
+
+      - name: Build-Nachweis und SPDX-Komponentenliste
+        run: |
+          set -euo pipefail
+          R="$GITHUB_WORKSPACE/release/$PACKAGE_DIR"
+          mkdir -p "$GITHUB_WORKSPACE/e2e/evidence"
+          "$R/runtime/bin/python3" "$R/tools/build_metadata.py"             --archive "$GITHUB_WORKSPACE/release/$ARCHIVE"             --output-dir "$GITHUB_WORKSPACE/e2e/evidence"             --commit "$GITHUB_SHA"             --project-version "$VERSION"
 
       - name: Archiv in frischen Ordner entpacken
         run: |
@@ -106,14 +118,18 @@ jobs:
         env:
           QT_QPA_PLATFORM: offscreen
           PROVOWARE_SMOKE_TEST: "1"
+          PROVOWARE_PROJECT_DIR: ${{ github.workspace }}/e2e/workspace
         run: |
           set -euo pipefail
           P="$GITHUB_WORKSPACE/e2e/fresh/$PACKAGE_DIR"
           "$P/STARTEN.sh"
-          grep -q "Oberfläche bereit" "$P/logs/provoware.log"
+          grep -q "Oberfläche bereit" "$GITHUB_WORKSPACE/e2e/workspace/logs/provoware.log"
+          test -f "$GITHUB_WORKSPACE/e2e/workspace/config/arbeitsordner.json"
           echo "OK | STARTEN.sh startete die echte GUI" | tee "$GITHUB_WORKSPACE/e2e/evidence/gui-start.txt"
 
       - name: Echter Konsolenstart über STARTEN_KONSOLE.sh
+        env:
+          PROVOWARE_PROJECT_DIR: ${{ github.workspace }}/e2e/workspace
         run: |
           set -euo pipefail
           P="$GITHUB_WORKSPACE/e2e/fresh/$PACKAGE_DIR"
@@ -126,6 +142,7 @@ jobs:
           PROVOWARE_SMOKE_TEST: "1"
           PIP_NO_INDEX: "1"
           PIP_DISABLE_PIP_VERSION_CHECK: "1"
+          PROVOWARE_PROJECT_DIR: ${{ github.workspace }}/e2e/workspace
         run: |
           set -euo pipefail
           P="$GITHUB_WORKSPACE/e2e/fresh/$PACKAGE_DIR"
@@ -150,11 +167,12 @@ jobs:
           "$P/STARTEN.sh"
 
           "$P/runtime/bin/python3" -c 'import PySide6; print("OK | PySide6 offline repariert:", PySide6.__version__)'             | tee "$GITHUB_WORKSPACE/e2e/evidence/offline-repair.txt"
-          grep -q '"ok": true' "$P/logs/startup-status.json"
+          grep -q '"ok": true' "$GITHUB_WORKSPACE/e2e/workspace/logs/startup-status.json"
 
       - name: Autonome 73-von-73-Abnahme im entpackten Paket
         env:
           QT_QPA_PLATFORM: offscreen
+          PROVOWARE_PROJECT_DIR: ${{ github.workspace }}/e2e/workspace
         run: |
           set -euo pipefail
           P="$GITHUB_WORKSPACE/e2e/fresh/$PACKAGE_DIR"
@@ -193,9 +211,9 @@ jobs:
       - name: Release-Paket und komplette E2E-Evidenz bereitstellen
         uses: actions/upload-artifact@v4
         with:
-          name: PROVOWARE-DUPLIKATE-FINDER-2026-v0.2.0-linux-x86_64-E2E
+          name: PROVOWARE-DUPLIKATE-FINDER-2026-v0.3.0-linux-x86_64-E2E
           compression-level: 0
           path: |
-            release/PROVOWARE-DUPLIKATE-FINDER-2026-v0.2.0-linux-x86_64.tar.gz
-            release/PROVOWARE-DUPLIKATE-FINDER-2026-v0.2.0-linux-x86_64.tar.gz.sha256
+            release/PROVOWARE-DUPLIKATE-FINDER-2026-v0.3.0-linux-x86_64.tar.gz
+            release/PROVOWARE-DUPLIKATE-FINDER-2026-v0.3.0-linux-x86_64.tar.gz.sha256
             e2e/evidence/
