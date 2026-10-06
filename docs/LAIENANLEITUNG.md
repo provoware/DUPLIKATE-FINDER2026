@@ -78,3 +78,59 @@ Einstellungen werden alle fünf Minuten automatisch gespeichert. Virtuelle Samml
 **Zustand exportieren** sichert Einstellungen und virtuelle Organisation als JSON-Datei. Originaldateien werden nicht kopiert.
 
 **Zustand importieren** prüft die Datei vor und nach der Übernahme. Originaldateien bleiben unverändert.
+
+
+## Dateien ansehen – ohne etwas zu verändern
+
+Öffne den Bereich **„Dateien & Vorschau“**.
+
+1. Klicke auf **Ordner wählen**.
+2. Wähle einen normalen Ordner oder einen eingehängten USB-Datenträger.
+3. Klicke einmal auf eine Datei.
+4. Rechts erscheint die Vorschau oder eine verständliche Information zum Dateityp.
+
+Du kannst die Liste über das Suchfeld nach Dateinamen filtern. Daneben lässt sich auswählen, ob nur Text, Bilder, PDF, Dokumente, Audio, Video oder andere Dateien gezeigt werden sollen.
+
+### Was kann direkt angezeigt werden?
+
+- Textdateien
+- DOCX-Dokumente als Textvorschau
+- ODT-Dokumente als Textvorschau
+- Bilder
+- PDF-Dateien
+- PDF-Seiten können mit **← Seite** und **Seite →** durchgeblättert werden
+
+Bei Bildern werden zusätzlich Originalgröße, Bildformat und Seitenverhältnis angezeigt.
+
+Bei Audio und Video zeigt PROVOWARE verfügbare technische Angaben wie Dauer, Format, Bildgröße oder Tonkanäle. Fehlen auf dem Linux-System die dafür nötigen Analysefunktionen, funktioniert das Werkzeug trotzdem weiter.
+
+### Was bedeuten die Knöpfe?
+
+- **Öffnen:** Datei mit dem normalen Linux-Standardprogramm öffnen.
+- **Ordner:** Speicherort im Dateimanager öffnen.
+- **Pfad kopieren:** vollständigen Speicherpfad kopieren.
+- **Markieren:** Datei nur innerhalb von PROVOWARE kennzeichnen.
+- **Zu Sammlung:** Datei einer virtuellen Sammlung zuordnen.
+
+**Keiner dieser Knöpfe löscht, verschiebt, benennt um oder überschreibt die Originaldatei.**
+
+## PDF durchblättern
+
+Wird eine PDF-Datei ausgewählt, zeigt PROVOWARE die aktuelle Seite und die Gesamtzahl an, zum Beispiel:
+
+`Seite 2 / 14`
+
+Mit den beiden Seitenknöpfen kann vor- und zurückgeblättert werden. Die PDF-Datei selbst wird dabei nicht verändert.
+
+## Wenn keine Vorschau erscheint
+
+Das ist nicht automatisch ein Fehler.
+
+Mögliche Gründe:
+
+- das Dateiformat besitzt noch keine interne Vorschau,
+- die Datei ist beschädigt,
+- eine optionale Linux-Medienanalyse ist nicht vorhanden,
+- es handelt sich um eine symbolische Verknüpfung, die aus Sicherheitsgründen nicht automatisch geöffnet wird.
+
+In diesen Fällen kann die Datei – sofern sicher zulässig – über **Öffnen** an das Linux-Standardprogramm übergeben werden.
