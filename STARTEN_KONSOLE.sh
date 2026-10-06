@@ -11,4 +11,4 @@ export PYTHONDONTWRITEBYTECODE=1
 export PYTHONPATH="$ROOT"
 cd "$ROOT"
 "$PYTHON" -m app.startup.bootstrap --console
-exec "$PYTHON" -m app.cli
+exec "$PYTHON" -m app.cli "$@"

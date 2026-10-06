@@ -4,65 +4,195 @@ on:
   workflow_dispatch:
   push:
     tags: ["v*"]
+    branches: ["feature/release-e2e-*"]
 
 permissions:
   contents: read
 
 jobs:
   build:
-    name: Linux x86_64 portabel
+    name: Linux x86_64 portabel · E2E
     runs-on: ubuntu-24.04
     env:
+      VERSION: "0.2.0"
+      PACKAGE_DIR: PROVOWARE-DUPLIKATE-FINDER-2026
+      ARCHIVE: PROVOWARE-DUPLIKATE-FINDER-2026-v0.2.0-linux-x86_64.tar.gz
       PYTHON_ARCHIVE: cpython-3.12.15+20261003-x86_64-unknown-linux-gnu-install_only_stripped.tar.gz
       PYTHON_SHA256: 731af898886c5f821890dc901eca3c651cca8e51fa7308c159d12a1194aeac91
       PYTHON_URL: https://github.com/astral-sh/python-build-standalone/releases/download/20261003/cpython-3.12.15%2B20261003-x86_64-unknown-linux-gnu-install_only_stripped.tar.gz
     steps:
       - uses: actions/checkout@v4
+
+      - name: Qt-Laufzeit nur für den CI-Prüfrechner bereitstellen
+        run: |
+          sudo apt-get update
+          sudo apt-get install -y --no-install-recommends libegl1 libgl1 libxkbcommon0 libfontconfig1
+
       - name: Portable Python-Laufzeit laden und prüfen
         run: |
+          set -euo pipefail
           curl --fail --location --retry 3 --output "$PYTHON_ARCHIVE" "$PYTHON_URL"
           echo "$PYTHON_SHA256  $PYTHON_ARCHIVE" | sha256sum --check --strict
-      - name: Paketverzeichnis bauen
+
+      - name: Portables Paket bauen
         run: |
           set -euo pipefail
-          mkdir -p release/PROVOWARE-DUPLIKATE-FINDER-2026
-          tar -xzf "$PYTHON_ARCHIVE" -C release/PROVOWARE-DUPLIKATE-FINDER-2026
-          mv release/PROVOWARE-DUPLIKATE-FINDER-2026/python release/PROVOWARE-DUPLIKATE-FINDER-2026/runtime
-          R=release/PROVOWARE-DUPLIKATE-FINDER-2026
+          R="$GITHUB_WORKSPACE/release/$PACKAGE_DIR"
+          mkdir -p "$R"
+          tar -xzf "$PYTHON_ARCHIVE" -C "$R"
+          mv "$R/python" "$R/runtime"
+
           if ! "$R/runtime/bin/python3" -m pip --version >/dev/null 2>&1; then
             "$R/runtime/bin/python3" -m ensurepip --upgrade
           fi
+
           mkdir -p "$R/wheelhouse"
-          "$R/runtime/bin/python3" -m pip download --disable-pip-version-check --only-binary=:all: --dest "$R/wheelhouse" "PySide6>=6.8,<7"
-          "$R/runtime/bin/python3" -m pip install --disable-pip-version-check --no-index --find-links "$R/wheelhouse" "PySide6>=6.8,<7"
-          cp -a app docs agents STARTEN.sh STARTEN_KONSOLE.sh STARTEN.desktop README.md SECURITY.md CHANGELOG.md pyproject.toml "$R/"
+          "$R/runtime/bin/python3" -m pip download             --disable-pip-version-check             --only-binary=:all:             --dest "$R/wheelhouse"             "PySide6>=6.8,<7"
+
+          "$R/runtime/bin/python3" -m pip install             --disable-pip-version-check             --no-index             --find-links "$R/wheelhouse"             "PySide6>=6.8,<7"
+
+          cp -a app docs agents STARTEN.sh STARTEN_KONSOLE.sh STARTEN.desktop             README.md SECURITY.md CHANGELOG.md pyproject.toml "$R/"
+          mkdir -p "$R/tools"
+          cp tools/autonomous_acceptance.py "$R/tools/"
+
           mkdir -p "$R/data" "$R/logs" "$R/recovery" "$R/quarantine"
           touch "$R/data/.gitkeep" "$R/logs/.gitkeep" "$R/recovery/.gitkeep" "$R/quarantine/.gitkeep"
-          chmod +x "$R/STARTEN.sh" "$R/STARTEN.desktop"
-      - name: Portablen Selbsttest ausführen
+          chmod +x "$R/STARTEN.sh" "$R/STARTEN_KONSOLE.sh" "$R/STARTEN.desktop"
+
+          "$R/runtime/bin/python3" - <<'PY'
+          import tomllib
+          from pathlib import Path
+          cfg = tomllib.loads(Path("release/PROVOWARE-DUPLIKATE-FINDER-2026/pyproject.toml").read_text(encoding="utf-8"))
+          assert cfg["project"]["version"] == "0.2.0"
+          print("OK | Paketversion 0.2.0")
+          PY
+
+      - name: Selbsttest vor Archivierung
         env:
           QT_QPA_PLATFORM: offscreen
         run: |
-          R=release/PROVOWARE-DUPLIKATE-FINDER-2026
+          set -euo pipefail
+          R="$GITHUB_WORKSPACE/release/$PACKAGE_DIR"
           PYTHONPATH="$R" "$R/runtime/bin/python3" - <<'PY'
           from pathlib import Path
           from app.startup.selftest import run_selftest
           base = Path("release/PROVOWARE-DUPLIKATE-FINDER-2026")
-          checks = run_selftest(base)
+          checks = run_selftest(base, require_gui=True)
           bad = [c for c in checks if not c.ok]
           for c in checks:
               print(("OK" if c.ok else "FEHLER"), c.name, c.detail)
           raise SystemExit(1 if bad else 0)
           PY
-      - name: Archiv + Prüfsumme erzeugen
+
+      - name: Archiv und SHA-256 erzeugen
         run: |
+          set -euo pipefail
           cd release
-          tar -czf PROVOWARE-DUPLIKATE-FINDER-2026-linux-x86_64.tar.gz PROVOWARE-DUPLIKATE-FINDER-2026
-          sha256sum PROVOWARE-DUPLIKATE-FINDER-2026-linux-x86_64.tar.gz > PROVOWARE-DUPLIKATE-FINDER-2026-linux-x86_64.tar.gz.sha256
-      - name: Release-Artefakt bereitstellen
+          tar -czf "$ARCHIVE" "$PACKAGE_DIR"
+          sha256sum "$ARCHIVE" > "$ARCHIVE.sha256"
+          sha256sum --check --strict "$ARCHIVE.sha256"
+
+      - name: Archiv in frischen Ordner entpacken
+        run: |
+          set -euo pipefail
+          mkdir -p e2e/fresh e2e/evidence
+          cd release
+          sha256sum --check --strict "$ARCHIVE.sha256"
+          tar -xzf "$ARCHIVE" -C "$GITHUB_WORKSPACE/e2e/fresh"
+          cp "$ARCHIVE.sha256" "$GITHUB_WORKSPACE/e2e/evidence/"
+          sha256sum "$ARCHIVE" | tee "$GITHUB_WORKSPACE/e2e/evidence/archive-sha256-verified.txt"
+
+      - name: Echter GUI-Start über STARTEN.sh
+        env:
+          QT_QPA_PLATFORM: offscreen
+          PROVOWARE_SMOKE_TEST: "1"
+        run: |
+          set -euo pipefail
+          P="$GITHUB_WORKSPACE/e2e/fresh/$PACKAGE_DIR"
+          "$P/STARTEN.sh"
+          grep -q "Oberfläche bereit" "$P/logs/provoware.log"
+          echo "OK | STARTEN.sh startete die echte GUI" | tee "$GITHUB_WORKSPACE/e2e/evidence/gui-start.txt"
+
+      - name: Echter Konsolenstart über STARTEN_KONSOLE.sh
+        run: |
+          set -euo pipefail
+          P="$GITHUB_WORKSPACE/e2e/fresh/$PACKAGE_DIR"
+          "$P/STARTEN_KONSOLE.sh" --selftest | tee "$GITHUB_WORKSPACE/e2e/evidence/console-start.txt"
+          grep -q "OK Python" "$GITHUB_WORKSPACE/e2e/evidence/console-start.txt"
+
+      - name: Offline-Reparatur von PySide6 simulieren
+        env:
+          QT_QPA_PLATFORM: offscreen
+          PROVOWARE_SMOKE_TEST: "1"
+          PIP_NO_INDEX: "1"
+          PIP_DISABLE_PIP_VERSION_CHECK: "1"
+        run: |
+          set -euo pipefail
+          P="$GITHUB_WORKSPACE/e2e/fresh/$PACKAGE_DIR"
+          SITE="$("$P/runtime/bin/python3" -c 'import site; print(site.getsitepackages()[0])')"
+          mkdir -p "$P/recovery/pyside6-simulation"
+
+          shopt -s nullglob
+          targets=("$SITE/PySide6" "$SITE"/PySide6-*.dist-info)
+          if (( ${#targets[@]} == 0 )); then
+            echo "FEHLER | PySide6-Testobjekte nicht gefunden" >&2
+            exit 1
+          fi
+          mv "${targets[@]}" "$P/recovery/pyside6-simulation/"
+
+          if "$P/runtime/bin/python3" -c 'import PySide6' >/dev/null 2>&1; then
+            echo "FEHLER | PySide6 wurde für die Reparatursimulation nicht vollständig entfernt" >&2
+            exit 1
+          fi
+
+          "$P/STARTEN.sh"
+
+          "$P/runtime/bin/python3" -c 'import PySide6; print("OK | PySide6 offline repariert:", PySide6.__version__)'             | tee "$GITHUB_WORKSPACE/e2e/evidence/offline-repair.txt"
+          grep -q '"ok": true' "$P/logs/startup-status.json"
+
+      - name: Autonome 73-von-73-Abnahme im entpackten Paket
+        env:
+          QT_QPA_PLATFORM: offscreen
+        run: |
+          set -euo pipefail
+          P="$GITHUB_WORKSPACE/e2e/fresh/$PACKAGE_DIR"
+          OUT="$GITHUB_WORKSPACE/e2e/evidence/abnahme"
+          cd "$P"
+          "$P/runtime/bin/python3" tools/autonomous_acceptance.py --output "$OUT"             | tee "$GITHUB_WORKSPACE/e2e/evidence/acceptance.txt"
+
+          "$P/runtime/bin/python3" - <<'PY'
+          import json
+          from pathlib import Path
+          report = json.loads(Path("../evidence/abnahme/report.json").read_text(encoding="utf-8"))
+          results = report["results"]
+          assert len(results) == 73, len(results)
+          assert all(item["ok"] for item in results)
+          print("OK | 73/73 autonome Prüfungen grün")
+          PY
+
+      - name: E2E-Evidenz zusammenfassen
+        run: |
+          set -euo pipefail
+          P="$GITHUB_WORKSPACE/e2e/fresh/$PACKAGE_DIR"
+          {
+            echo "PROVOWARE DUPLIKATE-FINDER 2026"
+            echo "Version: $VERSION"
+            echo "Commit: $GITHUB_SHA"
+            echo "Paket: $ARCHIVE"
+            cat "$GITHUB_WORKSPACE/e2e/evidence/archive-sha256-verified.txt"
+            echo "GUI-Start: OK"
+            echo "Konsolenstart: OK"
+            echo "Offline-Reparatur: OK"
+            echo "Autonome Abnahme: 73/73 grün"
+            echo "Originaldatei-Sicherheitsmodus: read_only"
+          } | tee "$GITHUB_WORKSPACE/e2e/evidence/E2E-SUMMARY.txt"
+
+      - name: Release-Paket und komplette E2E-Evidenz bereitstellen
         uses: actions/upload-artifact@v4
         with:
-          name: PROVOWARE-DUPLIKATE-FINDER-2026-linux-x86_64
+          name: PROVOWARE-DUPLIKATE-FINDER-2026-v0.2.0-linux-x86_64-E2E
+          compression-level: 0
           path: |
-            release/PROVOWARE-DUPLIKATE-FINDER-2026-linux-x86_64.tar.gz
-            release/PROVOWARE-DUPLIKATE-FINDER-2026-linux-x86_64.tar.gz.sha256
+            release/PROVOWARE-DUPLIKATE-FINDER-2026-v0.2.0-linux-x86_64.tar.gz
+            release/PROVOWARE-DUPLIKATE-FINDER-2026-v0.2.0-linux-x86_64.tar.gz.sha256
+            e2e/evidence/

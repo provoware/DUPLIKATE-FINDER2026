@@ -36,6 +36,20 @@ Fehlt die Datei, wird beendet. Kein Fallback auf `/usr/bin/python`, keine Paketi
 
 Vor Erzeugung des Archivs läuft der Selbsttest mit genau der gebündelten Laufzeit.
 
+Danach folgt die End-to-End-Abnahme des **wirklich erzeugten Archivs**:
+
+1. SHA-256 des Archivs prüfen.
+2. Archiv in einen frischen Ordner entpacken.
+3. `STARTEN.sh` mit echtem PySide6/Qt im unsichtbaren Starttest ausführen.
+4. `STARTEN_KONSOLE.sh --selftest` ausführen.
+5. PySide6 im entpackten Paket absichtlich entfernen.
+6. Internetzugriff für pip deaktivieren und `STARTEN.sh` erneut ausführen.
+7. prüfen, dass PySide6 ausschließlich aus dem mitgelieferten `wheelhouse/` repariert wurde.
+8. die autonome 73/73-Abnahme direkt mit der entpackten portablen Laufzeit ausführen.
+9. HTML-Prüfraster, JSON-Bericht, Startprotokolle und Paket-Prüfsumme als Evidenz sichern.
+
+Erst danach gilt der portable Stand als abgenommen.
+
 Danach werden erzeugt:
 
 - `.tar.gz`
@@ -43,4 +57,4 @@ Danach werden erzeugt:
 
 ## Plattform
 
-v0.1.0 baut zunächst Linux `x86_64`. Weitere Architekturen werden erst nach eigenem Testpfad ergänzt.
+v0.2.0 baut zunächst Linux `x86_64`. Weitere Architekturen werden erst nach eigenem Testpfad ergänzt.

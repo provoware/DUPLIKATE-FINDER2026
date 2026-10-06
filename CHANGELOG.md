@@ -2,6 +2,11 @@
 
 ## [Unveröffentlicht]
 
+### Geplant
+- weitere Dateiformate und spätere, separat freizugebende Schreibfunktionen
+
+## [0.2.0] – 2026-10-06
+
 ### Hinzugefügt
 - professionelle Repository-Grundstruktur
 - read-only Sicherheitskern
@@ -15,3 +20,9 @@
 - automatische 100/150/200-%-Sichtbarkeitsprüfung
 - portabler Release-Bau mit eigener Python-Laufzeit und PySide6
 - Agentenverträge und Entwicklungsdokumentation
+
+- Konsolenmodus mit nummerierten Menüs
+- autonome 800×600-/100/150/200-%-Abnahme mit HTML-Bildraster
+- professionelles Logging und Diagnose-Dashboard
+- Offline-Selbstheilung von PySide6 aus dem portablen wheelhouse
+- echter End-to-End-Test des erzeugten und frisch entpackten Release-Pakets
