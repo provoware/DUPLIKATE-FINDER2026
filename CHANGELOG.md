@@ -27,7 +27,9 @@
 ### Qualität
 - Dateityp-, Text-, Bild- und Medienfallback-Tests
 - Datei-Browser in gezielte Prüfplanung und autonome UI-Abnahme aufgenommen
-- UI-/Prozessbereich für diesen Auftrag kontrolliert wieder geöffnet; Re-Freeze erst nach vollständiger Abnahme
+- UI-/Prozessbereich nach vollständiger 800×600-/100/150/200-%-, autonomer und Portable-Abnahme wieder FROZEN 🟢
+- Lite gegenüber Recovery entpackt um 25,64 % bzw. 252,7 MiB reduziert, ohne aggressive Laufzeitbeschneidung
+- Audio/Video und AppImage anschließend separat analysiert; keine zusätzliche Multimedia-Abhängigkeit in v0.8.0 aufgenommen
 
 ## [0.7.1] – 2026-10-06
 
