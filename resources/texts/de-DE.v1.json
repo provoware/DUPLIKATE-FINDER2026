@@ -24,5 +24,31 @@
     "search_short": "Hier wählst du einen Ordner und suchst nach Text oder Dateinamen.",
     "duplicates_short": "Hier werden nur vollständig identische Dateien gruppiert. Es wird nichts gelöscht.",
     "collections_short": "Sammlungen ordnen Treffer nur virtuell. Originaldateien bleiben unverändert."
+  },
+  "navigation": {
+    "dashboard": "Übersicht",
+    "search": "Textsuche",
+    "results": "Ergebnisse",
+    "duplicates": "Duplikate",
+    "collections": "Sammlungen",
+    "files": "Dateien & Vorschau",
+    "journal": "Journal",
+    "help": "Hilfe"
+  },
+  "collections": {
+    "heading": "Virtuelle Sammlungen",
+    "name_placeholder": "Name der neuen Sammlung",
+    "note_placeholder": "Optionale Beschreibung",
+    "create_button": "Sammlung anlegen",
+    "none_selected": "Noch keine Sammlung ausgewählt.",
+    "none_created": "Noch keine Sammlung angelegt.",
+    "remove_button": "Nur aus Sammlung entfernen",
+    "safety_note": "Sammlungen sind rein virtuell. Die Dateien bleiben an ihrem Originalort.",
+    "error_name_title": "Name fehlt",
+    "error_create_title": "Sammlung nicht angelegt",
+    "no_selection_title": "Keine Auswahl",
+    "no_selection_message": "Bitte einen Sammlungseintrag auswählen.",
+    "status_created": "OK · Virtuelle Sammlung angelegt",
+    "status_removed": "OK · Eintrag nur aus der virtuellen Sammlung entfernt"
   }
 }
