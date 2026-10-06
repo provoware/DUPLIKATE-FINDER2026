@@ -3,9 +3,7 @@ from __future__ import annotations
 from dataclasses import dataclass
 from datetime import datetime
 from pathlib import Path
-
-from PySide6.QtCore import QSize, Qt
-from PySide6.QtGui import QImage, QImageReader
+from typing import Any
 
 from app.file_browser.classification import classify_path
 from app.formatting import format_bytes
@@ -20,7 +18,7 @@ class PreviewData:
     title: str
     details: str
     text: str = ""
-    image: QImage | None = None
+    image: Any | None = None
 
 
 def _file_details(path: Path) -> str:
@@ -52,20 +50,25 @@ def read_text_preview(path: Path, limit: int = MAX_TEXT_PREVIEW_BYTES) -> str:
     return text
 
 
-def read_image_preview(path: Path, target: QSize = QSize(1000, 800)) -> QImage | None:
+def read_image_preview(path: Path, target_width: int = 1000, target_height: int = 800):
+    from PySide6.QtCore import QSize, Qt
+    from PySide6.QtGui import QImageReader
+
     reader = QImageReader(str(path))
     if not reader.canRead():
         return None
     original = reader.size()
     if original.isValid():
         scaled = QSize(original)
-        scaled.scale(target, Qt.AspectRatioMode.KeepAspectRatio)
+        scaled.scale(QSize(target_width, target_height), Qt.AspectRatioMode.KeepAspectRatio)
         reader.setScaledSize(scaled)
     image = reader.read()
     return None if image.isNull() else image
 
 
-def read_pdf_preview(path: Path, target: QSize = QSize(1000, 1200)) -> tuple[QImage | None, str]:
+def read_pdf_preview(path: Path, target_width: int = 1000, target_height: int = 1200):
+    from PySide6.QtCore import QSize, Qt
+
     try:
         from PySide6.QtPdf import QPdfDocument
     except ImportError:
@@ -78,9 +81,8 @@ def read_pdf_preview(path: Path, target: QSize = QSize(1000, 1200)) -> tuple[QIm
     pages = document.pageCount()
     if pages < 1:
         return None, "PDF enthält keine darstellbare Seite."
-    page_size = document.pagePointSize(0)
-    render_size = page_size.toSize()
-    render_size.scale(target, Qt.AspectRatioMode.KeepAspectRatio)
+    render_size = document.pagePointSize(0).toSize()
+    render_size.scale(QSize(target_width, target_height), Qt.AspectRatioMode.KeepAspectRatio)
     image = document.render(0, render_size)
     return (None if image.isNull() else image), f"Seiten: {pages}"
 
