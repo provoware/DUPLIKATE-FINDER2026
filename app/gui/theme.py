@@ -55,7 +55,7 @@ def apply_accessible_theme(app:QApplication,zoom:int|None=None)->int:
             color:#f4feff;
             border:2px solid #54e6e9;
             border-radius:8px;
-            padding:9px;
+            padding:6px 8px;
             font-weight:800;
         }
         QLabel[cardTitle="true"] { color:#c0d0dc; font-size:0.92em; }
