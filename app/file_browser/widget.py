@@ -130,12 +130,15 @@ class FileBrowserWidget(QWidget):
             lambda _index: self.proxy.set_kind(str(self.kind.currentData()))
         )
 
-        controls.addWidget(self.root_label, 0, 0, 1, 2)
-        controls.addWidget(choose, 1, 0)
-        controls.addWidget(up, 1, 1)
-        controls.addWidget(self.query, 2, 0)
-        controls.addWidget(self.kind, 2, 1)
-        controls.addWidget(refresh, 3, 0, 1, 2)
+        controls.addWidget(self.root_label, 0, 0, 1, 3)
+        controls.addWidget(choose, 0, 3)
+        controls.addWidget(self.query, 1, 0, 1, 2)
+        controls.addWidget(self.kind, 1, 2)
+        compact_tools = QHBoxLayout()
+        compact_tools.setSpacing(4)
+        compact_tools.addWidget(up)
+        compact_tools.addWidget(refresh)
+        controls.addLayout(compact_tools, 1, 3)
         root.addLayout(controls)
 
         splitter = QSplitter(Qt.Orientation.Horizontal)
@@ -169,7 +172,7 @@ class FileBrowserWidget(QWidget):
         self.preview_image = QLabel("Vorschau")
         self.preview_image.setObjectName("file_preview_image")
         self.preview_image.setAlignment(Qt.AlignmentFlag.AlignCenter)
-        self.preview_image.setMinimumHeight(120)
+        self.preview_image.setMinimumHeight(72)
         self.preview_image.setWordWrap(True)
         preview_layout.addWidget(self.preview_image, 2)
 
@@ -213,9 +216,9 @@ class FileBrowserWidget(QWidget):
 
         actions.addWidget(self.open_button, 0, 0)
         actions.addWidget(self.show_button, 0, 1)
-        actions.addWidget(self.copy_button, 1, 0)
-        actions.addWidget(self.mark_button, 1, 1)
-        actions.addWidget(self.collection_button, 2, 0, 1, 2)
+        actions.addWidget(self.copy_button, 0, 2)
+        actions.addWidget(self.mark_button, 1, 0)
+        actions.addWidget(self.collection_button, 1, 1, 1, 2)
         preview_layout.addLayout(actions)
 
         splitter.addWidget(preview_frame)
@@ -224,7 +227,7 @@ class FileBrowserWidget(QWidget):
         root.addWidget(splitter, 1)
 
         note = QLabel(
-            "Nur-Lesen-Bereich: Vorschau und externe Öffnung verändern Originaldateien nicht. "
+            "Nur lesen: Vorschau und externe Öffnung verändern keine Dateien. "
             "Löschen, Verschieben, Umbenennen und Überschreiben bleiben gesperrt."
         )
         note.setObjectName("file_browser_safety")
