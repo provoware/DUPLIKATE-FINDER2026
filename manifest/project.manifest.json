@@ -253,6 +253,22 @@
           "app/gui/enhancements.py",
           "app/gui/collection_controller.py",
           "app/gui/state_portability_controller.py"
+        ],
+        "latest_quality_refrozen_on": "2026-10-07",
+        "latest_quality_verified_head": "675e18ca18e1b007ed501551a2040662758dde98",
+        "latest_quality_refreeze_evidence": [
+          "quality_core_success",
+          "wcag_aa_critical_contrast_success",
+          "bounded_text_search_regressions_success",
+          "ui_100_success",
+          "ui_150_success",
+          "ui_200_success",
+          "autonomous_acceptance_success",
+          "portable_lite_recovery_success",
+          "appimage_build_success",
+          "appimage_ubuntu_22_04_success",
+          "appimage_ubuntu_24_04_success",
+          "appimage_usb_path_success"
         ]
       },
       {
@@ -311,6 +327,22 @@
         "latest_quality_scope": [
           "app/core/search.py",
           "app/testing/sandbox.py"
+        ],
+        "latest_quality_refrozen_on": "2026-10-07",
+        "latest_quality_verified_head": "675e18ca18e1b007ed501551a2040662758dde98",
+        "latest_quality_refreeze_evidence": [
+          "quality_core_success",
+          "wcag_aa_critical_contrast_success",
+          "bounded_text_search_regressions_success",
+          "ui_100_success",
+          "ui_150_success",
+          "ui_200_success",
+          "autonomous_acceptance_success",
+          "portable_lite_recovery_success",
+          "appimage_build_success",
+          "appimage_ubuntu_22_04_success",
+          "appimage_ubuntu_24_04_success",
+          "appimage_usb_path_success"
         ]
       },
       {
