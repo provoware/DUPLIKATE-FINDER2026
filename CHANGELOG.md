@@ -5,6 +5,28 @@
 ### Geplant
 - weitere Dateiformate und spätere, separat freizugebende Schreibfunktionen
 
+## [0.9.0] – 2026-10-06
+
+### Vorschau
+- DOCX-Textvorschau ohne neue Pflichtbibliothek
+- ODT-Textvorschau ohne neue Pflichtbibliothek
+- PDF-Seitennavigation mit aktueller Seite und Gesamtseitenzahl
+- Bild-Metadaten mit Format, Originalabmessungen und Seitenverhältnis
+- WAV-Metadaten mit Dauer, Kanälen, Abtastrate und Bit-Tiefe
+- optionale erweiterte Audio-/Video-Metadaten über vorhandenes ffprobe, ohne ffprobe zur Pflichtabhängigkeit zu machen
+- interner Audio-/Videoplayer weiterhin bewusst nicht eingeführt
+
+### Nutzerfreundlichkeit
+- erklärende Tooltips für alle wichtigen Datei-Browser-Aktionen
+- kompakte Schrittfolge direkt im Datei-Browser
+- neue Dokument-Dateigruppe für DOCX/ODT
+- verständliche Fallback-Texte bei nicht darstellbaren oder nicht analysierbaren Dateien
+- Laienanleitung um vollständigen Datei-/Vorschau-Ablauf erweitert
+
+### Dokumentation
+- README mit Fakten-/Zahlentabelle, Paketgrößen, Prüfprofilen und direkten Projekt-URLs erweitert
+- stabile v0.8.0- und Entwicklungs-v0.9.0-Stände klar getrennt
+
 ## [0.8.0] – 2026-10-06
 
 ### Dateien & Vorschau
