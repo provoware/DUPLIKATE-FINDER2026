@@ -21,7 +21,7 @@ def atomic_write_text(path: Path, content: str, *, encoding: str = "utf-8") -> N
             handle.write(content)
             handle.flush()
             os.fsync(handle.fileno())
-        os.replace(temporary_path, path)
+        temporary_path.replace(path)
         try:
             directory_fd = os.open(path.parent, os.O_RDONLY)
         except OSError:
@@ -31,8 +31,5 @@ def atomic_write_text(path: Path, content: str, *, encoding: str = "utf-8") -> N
         finally:
             os.close(directory_fd)
     except Exception:
-        try:
-            temporary_path.unlink(missing_ok=True)
-        except OSError:
-            pass
+        # Die temporäre Datei bleibt im Fehlerfall als Diagnoseartefakt erhalten.
         raise
