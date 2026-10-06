@@ -15,6 +15,7 @@ from app.cpu_limit import CpuLimiter
 from app.settings_store import SettingsStore
 from app.state_portability import export_state, import_state
 from app.resource_monitor import ResourceMonitor
+from app.formatting import format_bytes
 
 MIME_PATH = "application/x-provoware-path"
 
@@ -178,9 +179,9 @@ class UiEnhancements(QObject):
 
     def _refresh_resources(self) -> None:
         snapshot=self.resource_monitor.sample()
-        ram=self.window._human_size(snapshot.process_ram_bytes)
-        swap_used=self.window._human_size(snapshot.swap_used_bytes)
-        swap_total=self.window._human_size(snapshot.swap_total_bytes)
+        ram=format_bytes(snapshot.process_ram_bytes)
+        swap_used=format_bytes(snapshot.swap_used_bytes)
+        swap_total=format_bytes(snapshot.swap_total_bytes)
         swap_percent=(
             snapshot.swap_used_bytes/snapshot.swap_total_bytes*100
             if snapshot.swap_total_bytes>0 else 0.0
@@ -188,8 +189,8 @@ class UiEnhancements(QObject):
         self.window.dashboard_resource_value.setText(
             f"CPU {snapshot.process_cpu_percent:.0f}% · RAM {ram} · SWAP {swap_percent:.0f}%"
         )
-        sys_used=self.window._human_size(snapshot.system_ram_used_bytes)
-        sys_total=self.window._human_size(snapshot.system_ram_total_bytes)
+        sys_used=format_bytes(snapshot.system_ram_used_bytes)
+        sys_total=format_bytes(snapshot.system_ram_total_bytes)
         self.window.dashboard_resource_value.setToolTip(
             f"PROVOWARE CPU: {snapshot.process_cpu_percent:.1f} %\n"
             f"PROVOWARE RAM: {ram}\n"
