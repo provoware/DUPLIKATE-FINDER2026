@@ -204,6 +204,8 @@ jobs:
 
           CURRENT_MAIN="$(git ls-remote origin refs/heads/main | cut -f1)"
           test "$CURRENT_MAIN" = "$TARGET_SHA"
+          git fetch --no-tags --depth=1 origin "$TARGET_SHA"
+          test "$(git rev-parse FETCH_HEAD)" = "$TARGET_SHA"
 
           TAG="v$VERSION"
           if git ls-remote --exit-code --tags origin "refs/tags/$TAG" >/dev/null 2>&1; then
