@@ -29,3 +29,17 @@ Zusätzlich wird je Stufe ein Prüfbild als GitHub-Aktionsartefakt gespeichert.
 ## Grenze
 
 Automatisierung ersetzt keine spätere menschliche Sichtprüfung. Sie verhindert jedoch früh grobe Regressionen wie verschwundene Hauptknöpfe oder übergroße Mindestlayouts.
+
+## Erweiterte Pflichtprofile
+
+Die visuelle Regression beginnt bei 800 × 600 mit 100 %.
+Danach folgen 1024 × 768 sowie 150 % und 200 % auf größeren Prüfprofilen.
+
+Die Oberfläche bietet zusätzlich:
+- automatische Bildschirmgrößen-Erkennung,
+- feste Größenprofile per Auswahlfeld,
+- Zoomauswahl ohne Freitexteingabe,
+- Strg + Mausrad als direkte Zoomsteuerung,
+- moderne kontrastreiche Fokusrahmen und Statusflächen.
+
+Das autonome Abnahmewerkzeug erzeugt zu jeder Hauptseite ein Prüfbild und fasst alle Bilder in einem HTML-Raster zusammen.

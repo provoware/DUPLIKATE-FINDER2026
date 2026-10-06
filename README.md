@@ -37,11 +37,7 @@ Treffer können markiert, kommentiert und Sammlungen zugeordnet werden. Die Orig
 
 Die grafische Oberfläche verwendet ausschließlich **PySide6/Qt**. Tkinter ist durch einen automatischen Architekturtest verboten.
 
-Zielauflösungen für die Sichtbarkeitsprüfung:
-
-- 100 %
-- 150 %
-- 200 %
+Die Abnahme beginnt verbindlich bei **800 × 600**. Danach folgen größere Bildschirmprofile sowie **150 % und 200 %**. Zusätzlich entsteht ein HTML-Raster mit Prüfbildern aller Hauptseiten.
 
 Die Prüfung wird automatisiert in GitHub Actions ausgeführt und erzeugt zusätzlich Prüfbilder.
 
@@ -96,3 +92,30 @@ tools/        Prüfwerkzeuge
 **v0.1.0 – Grundarchitektur / Nur-Lesen-Phase**
 
 Physische Dateiänderungen sind noch nicht freigegeben. Dieser Bereich bleibt gesperrt, bis ein eigener Änderungsvertrag, Vorschau, Transaktionsjournal, Rückgängig-Funktion und separate Abnahmetests existieren.
+
+## Autonome Abnahme
+
+    python tools/autonomous_acceptance.py --output artifacts/abnahme
+
+Der Bericht `artifacts/abnahme/index.html` zeigt Maschinenstatus und sämtliche Prüfbilder in einem Raster.
+
+## Konsolenmodus
+
+Das Werkzeug ist zusätzlich ohne grafische Oberfläche bedienbar:
+
+    ./STARTEN_KONSOLE.sh
+
+Die Konsole verwendet nummerierte Menüs, sichere Vorauswahlen und dieselben Schutzregeln wie die GUI.
+
+## Komfort und Diagnose
+
+- automatische Bildschirmgrößen-Erkennung
+- Ausgangsbasis 800 × 600
+- auswählbare Fensterprofile
+- Schrift-/Seitenzoom 80–200 %
+- Strg + Mausrad für Zoom
+- sortierbare Ergebnistabellen
+- Drag & Drop von Suchtreffern in virtuelle Sammlungen
+- farblich und textlich eindeutiger Status
+- rotierende Protokolle im Ordner logs/
+- lokaler Selbsttest im Dashboard

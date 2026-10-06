@@ -62,3 +62,18 @@ Für spezialisierte Arbeiten gelten zusätzlich:
 - `agents/RELEASE_AGENT.md`
 
 Bei Konflikt gilt die strengere Sicherheitsregel.
+
+## 7. Autonome Abnahme und Startup
+
+Zusätzlich gelten:
+- agents/ABNAHME_AGENT.md
+- agents/STARTUP_AGENT.md
+
+Pflichtabnahme:
+
+    python tools/autonomous_acceptance.py --output artifacts/abnahme
+
+Die erste Pflichtgröße ist 800 × 600. Danach folgen weitere Größen und 150/200-%-Prüfungen.
+Der HTML-Rasterbericht ist Teil der Abnahme.
+
+GUI und Konsole müssen dieselben Kern- und Sicherheitsregeln verwenden.
