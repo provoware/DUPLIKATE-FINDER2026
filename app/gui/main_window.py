@@ -73,6 +73,8 @@ class MainWindow(QMainWindow):
         frame = QFrame()
         frame.setProperty("card", True)
         layout = QVBoxLayout(frame)
+        layout.setContentsMargins(5, 4, 5, 4)
+        layout.setSpacing(3)
         a = QLabel(title)
         a.setStyleSheet("font-weight: 700;")
         b = QLabel(value)
@@ -149,7 +151,8 @@ class MainWindow(QMainWindow):
         page = QWidget()
         page.setObjectName("page_dashboard")
         layout = QVBoxLayout(page)
-        layout.setSpacing(12)
+        layout.setContentsMargins(2, 2, 2, 2)
+        layout.setSpacing(6)
         layout.addWidget(self._heading("Übersicht"))
 
         cards = QGridLayout()
