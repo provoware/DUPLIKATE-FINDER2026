@@ -4,7 +4,7 @@
   "catalogs": [
     {
       "locale": "de-DE",
-      "version": "1.0.0",
+      "version": "1.1.0",
       "path": "resources/texts/de-DE.v1.json"
     }
   ]
