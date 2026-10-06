@@ -1,8 +1,7 @@
 from __future__ import annotations
 
-import shutil
 import tempfile
-from dataclasses import dataclass
+from dataclasses import dataclass, field
 from pathlib import Path
 
 
@@ -11,19 +10,24 @@ MARKER = ".PROVOWARE_TEST_SANDBOX"
 
 @dataclass
 class TestSandbox:
+    __test__ = False
+
     root: Path
+    _temporary: tempfile.TemporaryDirectory = field(repr=False)
 
     @classmethod
     def create(cls, parent: Path | None = None) -> "TestSandbox":
-        if parent is None:
-            root = Path(tempfile.mkdtemp(prefix="provoware-testlab-"))
-        else:
+        if parent is not None:
             parent.mkdir(parents=True, exist_ok=True)
-            root = Path(tempfile.mkdtemp(prefix="provoware-testlab-", dir=parent))
+        temporary = tempfile.TemporaryDirectory(
+            prefix="provoware-testlab-",
+            dir=str(parent) if parent is not None else None,
+        )
+        root = Path(temporary.name)
         (root / MARKER).write_text("PROVOWARE test sandbox\n", encoding="utf-8")
         (root / "files").mkdir()
         (root / "state").mkdir()
-        return cls(root)
+        return cls(root, temporary)
 
     @property
     def files_dir(self) -> Path:
@@ -39,7 +43,7 @@ class TestSandbox:
             raise RuntimeError(
                 f"Sicherheitsabbruch: Test-Markierung fehlt in {self.root}"
             )
-        shutil.rmtree(self.root)
+        self._temporary.cleanup()
 
     def __enter__(self) -> "TestSandbox":
         return self
