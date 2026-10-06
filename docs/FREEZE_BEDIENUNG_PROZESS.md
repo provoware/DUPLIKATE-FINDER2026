@@ -50,3 +50,16 @@ Am 2026-10-06 wurde der Bereich auf ausdrücklichen Nutzerauftrag erneut begrenz
 - wartungsneutrales Zusammenführen doppelter UI-Hilfslogik.
 
 Neue Fachfunktionen gehören nicht zu dieser Wiederöffnung. Vor dem Merge ist erneut die vollständige 800×600-/100/150/200-%-Abnahme erforderlich. Danach wird der Bereich wieder auf **FROZEN** gesetzt.
+
+
+## Re-Freeze v0.7.1
+
+Nach der begrenzten Wiederöffnung wurden erneut erfolgreich geprüft:
+
+- Kern- und Sicherheitstests,
+- Oberfläche 100 %,
+- Oberfläche 150 %,
+- Oberfläche 200 %,
+- autonome Gesamt-Abnahme einschließlich 800×600.
+
+Der Bereich **Bedienoberfläche / Prozesssteuerung ist damit für v0.7.1 wieder FROZEN 🟢**.
