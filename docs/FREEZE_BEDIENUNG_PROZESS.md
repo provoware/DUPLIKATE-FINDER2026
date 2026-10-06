@@ -63,3 +63,15 @@ Nach der begrenzten Wiederöffnung wurden erneut erfolgreich geprüft:
 - autonome Gesamt-Abnahme einschließlich 800×600.
 
 Der Bereich **Bedienoberfläche / Prozesssteuerung ist damit für v0.7.1 wieder FROZEN 🟢**.
+
+
+## Kontrollierte Wiederöffnung für v0.8.0
+
+Am 2026-10-06 wurde der Bereich auf ausdrücklichen Nutzerauftrag erneut begrenzt geöffnet. Umfang:
+
+- neuer Hauptbereich „Dateien & Vorschau“,
+- unterschiedliche, kontrastreiche Akzentfarben je Hauptbereich,
+- bessere Sichtbarkeit und Toolführung im neuen Datei-Browser,
+- keine Freigabe physischer Dateiänderungen.
+
+Vor dem Merge sind erneut 800×600 sowie 100/150/200 % und die autonome Gesamt-Abnahme Pflicht. Erst danach wird der Bereich wieder auf FROZEN gesetzt.
