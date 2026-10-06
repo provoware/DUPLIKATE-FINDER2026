@@ -10,6 +10,9 @@ STANDARD_WINDOW = (1280, 800)
 
 THEME_COLORS = {
     "text": "#f7fbff",
+    "muted_text": "#d7e6ef",
+    "input_bg": "#07131b",
+    "selection_bg": "#075f75",
     "placeholder": "#b9c8d2",
     "focus": "#ffe45e",
     "progress_fill": "#08758f",
