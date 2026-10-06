@@ -293,7 +293,7 @@
       {
         "id": "main_window_controller_architecture",
         "name": "MainWindow-/Controller-Architektur",
-        "status": "REOPENED",
+        "status": "FROZEN",
         "since_version": "0.9.0",
         "frozen_on": "2026-10-07",
         "scope": [
@@ -324,7 +324,7 @@
           "tests/test_final_main_window_refactor.py"
         ],
         "latest_reopened_on": "2026-10-07",
-        "latest_reopen_reason": "Ausdrücklicher Nutzerauftrag: Farben/Kontraste sowie Robustheit, Fehlerhandling, Codedisziplin und Wartbarkeit prüfen und gezielt verbessern."
+        "latest_reopen_reason": "Nicht wieder geöffnet: nur sichtbare Statuskennzeichnung in MainWindow, keine strukturelle Controller-/Klassenänderung."
       }
     ]
   }
