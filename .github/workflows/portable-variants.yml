@@ -1,0 +1,184 @@
+name: Portable Lite und Recovery
+
+on:
+  workflow_dispatch:
+  push:
+    branches: ["chore/portable-*", "release/portable-*"]
+  pull_request:
+    paths:
+      - ".github/workflows/portable-variants.yml"
+      - "tools/prepare_portable_variants.py"
+      - "STARTEN_VOM_STICK.sh"
+      - "STARTEN.sh"
+      - "STARTEN_KONSOLE.sh"
+      - "app/**"
+      - "pyproject.toml"
+      - "dependencies.env"
+
+permissions:
+  contents: read
+
+concurrency:
+  group: provoware-portable-variants-${{ github.ref }}
+  cancel-in-progress: true
+
+jobs:
+  build:
+    name: Lite / Recovery · Linux x86_64
+    runs-on: ubuntu-24.04
+    steps:
+      - uses: actions/checkout@v4
+      - uses: actions/setup-python@v5
+        with:
+          python-version: "3.12"
+          cache: pip
+      - name: Zentrale Laufzeitvorgaben lesen
+        run: |
+          set -euo pipefail
+          source dependencies.env
+          VERSION="$(python3 -c 'import pathlib,tomllib; print(tomllib.loads(pathlib.Path("pyproject.toml").read_text(encoding="utf-8"))["project"]["version"])')"
+          {
+            echo "VERSION=$VERSION"
+            echo "PYTHON_ARCHIVE=$PYTHON_ARCHIVE"
+            echo "PYTHON_URL=$PYTHON_URL"
+            echo "PYTHON_SHA256=$PYTHON_SHA256"
+            echo "PYSIDE6_VERSION=$PYSIDE6_VERSION"
+            echo "RECOVERY_DIR=PROVOWARE-DUPLIKATE-FINDER-2026-RECOVERY"
+            echo "LITE_DIR=PROVOWARE-DUPLIKATE-FINDER-2026-LITE"
+          } >> "$GITHUB_ENV"
+      - name: Qt-Grundlagen auf dem Prüfrechner
+        run: |
+          sudo apt-get update
+          sudo apt-get install -y --no-install-recommends libegl1 libgl1 libxkbcommon0 libfontconfig1 zip
+      - name: Portable-Bausteine cachen
+        uses: actions/cache@v4
+        with:
+          path: |
+            .build-cache/python
+            .build-cache/wheels
+          key: portable-${{ runner.os }}-${{ runner.arch }}-${{ hashFiles('dependencies.env', 'pyproject.toml') }}
+      - name: Portable Python-Laufzeit bereitstellen
+        run: |
+          set -euo pipefail
+          mkdir -p .build-cache/python
+          ARCHIVE=".build-cache/python/$PYTHON_ARCHIVE"
+          if [[ ! -f "$ARCHIVE" ]]; then
+            curl --fail --location --retry 3 --output "$ARCHIVE" "$PYTHON_URL"
+          fi
+          echo "$PYTHON_SHA256  $ARCHIVE" | sha256sum --check --strict
+      - name: Recovery-Paket bauen
+        run: |
+          set -euo pipefail
+          R="$GITHUB_WORKSPACE/out/$RECOVERY_DIR"
+          mkdir -p "$R" .build-cache/wheels
+          tar -xzf ".build-cache/python/$PYTHON_ARCHIVE" -C "$R"
+          mv "$R/python" "$R/runtime"
+          "$R/runtime/bin/python3" -m pip --version >/dev/null 2>&1 || "$R/runtime/bin/python3" -m ensurepip --upgrade
+          if ! compgen -G ".build-cache/wheels/PySide6-$PYSIDE6_VERSION-*.whl" >/dev/null && ! compgen -G ".build-cache/wheels/pyside6-$PYSIDE6_VERSION-*.whl" >/dev/null; then
+            "$R/runtime/bin/python3" -m pip download --disable-pip-version-check --only-binary=:all: --dest .build-cache/wheels "PySide6==$PYSIDE6_VERSION"
+          fi
+          mkdir -p "$R/wheelhouse"
+          cp -a .build-cache/wheels/. "$R/wheelhouse/"
+          "$R/runtime/bin/python3" -m pip install --disable-pip-version-check --no-index --find-links "$R/wheelhouse" "PySide6==$PYSIDE6_VERSION"
+          cp -a app docs agents manifest standards schemas templates resources STARTEN.sh STARTEN_KONSOLE.sh STARTEN_VOM_STICK.sh STARTEN.desktop README.md SECURITY.md CHANGELOG.md pyproject.toml dependencies.env "$R/"
+          mkdir -p "$R/tools" "$R/data" "$R/logs" "$R/recovery" "$R/quarantine"
+          cp tools/autonomous_acceptance.py tools/prepare_portable_variants.py "$R/tools/"
+          touch "$R/data/.gitkeep" "$R/logs/.gitkeep" "$R/recovery/.gitkeep" "$R/quarantine/.gitkeep"
+          chmod +x "$R/STARTEN.sh" "$R/STARTEN_KONSOLE.sh" "$R/STARTEN_VOM_STICK.sh" "$R/STARTEN.desktop"
+      - name: Lite aus demselben geprüften Stand ableiten
+        run: |
+          python3 tools/prepare_portable_variants.py --recovery "$GITHUB_WORKSPACE/out/$RECOVERY_DIR" --lite "$GITHUB_WORKSPACE/out/$LITE_DIR" --report "$GITHUB_WORKSPACE/evidence/size-before-finalize.json"
+      - name: Benötigte Laufzeitbibliotheken prüfen
+        run: |
+          set -euo pipefail
+          for P in "$RECOVERY_DIR" "$LITE_DIR"; do
+            ROOT="$GITHUB_WORKSPACE/out/$P"
+            "$ROOT/runtime/bin/python3" -c 'from PySide6.QtCore import QUrl; from PySide6.QtGui import QDesktopServices,QImage,QPixmap; from PySide6.QtWidgets import QApplication,QFileDialog,QMainWindow,QTableView; print("OK")'
+            ! ldd "$ROOT/runtime/bin/python3" | grep -q "not found"
+          done
+      - name: GUI- und Konsolenstart beider Profile
+        env:
+          QT_QPA_PLATFORM: offscreen
+          PROVOWARE_SMOKE_TEST: "1"
+        run: |
+          set -euo pipefail
+          for P in "$RECOVERY_DIR" "$LITE_DIR"; do
+            ROOT="$GITHUB_WORKSPACE/out/$P"
+            export PROVOWARE_PROJECT_DIR="$GITHUB_WORKSPACE/workspaces/$P"
+            "$ROOT/STARTEN.sh"
+            "$ROOT/STARTEN_KONSOLE.sh" --selftest
+            grep -q "Oberfläche bereit" "$PROVOWARE_PROJECT_DIR/logs/provoware.log"
+          done
+      - name: Funktionsgleichheit prüfen
+        env:
+          QT_QPA_PLATFORM: offscreen
+        run: |
+          set -euo pipefail
+          for P in "$RECOVERY_DIR" "$LITE_DIR"; do
+            ROOT="$GITHUB_WORKSPACE/out/$P"
+            export PROVOWARE_PROJECT_DIR="$GITHUB_WORKSPACE/workspaces/acceptance-$P"
+            cd "$ROOT"
+            "$ROOT/runtime/bin/python3" tools/autonomous_acceptance.py --output "$GITHUB_WORKSPACE/evidence/$P-abnahme"
+            cd "$GITHUB_WORKSPACE"
+          done
+          python3 - <<'PY'
+          import json
+          from pathlib import Path
+          names=("PROVOWARE-DUPLIKATE-FINDER-2026-RECOVERY","PROVOWARE-DUPLIKATE-FINDER-2026-LITE")
+          reports=[json.loads((Path("evidence")/f"{name}-abnahme"/"report.json").read_text(encoding="utf-8")) for name in names]
+          counts=[len(r["results"]) for r in reports]
+          assert counts[0] == counts[1], counts
+          assert all(all(item["ok"] for item in report["results"]) for report in reports)
+          print("OK | Funktionsgleichheit |", counts)
+          PY
+      - name: Lite endgültig entschlacken und erneut starten
+        env:
+          QT_QPA_PLATFORM: offscreen
+          PROVOWARE_SMOKE_TEST: "1"
+          PROVOWARE_PROJECT_DIR: ${{ github.workspace }}/workspaces/lite-final
+        run: |
+          set -euo pipefail
+          python3 tools/prepare_portable_variants.py --recovery "$GITHUB_WORKSPACE/out/$RECOVERY_DIR" --lite "$GITHUB_WORKSPACE/out/$LITE_DIR" --finalize-lite --report "$GITHUB_WORKSPACE/evidence/size-final.json"
+          ROOT="$GITHUB_WORKSPACE/out/$LITE_DIR"
+          "$ROOT/STARTEN.sh"
+          "$ROOT/STARTEN_KONSOLE.sh" --selftest
+          test ! -e "$ROOT/wheelhouse"
+          test ! -e "$ROOT/tools"
+          test ! -e "$ROOT/agents"
+          test ! -e "$ROOT/standards"
+          test ! -e "$ROOT/schemas"
+          test ! -e "$ROOT/templates"
+      - name: Archive und ZIP erzeugen
+        run: |
+          set -euo pipefail
+          SOURCE_DATE_EPOCH="$(git log -1 --format=%ct)"
+          cd out
+          for P in "$RECOVERY_DIR" "$LITE_DIR"; do
+            tar --sort=name --mtime="@${SOURCE_DATE_EPOCH}" --owner=0 --group=0 --numeric-owner -cf - "$P" | gzip -n > "$P-v${VERSION}-linux-x86_64.tar.gz"
+            sha256sum "$P-v${VERSION}-linux-x86_64.tar.gz" > "$P-v${VERSION}-linux-x86_64.tar.gz.sha256"
+          done
+          zip -qr -9 "$LITE_DIR-v${VERSION}-linux-x86_64.zip" "$LITE_DIR"
+          sha256sum "$LITE_DIR-v${VERSION}-linux-x86_64.zip" > "$LITE_DIR-v${VERSION}-linux-x86_64.zip.sha256"
+      - name: Größenbericht
+        run: |
+          python3 - <<'PY'
+          import json
+          from pathlib import Path
+          report=json.loads(Path("evidence/size-final.json").read_text(encoding="utf-8"))
+          mb=lambda n: round(n/1024/1024,1)
+          text=(f"Recovery entpackt: {mb(report[\'recovery_bytes\'])} MiB\n" f"Lite entpackt: {mb(report[\'lite_bytes\'])} MiB\n" f"Ersparnis: {mb(report[\'saved_bytes\'])} MiB ({report[\'reduction_percent\']} %)\n" "Runtime bewusst nicht aggressiv beschnitten.\n")
+          Path("evidence/PAKETGROESSEN.txt").write_text(text,encoding="utf-8")
+          print(text)
+          PY
+          ls -lh out/*.tar.gz out/*.zip
+      - name: Pakete und Nachweise bereitstellen
+        uses: actions/upload-artifact@v4
+        with:
+          name: PROVOWARE-PORTABLE-LITE-RECOVERY-v${{ env.VERSION }}
+          compression-level: 0
+          path: |
+            out/*-v${{ env.VERSION }}-linux-x86_64.tar.gz
+            out/*-v${{ env.VERSION }}-linux-x86_64.tar.gz.sha256
+            out/*-v${{ env.VERSION }}-linux-x86_64.zip
+            out/*-v${{ env.VERSION }}-linux-x86_64.zip.sha256
+            evidence/
