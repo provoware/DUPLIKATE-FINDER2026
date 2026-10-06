@@ -75,3 +75,17 @@ Am 2026-10-06 wurde der Bereich auf ausdrücklichen Nutzerauftrag erneut begrenz
 - keine Freigabe physischer Dateiänderungen.
 
 Vor dem Merge sind erneut 800×600 sowie 100/150/200 % und die autonome Gesamt-Abnahme Pflicht. Erst danach wird der Bereich wieder auf FROZEN gesetzt.
+
+
+## Re-Freeze v0.8.0
+
+Nach Umsetzung des modularen Datei-/Medienbrowsers und der bereichsspezifischen Akzentfarben wurden erneut erfolgreich geprüft:
+
+- gezielte Entwicklungsprüfung,
+- Kern- und Sicherheitstests,
+- Basisprofil 800×600,
+- Oberfläche 100 %, 150 % und 200 %,
+- autonome Gesamt-Abnahme,
+- Portable Lite/Recovery einschließlich Funktionsgleichheit.
+
+Der Bereich **Bedienoberfläche / Prozesssteuerung ist damit für v0.8.0 wieder FROZEN 🟢**.
