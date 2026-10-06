@@ -40,6 +40,7 @@ from app.validation import validate_scan_root, validate_search_request
 from app.gui.design_tokens import BASE_SPACING, OUTER_MARGIN
 from app.texts import text as ui_text
 from app.error_management import record_error
+from app.formatting import format_bytes
 
 
 class MainWindow(QMainWindow):
@@ -853,7 +854,7 @@ class MainWindow(QMainWindow):
         self.progress_bar.setValue(info.percent)
         self.eta_label.setText("Restzeit: " + format_eta(info.eta_seconds))
         rate=f"{info.items_per_second:.1f} Dateien/s" if info.items_per_second>0 else "Geschwindigkeit wird ermittelt"
-        amount=self._human_size(info.processed_bytes) if info.processed_bytes>0 else "nur Metadaten"
+        amount=format_bytes(info.processed_bytes) if info.processed_bytes>0 else "nur Metadaten"
         self.counter_label.setText(f"{info.current}/{info.total} · {rate} · {amount}")
         self.dashboard_process_value.setText(f"{rate} · {amount} · Rest {format_eta(info.eta_seconds)}")
 
@@ -1009,7 +1010,7 @@ class MainWindow(QMainWindow):
             wasted = size * (members - 1)
             text = (
                 f"Gruppe {index} · {members} Dateien · "
-                f"{self._human_size(wasted)} mehrfach"
+                f"{format_bytes(wasted)} mehrfach"
             )
             self.duplicate_group_list.addItem(text)
         if self.duplicate_groups_cache:
@@ -1029,7 +1030,7 @@ class MainWindow(QMainWindow):
         )
         self.duplicate_summary.setText(
             f"Gruppe {row + 1}: {members} vollständig identische Dateien · "
-            f"je {self._human_size(size)} · SHA-256 {digest[:16]}…"
+            f"je {format_bytes(size)} · SHA-256 {digest[:16]}…"
         )
 
     def _create_collection(self) -> None:
@@ -1104,11 +1105,3 @@ class MainWindow(QMainWindow):
         self._show_collection(self.collection_list.currentRow())
         self.status_label.setText("OK · Eintrag nur aus der virtuellen Sammlung entfernt")
 
-    @staticmethod
-    def _human_size(size: int) -> str:
-        value = float(size)
-        for unit in ("B", "KB", "MB", "GB", "TB"):
-            if value < 1024.0 or unit == "TB":
-                return f"{value:.1f} {unit}" if unit != "B" else f"{int(value)} B"
-            value /= 1024.0
-        return f"{size} B"
