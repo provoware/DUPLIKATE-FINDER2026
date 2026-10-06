@@ -30,10 +30,9 @@ from PySide6.QtWidgets import (
 )
 
 from app.gui.workers import DuplicateWorker, SearchWorker
+from app.gui.process_controller import ProcessUiController
 from app.gui.table_models import CollectionItemsModel, DuplicateMembersModel, SearchResultsModel
 from app.core.scanner import ScanOptions
-from app.process_control import ProgressInfo
-from app.progress_format import format_eta
 from app.models.entities import DuplicateGroup, SearchHit, SearchJob
 from app.safety.policy import WRITE_FEATURES
 from app.storage.database import Database
@@ -68,7 +67,7 @@ class MainWindow(QMainWindow):
         self.duplicate_members_model = DuplicateMembersModel(database, self)
         self.collection_items_model = CollectionItemsModel(database, self)
         self.scan_options = ScanOptions()
-        self._process_paused = False
+        self.process_controller = ProcessUiController(self)
 
         self.setWindowTitle("PROVOWARE DUPLIKATE-FINDER 2026 – Nur-Lesen-Modus")
         app = QApplication.instance()
@@ -238,12 +237,12 @@ class MainWindow(QMainWindow):
         self.pause_button.setObjectName("process_pause")
         self.pause_button.setProperty("compact", True)
         self.pause_button.setEnabled(False)
-        self.pause_button.clicked.connect(self._toggle_pause)
+        self.pause_button.clicked.connect(self.process_controller.toggle_pause)
         self.cancel_button = QPushButton("Abbrechen")
         self.cancel_button.setObjectName("process_cancel")
         self.cancel_button.setProperty("compact", True)
         self.cancel_button.setEnabled(False)
-        self.cancel_button.clicked.connect(self._cancel_active_process)
+        self.cancel_button.clicked.connect(self.process_controller.cancel_active_process)
         self.counter_label = QLabel("0 Dateien geprüft · 0 Treffer")
         self.counter_label.setObjectName("counter_label")
         self.counter_label.setAccessibleName("Geprüfte Dateien und gefundene Treffer")
@@ -764,7 +763,7 @@ class MainWindow(QMainWindow):
             excluded_extensions=self.scan_options.excluded_extensions,
         )
         self.search_worker = SearchWorker(job, self.database, self.scan_options)
-        self._connect_worker_controls(self.search_worker)
+        self.process_controller.connect_worker_controls(self.search_worker)
         self.search_worker.completed.connect(self._search_finished)
         self.search_worker.failed.connect(self._search_failed)
         self.search_worker.start()
@@ -814,99 +813,13 @@ class MainWindow(QMainWindow):
         self.progress_bar.setValue(0)
         QMessageBox.critical(self, "Suche gestoppt", f"Die Suche wurde sicher beendet.\n\n{message}\n\nLösung: {entry['solution']}")
 
-    def _connect_worker_controls(self, worker) -> None:
-        self._process_paused = False
-        self.pause_button.setText("Pause")
-        self.pause_button.setEnabled(True)
-        self.cancel_button.setEnabled(True)
-        worker.progress.connect(self._on_process_progress)
-        worker.paused_changed.connect(self._on_pause_changed)
-        worker.cancelled.connect(self._process_cancelled)
-
     def _active_worker(self):
-        for worker in (self.search_worker, self.duplicate_worker):
-            if worker is not None and worker.isRunning():
-                return worker
-        return None
-
-    def _toggle_pause(self) -> None:
-        worker = self._active_worker()
-        if worker is None:
-            return
-        if self._process_paused:
-            worker.resume()
-        else:
-            worker.pause()
-
-    def _on_pause_changed(self, paused: bool) -> None:
-        self._process_paused = paused
-        if paused:
-            self.pause_button.setText("Fortsetzen")
-            self.status_label.setText("Hinweis · Pausiert")
-            self.activity_label.setText("Aktivität: pausiert – sicherer Zwischenstand")
-            self.eta_label.setText("Restzeit: angehalten")
-        else:
-            self.pause_button.setText("Pause")
-            self.status_label.setText("Hinweis · Vorgang läuft …")
-            self.activity_label.setText("Aktivität: Verarbeitung fortgesetzt")
-            self.eta_label.setText("Restzeit: wird neu berechnet")
-
-    def _cancel_active_process(self) -> None:
-        worker = self._active_worker()
-        if worker is None:
-            return
-        answer = QMessageBox.question(
-            self,
-            "Vorgang abbrechen?",
-            "Der laufende Vorgang wird sauber beendet. Bereits gelesene Originaldateien bleiben unverändert.\n\nWirklich abbrechen?",
-            QMessageBox.StandardButton.Yes | QMessageBox.StandardButton.No,
-            QMessageBox.StandardButton.No,
-        )
-        if answer != QMessageBox.StandardButton.Yes:
-            return
-        self.cancel_button.setEnabled(False)
-        self.pause_button.setEnabled(False)
-        self.status_label.setText("Hinweis · Abbruch wird sicher abgeschlossen …")
-        self.activity_label.setText("Aktivität: aktueller Dateischritt wird beendet")
-        worker.cancel()
-
-    def _process_cancelled(self, message: str) -> None:
-        self.search_button.setEnabled(True)
-        self.duplicate_start.setEnabled(True)
-        self._set_process_idle()
-        self.status_label.setText("Hinweis · Vorgang abgebrochen")
-        self.activity_label.setText("Aktivität: sauber beendet")
-        self.step_label.setText("Schritt: abgebrochen")
-        self.eta_label.setText("Restzeit: –")
-        self.progress_bar.setRange(0, 100)
-        self.progress_bar.setValue(0)
-        self.counter_label.setText(message)
-        self.dashboard_process_value.setText("Abgebrochen")
-
-    def _on_process_progress(self, info: ProgressInfo) -> None:
-        self.step_label.setText(f"Schritt: {info.step}")
-        if info.total <= 0:
-            self.progress_bar.setRange(0, 0)
-            self.progress_bar.setFormat("Dateien werden erfasst …")
-            self.eta_label.setText("Restzeit: wird nach der Erfassung berechnet")
-            if info.current > 0:
-                self.counter_label.setText(f"{info.current} Dateien bisher erfasst")
-                self.dashboard_process_value.setText(f"Erfassen · {info.current} Dateien")
-            return
-        self.progress_bar.setRange(0, 100)
-        self.progress_bar.setFormat("%p %")
-        self.progress_bar.setValue(info.percent)
-        self.eta_label.setText("Restzeit: " + format_eta(info.eta_seconds))
-        rate=f"{info.items_per_second:.1f} Dateien/s" if info.items_per_second>0 else "Geschwindigkeit wird ermittelt"
-        amount=format_bytes(info.processed_bytes) if info.processed_bytes>0 else "nur Metadaten"
-        self.counter_label.setText(f"{info.current}/{info.total} · {rate} · {amount}")
-        self.dashboard_process_value.setText(f"{rate} · {amount} · Rest {format_eta(info.eta_seconds)}")
+        """Kompatibilitätsbrücke für Erweiterungen, die den aktiven Worker abfragen."""
+        return self.process_controller.active_worker()
 
     def _set_process_idle(self) -> None:
-        self.pause_button.setEnabled(False)
-        self.cancel_button.setEnabled(False)
-        self.pause_button.setText("Pause")
-        self._process_paused = False
+        """Kompatibilitätsbrücke für bestehende Abschluss- und Regressionstests."""
+        self.process_controller.set_idle()
 
     def _choose_excluded_types(self) -> None:
         from app.gui.exclusion_dialog import ExclusionDialog
@@ -987,7 +900,7 @@ class MainWindow(QMainWindow):
             self.database,
             self.scan_options,
         )
-        self._connect_worker_controls(self.duplicate_worker)
+        self.process_controller.connect_worker_controls(self.duplicate_worker)
         self.duplicate_worker.completed.connect(self._duplicate_scan_finished)
         self.duplicate_worker.failed.connect(self._duplicate_scan_failed)
         self.duplicate_worker.start()
