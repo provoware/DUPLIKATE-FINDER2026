@@ -3,7 +3,7 @@ from __future__ import annotations
 import sqlite3
 from pathlib import Path
 
-from app.models.entities import Collection, CollectionItem, DuplicateGroup, VirtualItemState
+from app.models.entities import Collection, CollectionItem, DuplicateGroup, SearchHit, SearchJob, VirtualItemState
 from app.safety.policy import WRITE_FEATURES
 
 
@@ -117,6 +117,88 @@ class Database:
                 "ON CONFLICT(key) DO UPDATE SET value=excluded.value",
                 (SCHEMA_VERSION,),
             )
+
+    def create_search_job(self, job: SearchJob) -> int:
+        with self.connect() as connection:
+            cur=connection.execute(
+                "INSERT INTO search_jobs(root,query,status,scanned_files,hit_count) VALUES(?,?,?,?,0)",
+                (str(job.root),job.query,job.status.value,0),
+            )
+            return int(cur.lastrowid)
+
+    def append_search_hits(self, job_id:int, hits:list[SearchHit]) -> None:
+        if not hits:
+            return
+        with self.connect() as connection:
+            connection.executemany(
+                "INSERT INTO search_hits(job_id,path,line_number,excerpt,source) VALUES(?,?,?,?,?)",
+                [
+                    (job_id,str(hit.path),hit.line_number,hit.excerpt,hit.source)
+                    for hit in hits
+                ],
+            )
+
+    def finish_search_job(
+        self,
+        job_id:int,
+        *,
+        status:str,
+        scanned_files:int,
+        hit_count:int,
+    )->None:
+        with self.connect() as connection:
+            connection.execute(
+                "UPDATE search_jobs SET status=?,scanned_files=?,hit_count=? WHERE id=?",
+                (status,int(scanned_files),int(hit_count),int(job_id)),
+            )
+
+    def search_hit_count(self, job_id:int)->int:
+        with self.connect() as connection:
+            row=connection.execute(
+                "SELECT hit_count FROM search_jobs WHERE id=?",(int(job_id),)
+            ).fetchone()
+        return int(row["hit_count"]) if row is not None else 0
+
+    def search_hits_page(
+        self,
+        job_id:int,
+        *,
+        offset:int,
+        limit:int,
+        sort_column:int=2,
+        descending:bool=False,
+    )->list[tuple[SearchHit,bool]]:
+        order_map={
+            0:"COALESCE(v.marked,0)",
+            1:"h.source COLLATE NOCASE",
+            2:"h.path COLLATE NOCASE",
+            3:"COALESCE(h.line_number,-1)",
+            4:"h.excerpt COLLATE NOCASE",
+        }
+        order=order_map.get(int(sort_column),order_map[2])
+        direction="DESC" if descending else "ASC"
+        sql=(
+            "SELECT h.path,h.line_number,h.excerpt,h.source,COALESCE(v.marked,0) AS marked "
+            "FROM search_hits h LEFT JOIN virtual_items v ON v.path=h.path "
+            "WHERE h.job_id=? "
+            f"ORDER BY {order} {direction}, h.id ASC LIMIT ? OFFSET ?"
+        )
+        with self.connect() as connection:
+            rows=connection.execute(
+                sql,(int(job_id),max(1,int(limit)),max(0,int(offset)))
+            ).fetchall()
+        return [
+            (
+                SearchHit(
+                    Path(row["path"]),
+                    None if row["line_number"] is None else int(row["line_number"]),
+                    row["excerpt"],
+                    row["source"],
+                ),
+                bool(row["marked"]),
+            )
+            for row in rows
+        ]
 
     def feature_flags(self) -> list[sqlite3.Row]:
         with self.connect() as connection:

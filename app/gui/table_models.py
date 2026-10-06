@@ -1,5 +1,6 @@
 from __future__ import annotations
 
+from collections import OrderedDict
 from datetime import datetime
 from pathlib import Path
 
@@ -10,18 +11,27 @@ from app.storage.database import Database
 
 
 class SearchResultsModel(QAbstractTableModel):
-    """Virtuelle Trefferliste: Qt erzeugt keine Widgets pro Ergebniszeile."""
+    """Echte Treffer-Virtualisierung: SQLite + kleiner Seitenpuffer."""
 
     HEADERS=("Markiert","Quelle","Datei","Zeile","Fundstelle")
 
-    def __init__(self,database:Database,parent=None)->None:
+    def __init__(self,database:Database,parent=None,page_size:int=200,max_pages:int=8)->None:
         super().__init__(parent)
         self.database=database
-        self._hits:list[SearchHit]=[]
-        self._marked:dict[Path,bool]={}
+        self.page_size=max(25,int(page_size))
+        self.max_pages=max(2,int(max_pages))
+        self._job_id:int|None=None
+        self._count=0
+        self._sort_column=2
+        self._descending=False
+        self._pages:OrderedDict[int,list[tuple[SearchHit,bool]]]=OrderedDict()
+
+    @property
+    def cached_row_count(self)->int:
+        return sum(len(page) for page in self._pages.values())
 
     def rowCount(self,parent=QModelIndex())->int:
-        return 0 if parent.isValid() else len(self._hits)
+        return 0 if parent.isValid() else self._count
 
     def columnCount(self,parent=QModelIndex())->int:
         return 0 if parent.isValid() else len(self.HEADERS)
@@ -31,10 +41,51 @@ class SearchResultsModel(QAbstractTableModel):
             return self.HEADERS[section]
         return None
 
-    def data(self,index:QModelIndex,role=Qt.ItemDataRole.DisplayRole):
-        if not index.isValid() or not (0<=index.row()<len(self._hits)):
+    def set_job(self,job_id:int|None,hit_count:int|None=None)->None:
+        self.beginResetModel()
+        self._job_id=job_id
+        self._count=(
+            self.database.search_hit_count(job_id)
+            if job_id is not None and hit_count is None
+            else max(0,int(hit_count or 0))
+        )
+        self._pages.clear()
+        self.endResetModel()
+
+    def _load_page(self,page_number:int)->list[tuple[SearchHit,bool]]:
+        if self._job_id is None:
+            return []
+        if page_number in self._pages:
+            page=self._pages.pop(page_number)
+            self._pages[page_number]=page
+            return page
+        page=self.database.search_hits_page(
+            self._job_id,
+            offset=page_number*self.page_size,
+            limit=self.page_size,
+            sort_column=self._sort_column,
+            descending=self._descending,
+        )
+        self._pages[page_number]=page
+        while len(self._pages)>self.max_pages:
+            self._pages.popitem(last=False)
+        return page
+
+    def _row(self,row:int)->tuple[SearchHit,bool]|None:
+        if row<0 or row>=self._count:
             return None
-        hit=self._hits[index.row()]
+        page_number=row//self.page_size
+        page=self._load_page(page_number)
+        local=row%self.page_size
+        return page[local] if local<len(page) else None
+
+    def data(self,index:QModelIndex,role=Qt.ItemDataRole.DisplayRole):
+        if not index.isValid():
+            return None
+        row=self._row(index.row())
+        if row is None:
+            return None
+        hit,marked=row
         path=hit.path
         if role==Qt.ItemDataRole.UserRole:
             return str(path)
@@ -45,7 +96,7 @@ class SearchResultsModel(QAbstractTableModel):
         if role!=Qt.ItemDataRole.DisplayRole:
             return None
         if index.column()==0:
-            return "★" if self._marked.get(path,False) else ""
+            return "★" if marked else ""
         if index.column()==1:
             return hit.source
         if index.column()==2:
@@ -56,48 +107,32 @@ class SearchResultsModel(QAbstractTableModel):
             return hit.excerpt
         return None
 
-    def set_hits(self,hits:list[SearchHit])->None:
-        state=self.database.export_virtual_state()
-        marked={
-            Path(str(row.get("path",""))):bool(row.get("marked",False))
-            for row in state.get("virtual_items",[])
-            if row.get("path")
-        }
-        self.beginResetModel()
-        self._hits=list(hits)
-        self._marked=marked
-        self.endResetModel()
-
     def hit_at(self,row:int)->SearchHit|None:
-        return self._hits[row] if 0<=row<len(self._hits) else None
+        value=self._row(row)
+        return value[0] if value else None
 
     def path_at(self,row:int)->Path|None:
         hit=self.hit_at(row)
         return hit.path if hit else None
 
     def set_marked(self,path:Path,marked:bool)->None:
-        self._marked[path]=bool(marked)
-        for row,hit in enumerate(self._hits):
-            if hit.path==path:
-                index=self.index(row,0)
-                self.dataChanged.emit(index,index,[Qt.ItemDataRole.DisplayRole])
+        for page_number,page in list(self._pages.items()):
+            changed=False
+            updated=[]
+            for hit,current in page:
+                new_value=bool(marked) if hit.path==path else current
+                changed=changed or (new_value!=current)
+                updated.append((hit,new_value))
+            if changed:
+                self._pages[page_number]=updated
+        if self._count:
+            self.dataChanged.emit(self.index(0,0),self.index(self._count-1,0),[Qt.ItemDataRole.DisplayRole])
 
     def sort(self,column:int,order:Qt.SortOrder=Qt.SortOrder.AscendingOrder)->None:
-        if not self._hits:
-            return
-        reverse=order==Qt.SortOrder.DescendingOrder
-        def key(hit:SearchHit):
-            if column==0:
-                return (not self._marked.get(hit.path,False),str(hit.path).casefold())
-            if column==1:
-                return hit.source.casefold()
-            if column==2:
-                return str(hit.path).casefold()
-            if column==3:
-                return -1 if hit.line_number is None else hit.line_number
-            return hit.excerpt.casefold()
         self.layoutAboutToBeChanged.emit()
-        self._hits.sort(key=key,reverse=reverse)
+        self._sort_column=max(0,min(len(self.HEADERS)-1,int(column)))
+        self._descending=order==Qt.SortOrder.DescendingOrder
+        self._pages.clear()
         self.layoutChanged.emit()
 
 
