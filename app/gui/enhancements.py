@@ -89,13 +89,13 @@ class UiEnhancements(QObject):
         self.selftest_button = QPushButton("🩺 Selbsttest")
         self.selftest_button.setObjectName("dashboard_selftest")
         self.selftest_button.clicked.connect(self._show_selftest)
-        grid.addWidget(self.selftest_button, 0, 3)
+        grid.addWidget(self.selftest_button, 1, 0, 1, 2)
 
         logs_button = QPushButton("📂 Protokolle")
         logs_button.setObjectName("dashboard_logs")
         logs_button.setToolTip(str(self.base_dir / "logs"))
         logs_button.clicked.connect(lambda: QDesktopServices.openUrl(QUrl.fromLocalFile(str(self.base_dir / "logs"))))
-        grid.addWidget(logs_button, 0, 4)
+        grid.addWidget(logs_button, 1, 2)
 
         layout.insertWidget(max(1, layout.count() - 1), panel)
 
