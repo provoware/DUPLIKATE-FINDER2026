@@ -30,6 +30,16 @@ def apply_accessible_theme(app:QApplication,zoom:int|None=None)->int:
         QCheckBox, QRadioButton { background:transparent; }
         QMainWindow, QDialog { background:#070d12; }
 
+        /* Bereichsfarben: gleiche dunkle Basis, klar getrennte Akzente. */
+        QWidget[area="dashboard"] { border-top:3px solid #54e6e9; }
+        QWidget[area="search"] { border-top:3px solid #59a8ff; }
+        QWidget[area="results"] { border-top:3px solid #8fd3ff; }
+        QWidget[area="duplicates"] { border-top:3px solid #ff6688; }
+        QWidget[area="collections"] { border-top:3px solid #c78cff; }
+        QWidget[area="files"] { border-top:3px solid #ffb35c; }
+        QWidget[area="journal"] { border-top:3px solid #69df9d; }
+        QWidget[area="help"] { border-top:3px solid #aab5ff; }
+
         QFrame[card="true"] {
             background:#152633;
             border:1px solid #4f7890;
@@ -168,6 +178,40 @@ def apply_accessible_theme(app:QApplication,zoom:int|None=None)->int:
         }
         QLabel#step_label, QLabel#eta_label, QLabel#activity_label {
             color:#c9dce8;
+        }
+
+        QLabel#file_browser_title { color:#ffd09a; }
+        QFrame#file_preview_panel {
+            background:#1f1a12;
+            border:1px solid #8b673d;
+            border-left:5px solid #ffb35c;
+        }
+        QLabel#file_preview_title { color:#ffd09a; }
+        QLabel#file_preview_image {
+            background:#0d1116;
+            border:1px solid #6f5b43;
+            border-radius:7px;
+            padding:6px;
+        }
+        QTextBrowser#file_preview_text {
+            background:#0d1116;
+            color:#fff8ed;
+            border:1px solid #6f5b43;
+            border-radius:7px;
+            padding:6px;
+        }
+        QWidget#file_browser QPushButton[primaryAction="true"] {
+            background:#54320f;
+            border:2px solid #ffb35c;
+            color:#ffffff;
+        }
+        QWidget#file_browser QPushButton[primaryAction="true"]:hover {
+            background:#704618;
+            border-color:#ffd09a;
+        }
+        QWidget#file_browser QTableView::item:selected {
+            background:#744716;
+            color:#ffffff;
         }
 
         QToolTip {
