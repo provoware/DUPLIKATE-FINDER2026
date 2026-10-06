@@ -11,6 +11,7 @@ from app.gui.scan_controller_support import (
 )
 from app.gui.workers import DuplicateWorker
 from app.validation import validate_scan_root
+from app.gui.status_feedback import set_status
 
 
 class DuplicateController:
@@ -54,11 +55,13 @@ class DuplicateController:
         duplicates = sum(item[3] for item in self.window.duplicate_groups_cache)
 
         if error_count:
-            self.window.status_label.setText(
-                f"Hinweis · Duplikatprüfung abgeschlossen · {error_count} Datei(en) übersprungen"
+            set_status(
+                self.window.status_label,
+                f"Hinweis · Duplikatprüfung abgeschlossen · {error_count} Datei(en) übersprungen",
+                "warning",
             )
         else:
-            self.window.status_label.setText("OK · Duplikatprüfung abgeschlossen")
+            set_status(self.window.status_label, "OK · Duplikatprüfung abgeschlossen", "ok")
 
         self.window.activity_label.setText(
             "Aktivität: Duplikatprüfung abgeschlossen"
