@@ -10,16 +10,17 @@ os.environ.setdefault("QT_QPA_PLATFORM", "offscreen")
 
 from PySide6.QtWidgets import QApplication, QPushButton, QLineEdit, QCheckBox, QComboBox, QWidget  # noqa: E402
 
+from app.gui.enhancements import UiEnhancements  # noqa: E402
 from app.gui.main_window import MainWindow  # noqa: E402
 from app.gui.theme import apply_accessible_theme  # noqa: E402
 from app.storage.database import Database  # noqa: E402
 
 
 CRITICAL_BY_PAGE = {
-    0: ["safety_banner", "locked_write_features", "dashboard_go_search", "dashboard_go_duplicates", "dashboard_go_collections"],
-    1: ["search_root", "search_choose_root", "search_query", "search_names", "search_contents", "search_start", "search_info"],
+    0: ["safety_banner", "locked_write_features", "dashboard_go_search", "dashboard_go_duplicates", "dashboard_go_collections", "diagnostic_dashboard", "cpu_core_limit", "autosave_info", "activity_progress", "activity_pause", "activity_cancel", "activity_eta"],
+    1: ["search_root", "search_choose_root", "search_filter_summary", "search_filter_options", "search_query", "search_names", "search_contents", "search_start", "search_info"],
     2: ["results_table", "result_mark", "result_note", "result_save_meta", "result_collection", "result_add_collection"],
-    3: ["duplicate_start", "duplicate_root", "duplicate_group_list", "duplicate_members", "duplicate_safety_note"],
+    3: ["duplicate_start", "duplicate_root", "duplicate_filter_summary", "duplicate_filter_options", "duplicate_group_list", "duplicate_members", "duplicate_safety_note"],
     4: ["collection_name", "collection_note", "collection_create", "collection_list", "collection_items", "collection_remove", "collection_safety_note"],
     5: ["journal_info"],
     6: ["help_safety"],
@@ -45,6 +46,8 @@ def main() -> int:
         db = Database(base / "data" / "ui.sqlite3")
         db.initialize()
         window = MainWindow(base, db)
+        enhancement = UiEnhancements(window, base, db, install_global_filter=False)
+        enhancement._apply_zoom(args.zoom)
         window.resize(1280, 800)
         window.show()
         app.processEvents()
@@ -80,6 +83,7 @@ def main() -> int:
         window.nav.setCurrentRow(0)
         app.processEvents()
         window.grab().save(str(args.output))
+        enhancement.dispose()
         window.close()
 
         if failures:

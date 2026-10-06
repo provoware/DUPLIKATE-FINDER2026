@@ -40,7 +40,7 @@
       200
     ],
     "full_acceptance_before_merge": true,
-    "minimum_acceptance_checks": 77
+    "minimum_acceptance_checks": 82
   },
   "state": {
     "registry": ".provoware-state/development-state.json",
@@ -48,7 +48,7 @@
     "checkpoint_log": ".provoware-state/checkpoints.jsonl"
   },
   "texts": {
-    "catalog": "resources/texts/de-DE.v1.json",
+    "catalog": "resources/texts/de-DE.v1.1.json",
     "manifest": "resources/texts/manifest.json"
   },
   "agents": {

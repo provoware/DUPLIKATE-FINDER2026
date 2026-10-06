@@ -18,12 +18,15 @@ os.environ.setdefault("QT_QPA_PLATFORM", "offscreen")
 from PySide6.QtCore import QRect
 from PySide6.QtWidgets import QApplication, QWidget
 
+from app.core.control import ProcessCancelled, ProcessControl
 from app.core.duplicates import scan_duplicate_groups
+from app.core.scanner import FileScanner, ScanOptions
 from app.core.search import TextSearcher
 from app.gui.enhancements import UiEnhancements
 from app.gui.main_window import MainWindow
 from app.gui.theme import apply_accessible_theme
 from app.models.entities import SearchJob
+from app.settings import AppSettings, SettingsStore
 from app.startup.selftest import run_selftest
 from app.storage.database import Database
 
@@ -35,10 +38,10 @@ PROFILES = (
 )
 
 CRITICAL_BY_PAGE = {
-    0: ["safety_banner", "locked_write_features", "dashboard_go_search", "dashboard_go_duplicates", "dashboard_go_collections", "diagnostic_dashboard"],
-    1: ["search_root", "search_choose_root", "search_query", "search_names", "search_contents", "search_start", "search_info"],
+    0: ["safety_banner", "locked_write_features", "dashboard_go_search", "dashboard_go_duplicates", "dashboard_go_collections", "diagnostic_dashboard", "cpu_core_limit", "autosave_info", "dashboard_export", "dashboard_import", "activity_progress", "activity_pause", "activity_cancel", "activity_eta"],
+    1: ["search_root", "search_choose_root", "search_filter_summary", "search_filter_options", "search_query", "search_names", "search_contents", "search_start", "search_info"],
     2: ["results_table", "result_mark", "result_note", "result_save_meta", "result_collection", "result_add_collection"],
-    3: ["duplicate_start", "duplicate_root", "duplicate_group_list", "duplicate_members", "duplicate_safety_note"],
+    3: ["duplicate_start", "duplicate_root", "duplicate_filter_summary", "duplicate_filter_options", "duplicate_group_list", "duplicate_members", "duplicate_safety_note"],
     4: ["collection_name", "collection_note", "collection_create", "collection_list", "collection_items", "collection_remove", "collection_safety_note"],
     5: ["journal_info"], 6: ["help_safety"],
 }
@@ -85,6 +88,63 @@ def core_checks() -> list[Result]:
         db.add_collection_item(cid, target, "nur virtuell")
         items = db.collection_items(cid)
         results.append(Result("Daten", "Virtuelle Sammlung", len(items) == 1 and items[0].path == target, f"{len(items)} Eintrag"))
+
+        hidden = root / ".venv"
+        hidden.mkdir()
+        (hidden / "technik.txt").write_text("Nadelwort", encoding="utf-8")
+        visible_names = {item.path.name for item in FileScanner().iter_files(root)}
+        results.append(Result(
+            "Filter",
+            "Python-Arbeitsordner standardmäßig auslassen",
+            "technik.txt" not in visible_names,
+            ".venv wurde nicht eingelesen" if "technik.txt" not in visible_names else ".venv wurde unerwartet eingelesen",
+        ))
+
+        (root / "auslassen.tmp").write_text("temporär", encoding="utf-8")
+        filtered_names = {
+            item.path.name
+            for item in FileScanner().iter_files(
+                root,
+                options=ScanOptions(excluded_extensions=frozenset({".tmp"})),
+            )
+        }
+        results.append(Result(
+            "Filter",
+            "Dateityp ausklammern",
+            "auslassen.tmp" not in filtered_names,
+            ".tmp wird ausgelassen" if "auslassen.tmp" not in filtered_names else ".tmp wurde unerwartet eingelesen",
+        ))
+
+        control = ProcessControl()
+        control.cancel()
+        cancelled = False
+        try:
+            control.checkpoint()
+        except ProcessCancelled:
+            cancelled = True
+        results.append(Result("Prozess", "Kooperativer Abbruch", cancelled, "sicherer Abbruchpunkt reagiert"))
+
+        settings_path = Path(temp) / "config" / "settings.json"
+        store = SettingsStore(settings_path)
+        store.save(AppSettings(cpu_workers=1, excluded_extensions=[".zip"]))
+        loaded = store.load()
+        results.append(Result(
+            "Einstellungen",
+            "Einstellungen speichern/laden",
+            loaded.cpu_workers == 1 and ".zip" in loaded.excluded_extensions,
+            "versionierter Einstellungsstand wiederverwendbar",
+        ))
+
+        exported = db.export_virtual_state()
+        db_copy = Database(Path(temp) / "copy.sqlite3")
+        db_copy.initialize()
+        imported_collections, imported_items = db_copy.import_virtual_state(exported)
+        results.append(Result(
+            "Daten",
+            "Virtuellen Zustand exportieren/importieren",
+            imported_collections == 1 and imported_items == 1 and db_copy.virtual_item(target).marked,
+            f"{imported_collections} Sammlung · {imported_items} Eintrag",
+        ))
     return results
 
 
