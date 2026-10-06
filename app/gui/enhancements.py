@@ -364,13 +364,17 @@ class UiEnhancements(QObject):
     def _refresh_status_style(self) -> None:
         text = self.window.status_label.text()
         if text.startswith(("Fehler", "Abbruch", "Abgebrochen")):
-            style = "font-weight:900; color:#ffd9e2; background:#35121d; border:2px solid #ff5b85; border-radius:6px; padding:5px 8px;"
+            level = "error"
         elif text.startswith(("Hinweis", "Läuft")):
-            style = "font-weight:900; color:#fff2b0; background:#322a0d; border:2px solid #ffe45e; border-radius:6px; padding:5px 8px;"
+            level = "info"
         else:
-            style = "font-weight:900; color:#d8ffe9; background:#0e2b20; border:2px solid #4de89a; border-radius:6px; padding:5px 8px;"
-        if self.window.status_label.styleSheet() != style:
-            self.window.status_label.setStyleSheet(style)
+            level = "ok"
+        label = self.window.status_label
+        if label.property("statusLevel") != level:
+            label.setProperty("statusLevel", level)
+            label.style().unpolish(label)
+            label.style().polish(label)
+            label.update()
 
     def eventFilter(self, obj, event) -> bool:
         if event.type() == QEvent.Type.Wheel and event.modifiers() & Qt.KeyboardModifier.ControlModifier:

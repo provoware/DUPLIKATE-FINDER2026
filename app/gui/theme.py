@@ -2,8 +2,10 @@ from __future__ import annotations
 
 import os
 
-from PySide6.QtGui import QFont
+from PySide6.QtGui import QColor, QFont, QPalette
 from PySide6.QtWidgets import QApplication
+
+from app.gui.design_tokens import THEME_COLORS
 
 
 ZOOM_STEPS=(80,90,100,110,125,150,175,200)
@@ -24,7 +26,13 @@ def apply_accessible_theme(app:QApplication,zoom:int|None=None)->int:
     app.setProperty("provowareUiZoom",active_zoom)
     point_size=max(9,round(11*active_zoom/100))
     app.setFont(QFont("Sans Serif",point_size))
-    app.setStyleSheet("""
+    palette = app.palette()
+    palette.setColor(
+        QPalette.ColorRole.PlaceholderText,
+        QColor(THEME_COLORS["placeholder"]),
+    )
+    app.setPalette(palette)
+    stylesheet = """
         QWidget { color:#f7fbff; background:#0b1118; }
         QLabel { background:transparent; }
         QCheckBox, QRadioButton { background:transparent; }
@@ -91,13 +99,13 @@ def apply_accessible_theme(app:QApplication,zoom:int|None=None)->int:
         QPushButton[compact="true"] { min-height:40px; padding:7px 12px; }
         QPushButton:hover { background:#24485a; border-color:#9fe8ff; }
         QPushButton:pressed { background:#0d5365; }
-        QPushButton:focus { border:3px solid #ffe45e; }
+        QPushButton:focus { border:3px solid __FOCUS__; }
         QPushButton:disabled { color:#c0cbd3; background:#1b252d; border-color:#53616c; }
         QPushButton#process_cancel { border:2px solid #ff6688; background:#381827; }
         QPushButton#process_pause { border:2px solid #f5cf58; background:#332b14; color:#fff2bd; }
 
         QLineEdit, QComboBox, QSpinBox {
-            background:#07131b;
+            background:__INPUT_BG__;
             color:#ffffff;
             border:1px solid #6e98ac;
             border-radius:6px;
@@ -105,9 +113,10 @@ def apply_accessible_theme(app:QApplication,zoom:int|None=None)->int:
             min-height:30px;
         }
         QLineEdit:focus, QComboBox:focus, QSpinBox:focus { border:2px solid #45d8df; }
+        QTableView:focus, QListWidget:focus { border:2px solid __FOCUS__; }
 
         QListWidget, QTableView, QTableWidget {
-            background:#07131b;
+            background:__INPUT_BG__;
             alternate-background-color:#102834;
             color:#f7fcff;
             border:1px solid #6b93a8;
@@ -125,7 +134,7 @@ def apply_accessible_theme(app:QApplication,zoom:int|None=None)->int:
             border-bottom-color:#3d7188;
         }
         QListWidget::item:selected, QTableWidget::item:selected {
-            background:#075f75;
+            background:__SELECTION_BG__;
             color:#ffffff;
             border-left:3px solid #61f3ff;
         }
@@ -138,7 +147,8 @@ def apply_accessible_theme(app:QApplication,zoom:int|None=None)->int:
         QListWidget#main_navigation::item:selected { background:#0a6074; border:2px solid #61f3f5; color:#ffffff; }
         QListWidget#main_navigation::item:hover { background:#173b49; }
         QTableView::item { padding:6px; border-bottom:1px solid #263b49; }
-        QTableView::item:selected { background:#075f75; color:#ffffff; }
+        QTableView::item:hover { background:#183d4c; }
+        QTableView::item:selected { background:__SELECTION_BG__; color:#ffffff; }
 
         QHeaderView::section {
             background:#183545;
@@ -159,7 +169,11 @@ def apply_accessible_theme(app:QApplication,zoom:int|None=None)->int:
             text-align:center;
             font-weight:900;
         }
-        QProgressBar::chunk { background:#19d6df; border-radius:6px; }
+        QProgressBar::chunk {
+            background:__PROGRESS_FILL__;
+            border:1px solid __PROGRESS_EDGE__;
+            border-radius:6px;
+        }
 
         QCheckBox { spacing:8px; }
         QCheckBox::indicator { width:22px; height:22px; }
@@ -177,7 +191,27 @@ def apply_accessible_theme(app:QApplication,zoom:int|None=None)->int:
             font-weight:900;
         }
         QLabel#step_label, QLabel#eta_label, QLabel#activity_label {
-            color:#c9dce8;
+            color:__MUTED_TEXT__;
+        }
+        QLabel#status_label {
+            font-weight:900;
+            border-radius:6px;
+            padding:5px 8px;
+        }
+        QLabel#status_label[statusLevel="ok"] {
+            color:__STATUS_OK_TEXT__;
+            background:__STATUS_OK_BG__;
+            border:2px solid __STATUS_OK_BORDER__;
+        }
+        QLabel#status_label[statusLevel="info"] {
+            color:__STATUS_INFO_TEXT__;
+            background:__STATUS_INFO_BG__;
+            border:2px solid __STATUS_INFO_BORDER__;
+        }
+        QLabel#status_label[statusLevel="error"] {
+            color:__STATUS_ERROR_TEXT__;
+            background:__STATUS_ERROR_BG__;
+            border:2px solid __STATUS_ERROR_BORDER__;
         }
 
         QLabel#file_browser_title { color:#ffd09a; }
@@ -225,5 +259,25 @@ def apply_accessible_theme(app:QApplication,zoom:int|None=None)->int:
         QScrollBar::handle:vertical, QScrollBar::handle:horizontal {
             background:#345f73; border-radius:5px; min-height:24px; min-width:24px;
         }
-    """)
+    """
+    replacements = {
+        "__FOCUS__": THEME_COLORS["focus"],
+        "__INPUT_BG__": THEME_COLORS["input_bg"],
+        "__SELECTION_BG__": THEME_COLORS["selection_bg"],
+        "__MUTED_TEXT__": THEME_COLORS["muted_text"],
+        "__PROGRESS_FILL__": THEME_COLORS["progress_fill"],
+        "__PROGRESS_EDGE__": THEME_COLORS["progress_edge"],
+        "__STATUS_OK_TEXT__": THEME_COLORS["status_ok_text"],
+        "__STATUS_OK_BG__": THEME_COLORS["status_ok_bg"],
+        "__STATUS_OK_BORDER__": THEME_COLORS["status_ok_border"],
+        "__STATUS_INFO_TEXT__": THEME_COLORS["status_info_text"],
+        "__STATUS_INFO_BG__": THEME_COLORS["status_info_bg"],
+        "__STATUS_INFO_BORDER__": THEME_COLORS["status_info_border"],
+        "__STATUS_ERROR_TEXT__": THEME_COLORS["status_error_text"],
+        "__STATUS_ERROR_BG__": THEME_COLORS["status_error_bg"],
+        "__STATUS_ERROR_BORDER__": THEME_COLORS["status_error_border"],
+    }
+    for token, value in replacements.items():
+        stylesheet = stylesheet.replace(token, value)
+    app.setStyleSheet(stylesheet)
     return active_zoom
