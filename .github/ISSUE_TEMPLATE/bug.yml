@@ -1,0 +1,29 @@
+name: Fehler melden
+description: Reproduzierbaren Fehler dokumentieren
+title: "[Fehler] "
+labels: ["bug"]
+body:
+  - type: textarea
+    id: problem
+    attributes:
+      label: Problem
+      description: Was ist passiert?
+    validations:
+      required: true
+  - type: textarea
+    id: steps
+    attributes:
+      label: Schritte
+      description: Wie lässt sich der Fehler reproduzieren?
+    validations:
+      required: true
+  - type: dropdown
+    id: safety
+    attributes:
+      label: Originaldateien betroffen?
+      options:
+        - Nein
+        - Unklar
+        - Ja
+    validations:
+      required: true

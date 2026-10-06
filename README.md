@@ -1,1 +1,98 @@
-# DUPLIKATE-FINDER2026
+# PROVOWARE DUPLIKATE-FINDER 2026
+
+Lokales Linux-Werkzeug für **Textsuche**, **vollständige Duplikatprüfung** und **virtuelle Organisation**. Der Sicherheitskern von Version 0.1.0 arbeitet gegenüber Originaldateien ausschließlich lesend.
+
+## Sicherheitsversprechen
+
+- keine Originaldatei löschen
+- keine Originaldatei verschieben
+- keine Originaldatei umbenennen
+- keine Originaldatei überschreiben
+- kritische Linux-Systembereiche blockieren
+- symbolische Verknüpfungen standardmäßig nicht verfolgen
+- Duplikate erst nach vollständiger SHA-256-Prüfung als identisch anzeigen
+- Sammlungen, Markierungen und Notizen nur in der lokalen SQLite-Datenbank speichern
+
+Die später vorgesehenen Dateiaktionen **Verschieben**, **Umbenennen**, **Quarantäne** und **Löschen** sind im Dashboard sichtbar, aber doppelt gesperrt: Oberfläche deaktiviert + Datenbank-Schalter `enabled=0`, `locked=1`.
+
+## Aktueller Funktionsumfang
+
+### Textsuche
+Unterstützte Textformate: `.txt`, `.md`, `.csv`, `.log`, `.json`, `.xml`, `.yaml`, `.yml`, `.ini`, `.conf`, `.py`, `.sh`.
+
+Gesucht werden kann in Dateinamen und/oder Dateiinhalten.
+
+### Duplikate
+Die Duplikatprüfung kann reguläre Dateien aller Dateitypen prüfen. Ablauf:
+
+1. Dateien nach Größe gruppieren.
+2. Nur Gruppen mit gleicher Größe weiterprüfen.
+3. vollständige SHA-256-Prüfsumme berechnen.
+4. nur identische Prüfsummen als Duplikatgruppe anzeigen.
+
+### Virtuelle Sammlungen
+Treffer können markiert, kommentiert und Sammlungen zugeordnet werden. Die Originaldatei bleibt dabei unverändert an ihrem Speicherort.
+
+## Oberfläche
+
+Die grafische Oberfläche verwendet ausschließlich **PySide6/Qt**. Tkinter ist durch einen automatischen Architekturtest verboten.
+
+Zielauflösungen für die Sichtbarkeitsprüfung:
+
+- 100 %
+- 150 %
+- 200 %
+
+Die Prüfung wird automatisiert in GitHub Actions ausgeführt und erzeugt zusätzlich Prüfbilder.
+
+## Portabler Start
+
+Das veröffentlichte Linux-Paket enthält eine eigene Python-3.12-Laufzeit und PySide6. `STARTEN.sh` verwendet ausschließlich `runtime/bin/python3`.
+
+Fehlt diese Laufzeit, bricht der Start verständlich ab. Es wird **nicht** heimlich auf System-Python ausgewichen und es werden keine Linux-Systempakete installiert.
+
+## Entwicklung
+
+```bash
+python3 -m venv .venv
+.venv/bin/python -m pip install -e ".[test]"
+.venv/bin/python -m pytest
+./ENTWICKLUNG_STARTEN.sh
+```
+
+Die Entwicklung darf das Hauptsystem nicht verändern. Abhängigkeiten gehören ausschließlich in `.venv` oder in den portablen Release-Ordner.
+
+## Struktur
+
+```text
+app/
+  core/       Suche, Scanner, Hashing, Duplikate
+  gui/        PySide6-Oberfläche und Hintergrundarbeiten
+  models/     Datenmodelle
+  safety/     unverhandelbare Schutzregeln
+  startup/    Selbsttest
+  storage/    SQLite
+agents/       feste Rollen für Entwicklungsagenten
+docs/         Pflichtenheft, Architektur, Datenmodell, Sicherheit, Release
+tests/        automatisierte Schutz- und Funktionstests
+tools/        Prüfwerkzeuge
+.github/      CI, Release-Bau, Vorlagen
+```
+
+## Dokumentation
+
+- `docs/PFLICHTENHEFT_V1.md`
+- `docs/ARCHITEKTUR.md`
+- `docs/DATENMODELL.md`
+- `docs/SICHERHEITSVERTRAG.md`
+- `docs/BARRIEREFREIHEIT.md`
+- `docs/PORTABLE_RELEASE.md`
+- `docs/ENTWICKLUNG.md`
+- `AGENTS.md`
+- `agents/`
+
+## Projektstatus
+
+**v0.1.0 – Grundarchitektur / Nur-Lesen-Phase**
+
+Physische Dateiänderungen sind noch nicht freigegeben. Dieser Bereich bleibt gesperrt, bis ein eigener Änderungsvertrag, Vorschau, Transaktionsjournal, Rückgängig-Funktion und separate Abnahmetests existieren.
