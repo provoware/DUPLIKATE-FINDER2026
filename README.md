@@ -36,6 +36,9 @@ Die später vorgesehenen Dateiaktionen **Verschieben**, **Umbenennen**, **Quaran
 | Lite v0.8.0 tar.gz | **287.249.251 Bytes (~273,9 MiB)** |
 | Lite v0.8.0 ZIP | **324.362.803 Bytes (~309,3 MiB)** |
 | Recovery v0.8.0 tar.gz | **544.618.282 Bytes (~519,4 MiB)** |
+| Lite v0.9.0 entpackt (CI) | **733,0 MiB** |
+| Recovery v0.9.0 entpackt (CI) | **985,8 MiB** |
+| AppImage-Prototyp v0.9.0 | **ca. 263 MB** |
 
 Die Paketwerte stammen aus dem veröffentlichten GitHub-Release **v0.8.0**. Der v0.9.0-Zweig entwickelt neue Vorschau- und Bedienfunktionen; AppImage ist dort zunächst nur ein getrennt getesteter Prototyp.
 
@@ -114,7 +117,7 @@ Der eigene CI-Test baut das AppImage auf Ubuntu 22.04 und prüft anschließend a
 - Ubuntu 22.04,
 - Ubuntu 24.04.
 
-Das AppImage bleibt solange ein Prüfartefakt, bis diese Tests zuverlässig grün sind. Erst danach kann über eine Veröffentlichung als dritte optionale Paketform entschieden werden.
+Der v0.9.0-Prototyp wurde mit rund **263 MB** gebaut und startet in der automatischen Prüfung auf Ubuntu **22.04 und 24.04**, einschließlich eines simulierten USB-Pfads mit Leerzeichen. Er bleibt trotzdem zunächst ein Prüfartefakt und wird nicht automatisch als stabiler Release veröffentlicht.
 
 ## Portabler Start
 
