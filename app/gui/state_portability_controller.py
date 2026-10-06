@@ -3,12 +3,15 @@ from __future__ import annotations
 from collections.abc import Callable
 from datetime import datetime
 from pathlib import Path
+import sqlite3
 from typing import Any
 
 from PySide6.QtWidgets import QFileDialog, QMessageBox
 
 from app.settings_store import SettingsStore
 from app.state_portability import export_state, import_state
+from app.gui.error_feedback import report_ui_error
+from app.gui.status_feedback import set_status
 
 
 class StatePortabilityController:
@@ -50,15 +53,17 @@ class StatePortabilityController:
                 target,
                 self.collect_settings(),
             )
-        except Exception as exc:
-            QMessageBox.critical(
+        except (OSError, sqlite3.Error, TypeError, ValueError) as exc:
+            report_ui_error(
                 self.window,
-                "Export fehlgeschlagen",
-                f"Der Export wurde sicher gestoppt.\n\n{exc}",
+                area="zustandsexport",
+                title="Export fehlgeschlagen",
+                lead="Der Export wurde sicher gestoppt.",
+                error=exc,
             )
             return
 
-        self.window.status_label.setText("OK · Export geprüft und gespeichert")
+        set_status(self.window.status_label, "OK · Export geprüft und gespeichert", "ok")
         QMessageBox.information(
             self.window,
             "Export abgeschlossen",
@@ -97,22 +102,37 @@ class StatePortabilityController:
                 self.collect_settings(),
             )
             payload = import_state(self.database, Path(path))
-        except Exception as exc:
-            QMessageBox.critical(
+        except (OSError, sqlite3.Error, ValueError) as exc:
+            report_ui_error(
                 self.window,
-                "Import abgelehnt",
-                f"Die Datei wurde nicht übernommen.\n\n{exc}",
+                area="zustandsimport",
+                title="Import abgelehnt",
+                lead="Die Datei wurde nicht übernommen.",
+                error=exc,
             )
             return
 
         imported_settings = payload.get("settings")
-        if isinstance(imported_settings, dict):
-            self.settings.update(imported_settings)
-            self.store.save(self.settings)
-            self.apply_loaded_settings()
+        try:
+            if isinstance(imported_settings, dict):
+                self.settings.update(imported_settings)
+                self.store.save(self.settings)
+                self.apply_loaded_settings()
+            self.window._refresh_collections()
+        except (OSError, sqlite3.Error, ValueError) as exc:
+            report_ui_error(
+                self.window,
+                area="zustandsimport-nachbereitung",
+                title="Import übernommen · Nachbereitung fehlgeschlagen",
+                lead=(
+                    "Der virtuelle Zustand wurde importiert, aber Einstellungen "
+                    "oder Anzeige konnten danach nicht vollständig aktualisiert werden."
+                ),
+                error=exc,
+            )
+            return
 
-        self.window._refresh_collections()
-        self.window.status_label.setText("OK · Import vor- und nachgeprüft")
+        set_status(self.window.status_label, "OK · Import vor- und nachgeprüft", "ok")
         QMessageBox.information(
             self.window,
             "Import abgeschlossen",

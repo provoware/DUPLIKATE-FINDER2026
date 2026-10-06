@@ -7,6 +7,7 @@ from PySide6.QtWidgets import QMessageBox
 from app.formatting import format_bytes
 from app.process_control import ProgressInfo
 from app.progress_format import format_eta
+from app.gui.status_feedback import set_status
 
 
 class ProcessUiController:
@@ -44,7 +45,7 @@ class ProcessUiController:
         self._paused = paused
         if paused:
             self.window.pause_button.setText("Fortsetzen")
-            self.window.status_label.setText("Hinweis · Pausiert")
+            set_status(self.window.status_label, "Hinweis · Pausiert", "warning")
             self.window.activity_label.setText(
                 "Aktivität: pausiert – sicherer Zwischenstand"
             )
@@ -52,7 +53,7 @@ class ProcessUiController:
             return
 
         self.window.pause_button.setText("Pause")
-        self.window.status_label.setText("Hinweis · Vorgang läuft …")
+        set_status(self.window.status_label, "Hinweis · Vorgang läuft …", "neutral")
         self.window.activity_label.setText("Aktivität: Verarbeitung fortgesetzt")
         self.window.eta_label.setText("Restzeit: wird neu berechnet")
 
@@ -74,8 +75,10 @@ class ProcessUiController:
 
         self.window.cancel_button.setEnabled(False)
         self.window.pause_button.setEnabled(False)
-        self.window.status_label.setText(
-            "Hinweis · Abbruch wird sicher abgeschlossen …"
+        set_status(
+            self.window.status_label,
+            "Hinweis · Abbruch wird sicher abgeschlossen …",
+            "warning",
         )
         self.window.activity_label.setText(
             "Aktivität: aktueller Dateischritt wird beendet"
@@ -86,7 +89,7 @@ class ProcessUiController:
         self.window.search_button.setEnabled(True)
         self.window.duplicate_start.setEnabled(True)
         self.set_idle()
-        self.window.status_label.setText("Hinweis · Vorgang abgebrochen")
+        set_status(self.window.status_label, "Hinweis · Vorgang abgebrochen", "warning")
         self.window.activity_label.setText("Aktivität: sauber beendet")
         self.window.step_label.setText("Schritt: abgebrochen")
         self.window.eta_label.setText("Restzeit: –")

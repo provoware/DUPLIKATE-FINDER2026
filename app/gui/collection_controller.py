@@ -1,11 +1,14 @@
 from __future__ import annotations
 
 from typing import Any
+import sqlite3
 
 from PySide6.QtCore import Qt
 from PySide6.QtWidgets import QListWidgetItem, QMessageBox
 
 from app.texts import text as ui_text
+from app.gui.error_feedback import report_ui_error
+from app.gui.status_feedback import set_status
 
 
 class CollectionController:
@@ -26,23 +29,37 @@ class CollectionController:
                 str(exc),
             )
             return
-        except Exception as exc:
-            QMessageBox.information(
+        except sqlite3.Error as exc:
+            report_ui_error(
                 self.window,
-                ui_text("collections.error_create_title", "Sammlung nicht angelegt"),
-                f"{exc}",
+                area="sammlungen",
+                title=ui_text("collections.error_create_title", "Sammlung nicht angelegt"),
+                lead="Die virtuelle Sammlung konnte nicht gespeichert werden.",
+                error=exc,
             )
             return
 
         self.window.collection_name.clear()
         self.window.collection_note.clear()
         self.refresh(select_id=collection_id)
-        self.window.status_label.setText(
-            ui_text("collections.status_created", "OK · Virtuelle Sammlung angelegt")
+        set_status(
+            self.window.status_label,
+            ui_text("collections.status_created", "OK · Virtuelle Sammlung angelegt"),
+            "ok",
         )
 
     def refresh(self, select_id: int | None = None) -> None:
-        collections = self.window.database.collections()
+        try:
+            collections = self.window.database.collections()
+        except sqlite3.Error as exc:
+            report_ui_error(
+                self.window,
+                area="sammlungen",
+                title="Sammlungen nicht geladen",
+                lead="Die virtuellen Sammlungen konnten nicht aus der Datenbank gelesen werden.",
+                error=exc,
+            )
+            return
         self.window.collection_list.clear()
         self.window.result_collection.clear()
         target_row = -1
@@ -82,10 +99,23 @@ class CollectionController:
             self.window.collection_items_model.set_collection(None)
             return
 
+        try:
+            collections = self.window.database.collections()
+        except sqlite3.Error as exc:
+            report_ui_error(
+                self.window,
+                area="sammlungen",
+                title="Sammlung nicht geladen",
+                lead="Die ausgewählte virtuelle Sammlung konnte nicht gelesen werden.",
+                error=exc,
+            )
+            self.window.collection_items_model.set_collection(None)
+            return
+
         collection = next(
             (
                 candidate
-                for candidate in self.window.database.collections()
+                for candidate in collections
                 if candidate.id == collection_id
             ),
             None,
@@ -94,7 +124,18 @@ class CollectionController:
             self.window.collection_items_model.set_collection(None)
             return
 
-        count = self.window.database.collection_item_count(collection_id)
+        try:
+            count = self.window.database.collection_item_count(collection_id)
+        except sqlite3.Error as exc:
+            report_ui_error(
+                self.window,
+                area="sammlungen",
+                title="Sammlungsinhalt nicht geladen",
+                lead="Die Anzahl der Einträge konnte nicht gelesen werden.",
+                error=exc,
+            )
+            self.window.collection_items_model.set_collection(None)
+            return
         suffix = f" · {collection.note}" if collection.note else ""
         self.window.collection_summary.setText(
             f"{collection.name} · {count} Einträge{suffix}"
@@ -120,11 +161,23 @@ class CollectionController:
             )
             return
 
-        self.window.database.remove_collection_item(collection_id, path)
-        self.show(self.window.collection_list.currentRow())
-        self.window.status_label.setText(
+        try:
+            self.window.database.remove_collection_item(collection_id, path)
+            self.show(self.window.collection_list.currentRow())
+        except sqlite3.Error as exc:
+            report_ui_error(
+                self.window,
+                area="sammlungen",
+                title="Eintrag nicht entfernt",
+                lead="Der virtuelle Sammlungseintrag konnte nicht entfernt werden.",
+                error=exc,
+            )
+            return
+        set_status(
+            self.window.status_label,
             ui_text(
                 "collections.status_removed",
                 "OK · Eintrag nur aus der virtuellen Sammlung entfernt",
-            )
+            ),
+            "ok",
         )

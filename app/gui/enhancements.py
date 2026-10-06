@@ -1,6 +1,7 @@
 from __future__ import annotations
 
 from pathlib import Path
+import sqlite3
 from datetime import datetime
 from math import ceil
 
@@ -15,6 +16,8 @@ from app.cpu_limit import CpuLimiter
 from app.settings_store import SettingsStore
 from app.gui.resource_dashboard_controller import ResourceDashboardController
 from app.gui.state_portability_controller import StatePortabilityController
+from app.gui.status_feedback import set_status
+from app.gui.error_feedback import report_ui_error
 
 MIME_PATH = "application/x-provoware-path"
 
@@ -49,9 +52,6 @@ class UiEnhancements(QObject):
         self.install_global_filter = install_global_filter
         if self.app is not None and self.install_global_filter:
             self.app.installEventFilter(self)
-        self.timer = QTimer(self)
-        self.timer.timeout.connect(self._refresh_status_style)
-        self.timer.start(300)
         self.autosave_timer = QTimer(self)
         self.autosave_timer.timeout.connect(self._autosave)
         self.autosave_timer.start(300_000)
@@ -59,7 +59,6 @@ class UiEnhancements(QObject):
         self.resource_timer.timeout.connect(self.resource_controller.refresh)
         self.resource_timer.start(1_000)
         self.resource_controller.refresh()
-        self._refresh_status_style()
 
     def _configure_sorting(self) -> None:
         for table_name in ("results", "duplicate_members", "collection_items_table"):
@@ -266,22 +265,44 @@ class UiEnhancements(QObject):
             "excluded_extensions":sorted(self.window.scan_options.excluded_extensions),
         }
 
+    def _save_settings(self, *, show_dialog: bool) -> bool:
+        try:
+            self.store.save(self._collect_settings())
+        except OSError as exc:
+            report_ui_error(
+                self.window,
+                area="einstellungen",
+                title="Einstellungen nicht gespeichert",
+                lead="Die lokalen Programmeinstellungen konnten nicht geschrieben werden.",
+                error=exc,
+                show_dialog=show_dialog,
+            )
+            if hasattr(self, "autosave_info"):
+                self.autosave_info.setText("Autosicherung fehlgeschlagen")
+            return False
+        return True
+
     def _autosave(self) -> None:
-        self.settings=self._collect_settings()
-        self.store.save(self.settings)
-        stamp=datetime.now().strftime("%H:%M")
-        if hasattr(self,"autosave_info"):
+        self.settings = self._collect_settings()
+        if not self._save_settings(show_dialog=False):
+            return
+        stamp = datetime.now().strftime("%H:%M")
+        if hasattr(self, "autosave_info"):
             self.autosave_info.setText(f"Gesichert um {stamp}")
         if self.window._active_worker() is None:
-            self.window.status_label.setText("OK · Einstellungen automatisch gesichert")
+            set_status(
+                self.window.status_label,
+                "OK · Einstellungen automatisch gesichert",
+                "ok",
+            )
 
     def _cpu_changed(self) -> None:
         requested=int(self.cpu_combo.currentData() or 0)
         active=self.cpu_limiter.apply(requested)
-        self.settings["cpu_cores"]=requested
-        self.store.save(self._collect_settings())
-        label="alle verfügbaren" if requested == 0 else str(active)
-        self.window.status_label.setText(f"OK · CPU-Begrenzung: {label} Kern(e) für PROVOWARE")
+        self.settings["cpu_cores"] = requested
+        self._save_settings(show_dialog=True)
+        label = "alle verfügbaren" if requested == 0 else str(active)
+        set_status(self.window.status_label, f"OK · CPU-Begrenzung: {label} Kern(e) für PROVOWARE", "ok")
 
     def _adapt_to_screen(self) -> None:
         screen = self.window.screen() or QApplication.primaryScreen()
@@ -310,8 +331,12 @@ class UiEnhancements(QObject):
             width = min(width, area.width())
             height = min(height, area.height())
         self.window.resize(width, height)
-        self.window.status_label.setText(f"OK · Fenstergröße {width} × {height}")
-        self.store.save(self._collect_settings())
+        set_status(
+            self.window.status_label,
+            f"OK · Fenstergröße {width} × {height}",
+            "ok",
+        )
+        self._save_settings(show_dialog=True)
 
     def _zoom_from_combo(self) -> None:
         value = self.zoom_combo.currentData()
@@ -348,9 +373,9 @@ class UiEnhancements(QObject):
             self.zoom_combo.blockSignals(True)
             self.zoom_combo.setCurrentIndex(index)
             self.zoom_combo.blockSignals(False)
-        self.window.status_label.setText(f"OK · Seitenzoom {value} %")
+        set_status(self.window.status_label, f"OK · Seitenzoom {value} %", "ok")
         if hasattr(self, "cpu_combo"):
-            self.store.save(self._collect_settings())
+            self._save_settings(show_dialog=True)
 
     def _show_selftest(self) -> None:
         checks = run_selftest(self.base_dir, require_gui=True)
@@ -360,17 +385,6 @@ class UiEnhancements(QObject):
             QMessageBox.warning(self.window, "Selbsttest – Prüfung nötig", text)
         else:
             QMessageBox.information(self.window, "Selbsttest – alles bereit", text)
-
-    def _refresh_status_style(self) -> None:
-        text = self.window.status_label.text()
-        if text.startswith(("Fehler", "Abbruch", "Abgebrochen")):
-            style = "font-weight:900; color:#ffd9e2; background:#35121d; border:2px solid #ff5b85; border-radius:6px; padding:5px 8px;"
-        elif text.startswith(("Hinweis", "Läuft")):
-            style = "font-weight:900; color:#fff2b0; background:#322a0d; border:2px solid #ffe45e; border-radius:6px; padding:5px 8px;"
-        else:
-            style = "font-weight:900; color:#d8ffe9; background:#0e2b20; border:2px solid #4de89a; border-radius:6px; padding:5px 8px;"
-        if self.window.status_label.styleSheet() != style:
-            self.window.status_label.setStyleSheet(style)
 
     def eventFilter(self, obj, event) -> bool:
         if event.type() == QEvent.Type.Wheel and event.modifiers() & Qt.KeyboardModifier.ControlModifier:
@@ -410,9 +424,23 @@ class UiEnhancements(QObject):
                 raw = bytes(event.mimeData().data(MIME_PATH)).decode("utf-8", errors="replace")
                 path = Path(raw)
                 if collection_id is not None and path.exists():
-                    self.database.add_collection_item(int(collection_id), path)
-                    self.window._refresh_collections(select_id=int(collection_id))
-                    self.window.status_label.setText("OK · Treffer virtuell einsortiert")
+                    try:
+                        self.database.add_collection_item(int(collection_id), path)
+                        self.window._refresh_collections(select_id=int(collection_id))
+                    except sqlite3.Error as exc:
+                        report_ui_error(
+                            self.window,
+                            area="sammlungen",
+                            title="Treffer nicht einsortiert",
+                            lead="Der Treffer konnte nicht in die virtuelle Sammlung übernommen werden.",
+                            error=exc,
+                        )
+                        return True
+                    set_status(
+                        self.window.status_label,
+                        "OK · Treffer virtuell einsortiert",
+                        "ok",
+                    )
                     event.acceptProposedAction()
                 return True
         return super().eventFilter(obj, event)
@@ -421,7 +449,6 @@ class UiEnhancements(QObject):
         self._autosave()
         self.autosave_timer.stop()
         self.resource_timer.stop()
-        self.timer.stop()
         if self.app is not None and self.install_global_filter:
             self.app.removeEventFilter(self)
         try:
