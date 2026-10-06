@@ -5,6 +5,25 @@
 ### Geplant
 - weitere Dateiformate und spätere, separat freizugebende Schreibfunktionen
 
+## [0.7.0] – 2026-10-06
+
+### Robustheit
+- versionierte, transaktionale SQLite-Migrationen statt reinem `CREATE TABLE IF NOT EXISTS`
+- Dateidentität über Größe, Änderungszeit, Gerät und Inode geprüft
+- Dateiänderungen während Kurz- oder SHA-256-Prüfung werden verworfen und protokolliert
+- Lesefehler werden gezählt und in der Oberfläche als übersprungene Dateien sichtbar
+- Einstellungen und Zustandsexporte werden atomar geschrieben
+- beschädigte Einstellungen werden gesichert und sichtbar auf Standardwerte zurückgesetzt
+- Zustandsimport wird vollständig vorgeprüft und innerhalb einer Transaktion nachgeprüft
+
+### Skalierung
+- produktive Such- und Duplikatläufe verwenden SQLite-Inventare statt vollständiger Python-Dateilisten
+- Duplikatpipeline: Dateigröße → kurze Inhaltsprobe → vollständiges SHA-256
+- SHA-256 wird nur für unveränderte Dateien wiederverwendet
+- alte Such- und Scanläufe werden begrenzt aufbewahrt
+- Sammlungen und Duplikatmitglieder werden SQLite-seitenweise geladen
+- neue Regressionstests für Migrationen, Rollback, Hash-Stabilität und Großlisten
+
 ## [0.6.0] – 2026-10-06
 
 ### Verbessert
