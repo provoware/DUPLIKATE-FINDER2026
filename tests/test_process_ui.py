@@ -22,5 +22,12 @@ def test_common_exclusion_dialog_contract_is_static():
 
 
 def test_core_process_tests_do_not_import_gui_main_window():
+    import ast
     source=(ROOT/"tests/test_process_ui.py").read_text(encoding="utf-8")
-    assert "app.gui.main_window" not in source
+    tree=ast.parse(source)
+    imported=[
+        node.module
+        for node in ast.walk(tree)
+        if isinstance(node,ast.ImportFrom)
+    ]
+    assert "app.gui.main_window" not in imported
