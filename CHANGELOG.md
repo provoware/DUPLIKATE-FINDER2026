@@ -2,6 +2,13 @@
 
 ## [Unveröffentlicht]
 
+### Hinzugefügt
+- selbstbootstrappender Entwicklungsstart mit eigener Python-3.12.15-Laufzeit
+- automatisches und wiederverwendbares System-/Abhängigkeitsprofil
+- vollständige Abhängigkeitsdokumentation
+- Entwicklungs-Vollpaket mit Runtime und lokalem Paketvorrat
+- erweiterter Architekturtest: Tk/Tkinter auch in Werkzeugen verboten
+
 ### Geplant
 - weitere Dateiformate und spätere, separat freizugebende Schreibfunktionen
 

@@ -49,14 +49,19 @@ Fehlt diese Laufzeit, bricht der Start verständlich ab. Es wird **nicht** heiml
 
 ## Entwicklung
 
+Für die normale lokale Einrichtung genügt:
+
 ```bash
-python3 -m venv .venv
-.venv/bin/python -m pip install -e ".[test]"
-.venv/bin/python -m pytest
 ./ENTWICKLUNG_STARTEN.sh
 ```
 
-Die Entwicklung darf das Hauptsystem nicht verändern. Abhängigkeiten gehören ausschließlich in `.venv` oder in den portablen Release-Ordner.
+Der Starter verwaltet sein eigenes Python 3.12.15 unter `.provoware-dev/`, prüft Paketversionen, repariert fehlende Python-Abhängigkeiten und schreibt ein wiederverwendbares Systemprofil. Ein vorhandenes Python 3.14 wird nicht als Projekt-Python benutzt.
+
+Das **PROVOWARE-Vollpaket** bringt Runtime und Paketvorrat bereits mit. Beim nackten GitHub-Quellcode lädt der Starter fehlende Bestandteile automatisch nach.
+
+**Kein Tk/Tkinter:** Die GUI verwendet ausschließlich PySide6/Qt.
+
+Vollständige Liste: `docs/ABHAENGIGKEITEN.md`.
 
 ## Struktur
 
