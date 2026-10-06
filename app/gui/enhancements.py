@@ -98,9 +98,9 @@ class UiEnhancements(QObject):
         panel.setObjectName("diagnostic_dashboard")
         panel.setProperty("section", True)
         grid = QGridLayout(panel)
-        grid.setContentsMargins(6, 4, 6, 4)
+        grid.setContentsMargins(5, 3, 5, 3)
         grid.setHorizontalSpacing(8)
-        grid.setVerticalSpacing(4)
+        grid.setVerticalSpacing(2)
 
         screen = self.window.screen() or QApplication.primaryScreen()
         geometry = screen.availableGeometry() if screen else None
@@ -125,7 +125,7 @@ class UiEnhancements(QObject):
             self.size_combo.addItem(f"Fenster {width}×{height}", (width, height))
         self.size_combo.currentIndexChanged.connect(self._size_from_combo)
         self.size_combo.setToolTip("Fenstergröße ohne Zahleneingabe auswählen.")
-        grid.addWidget(self.size_combo, 1, 0)
+        grid.addWidget(self.size_combo, 0, 2)
 
         self.cpu_combo=QComboBox()
         self.cpu_combo.setObjectName("cpu_limiter")
@@ -140,19 +140,19 @@ class UiEnhancements(QObject):
             self.cpu_combo.addItem(label,cores)
         self.cpu_combo.currentIndexChanged.connect(self._cpu_changed)
         self.cpu_combo.setToolTip("Begrenzt nur PROVOWARE. Weniger Kerne lassen mehr Rechenleistung für andere Programme frei.")
-        grid.addWidget(self.cpu_combo, 1, 1)
+        grid.addWidget(self.cpu_combo, 1, 0)
 
         tools_button=QPushButton("🧰 Werkzeuge")
         tools_button.setObjectName("dashboard_tools")
         tools_button.setProperty("compact", True)
         tools_button.setToolTip("Selbsttest, Protokolle, Export und Import öffnen.")
         tools_button.clicked.connect(self._open_tools_dialog)
-        grid.addWidget(tools_button, 2, 0)
+        grid.addWidget(tools_button, 1, 1)
 
         self.autosave_info=QLabel("💾 Auto: ≤ 5 min")
         self.autosave_info.setObjectName("autosave_info")
         self.autosave_info.setToolTip("Fenster-, Zoom-, CPU- und Filtereinstellungen werden alle fünf Minuten gesichert. Markierungen und Sammlungen werden sofort in der lokalen Datenbank gespeichert.")
-        grid.addWidget(self.autosave_info, 2, 1)
+        grid.addWidget(self.autosave_info, 1, 2)
 
         layout.insertWidget(max(1, layout.count() - 1), panel)
 
