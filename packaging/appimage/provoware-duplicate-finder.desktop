@@ -1,0 +1,10 @@
+[Desktop Entry]
+Type=Application
+Name=PROVOWARE DUPLIKATE-FINDER 2026
+Comment=Textsuche, Duplikatprüfung und sichere Datei-Vorschau
+Exec=provoware-duplicate-finder
+Icon=provoware-duplicate-finder
+Terminal=false
+Categories=Utility;FileTools;
+StartupNotify=true
+X-AppImage-Version=0.8.0
