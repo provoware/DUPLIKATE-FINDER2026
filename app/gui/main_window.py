@@ -570,9 +570,11 @@ class MainWindow(QMainWindow):
         )
         self.search_button.setEnabled(False)
         self.status_label.setText("🟡 Textsuche läuft …")
-        self.activity_label.setText("Aktivität: Textdateien werden geprüft")
+        self.activity_label.setText("Aktivität: Dateiliste wird vorbereitet")
+        self.step_label.setText("Schritt: Dateien inventarisieren")
+        self.eta_label.setText("Restzeit: wird ermittelt")
         self.progress_bar.setRange(0, 0)
-        self.counter_label.setText("Suche wird vorbereitet …")
+        self.counter_label.setText("Dateien werden ermittelt …")
         self.scan_options = ScanOptions(
             exclude_python_project_dirs=self.exclude_python_box.isChecked(),
             excluded_extensions=self.scan_options.excluded_extensions,
@@ -759,7 +761,9 @@ class MainWindow(QMainWindow):
             return
         self.duplicate_start.setEnabled(False)
         self.status_label.setText("🟡 Duplikatprüfung läuft …")
-        self.activity_label.setText("Aktivität: Dateien werden auf vollständige Gleichheit geprüft")
+        self.activity_label.setText("Aktivität: Dateiliste wird vorbereitet")
+        self.step_label.setText("Schritt: Dateien inventarisieren")
+        self.eta_label.setText("Restzeit: wird ermittelt")
         self.progress_bar.setRange(0, 0)
         self.duplicate_summary.setText("Dateigrößen werden gruppiert; nur Kandidaten werden vollständig gehasht.")
         self.scan_options = ScanOptions(
@@ -777,14 +781,21 @@ class MainWindow(QMainWindow):
         self.duplicate_groups_cache = list(groups)
         self._fill_duplicate_groups()
         self.duplicate_start.setEnabled(True)
+        self._set_process_idle()
         duplicates = sum(len(group.paths) for group in groups)
         self.status_label.setText("🟢 Duplikatprüfung abgeschlossen")
+        self.activity_label.setText("Aktivität: Duplikatprüfung abgeschlossen")
+        self.step_label.setText("Schritt: abgeschlossen")
+        self.eta_label.setText("Restzeit: 0 s")
+        self.progress_bar.setRange(0, 100)
+        self.progress_bar.setValue(100)
         self.counter_label.setText(f"{scanned} Dateien geprüft · {len(groups)} Gruppen · {duplicates} Dateien")
         self.duplicate_summary.setText(
             f"{len(groups)} sichere Duplikatgruppen gefunden. Jede Gruppe besitzt identische Größe und SHA-256-Prüfsumme."
         )
 
     def _duplicate_scan_failed(self, message: str) -> None:
+        entry = record_error(self.base_dir / "logs", "duplikatpruefung", message)
         self.duplicate_start.setEnabled(True)
         self._set_process_idle()
         self.status_label.setText("🔴 Duplikatprüfung gestoppt")
@@ -794,7 +805,7 @@ class MainWindow(QMainWindow):
         QMessageBox.critical(
             self,
             "Duplikatprüfung gestoppt",
-            f"Die Prüfung wurde sicher beendet.\n\n{message}",
+            f"Die Prüfung wurde sicher beendet.\n\n{message}\n\nLösung: {entry['solution']}",
         )
 
     def _refresh_duplicate_view_from_database(self) -> None:

@@ -58,6 +58,4 @@ def scan_duplicate_groups(
 )->tuple[int,list[DuplicateGroup]]:
     active_scanner=scanner or FileScanner()
     records=list(active_scanner.iter_files(root))
-    if progress:
-        progress(ProgressInfo("Dateiinventur abgeschlossen",len(records),len(records),0.0,0.0))
     return len(records),find_duplicate_groups(records,scanner=active_scanner,progress=progress)
