@@ -41,6 +41,10 @@ CREATE TABLE IF NOT EXISTS search_hits (
     excerpt TEXT NOT NULL,
     source TEXT NOT NULL
 );
+CREATE INDEX IF NOT EXISTS idx_search_hits_job_id_id ON search_hits(job_id,id);
+CREATE INDEX IF NOT EXISTS idx_search_hits_job_path ON search_hits(job_id,path);
+CREATE INDEX IF NOT EXISTS idx_search_hits_job_source ON search_hits(job_id,source);
+CREATE INDEX IF NOT EXISTS idx_search_hits_job_line ON search_hits(job_id,line_number);
 CREATE TABLE IF NOT EXISTS duplicate_groups (
     id INTEGER PRIMARY KEY,
     sha256 TEXT NOT NULL UNIQUE,
