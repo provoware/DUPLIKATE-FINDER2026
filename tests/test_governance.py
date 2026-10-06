@@ -65,3 +65,15 @@ def test_ui_process_area_reopening_and_freeze_are_recorded():
     assert "app/gui/**" in area["scope"]
     assert "full_800x600_100_150_200_acceptance" in area["reopen_requires"]
     assert (ROOT/"docs/FREEZE_BEDIENUNG_PROZESS.md").is_file()
+
+
+def test_main_window_controller_architecture_is_frozen():
+    data=json.loads((ROOT/"manifest/project.manifest.json").read_text(encoding="utf-8"))
+    frozen={item["id"]:item for item in data["governance"]["frozen_areas"]}
+    area=frozen["main_window_controller_architecture"]
+    assert area["status"]=="FROZEN"
+    assert "file_size_reduction" in area["prohibited_reason_only"]
+    assert "cosmetic_class_splitting" in area["prohibited_reason_only"]
+    assert "demonstrated_duplicate_code_or_coupling_reduction" in area["reopen_requires"]
+    assert (ROOT/"docs/REFACTORING_GRENZE_MAIN_WINDOW.md").is_file()
+    assert (ROOT/"docs/REFACTORING_HOTSPOTS_NACH_MAINWINDOW.md").is_file()
