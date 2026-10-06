@@ -66,7 +66,7 @@ def test_audio_video_preview_does_not_require_player(tmp_path: Path):
     data = build_preview(path)
     assert data.kind == "video"
     assert data.image is None
-    assert "Extern öffnen" in data.text
+    assert "„Öffnen“" in data.text
 
 
 
