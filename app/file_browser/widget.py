@@ -83,12 +83,6 @@ class FileBrowserWidget(QWidget):
         root.setContentsMargins(4, 4, 4, 4)
         root.setSpacing(6)
 
-        title = QLabel("Dateien & Vorschau")
-        title.setObjectName("file_browser_title")
-        title.setProperty("heading", True)
-        title.setWordWrap(True)
-        root.addWidget(title)
-
         controls = QGridLayout()
         self.root_label = QLineEdit()
         self.root_label.setObjectName("file_browser_root")
@@ -96,17 +90,17 @@ class FileBrowserWidget(QWidget):
         self.root_label.setPlaceholderText("Noch kein Ordner oder Datenträger gewählt")
         self.root_label.setAccessibleName("Aktueller Dateiordner")
 
-        choose = QPushButton("Ordner / Datenträger wählen")
+        choose = QPushButton("Ordner wählen")
         choose.setObjectName("file_browser_choose")
         choose.setProperty("primaryAction", True)
         choose.setAccessibleName("Ordner oder externen Datenträger auswählen")
         choose.clicked.connect(self.choose_root)
 
-        up = QPushButton("Eine Ebene hoch")
+        up = QPushButton("Hoch")
         up.setObjectName("file_browser_up")
         up.clicked.connect(self.go_up)
 
-        refresh = QPushButton("Aktualisieren")
+        refresh = QPushButton("Neu laden")
         refresh.setObjectName("file_browser_refresh")
         refresh.clicked.connect(self.refresh_view)
 
@@ -172,7 +166,7 @@ class FileBrowserWidget(QWidget):
         self.preview_image = QLabel("Vorschau")
         self.preview_image.setObjectName("file_preview_image")
         self.preview_image.setAlignment(Qt.AlignmentFlag.AlignCenter)
-        self.preview_image.setMinimumHeight(72)
+        self.preview_image.setMinimumHeight(36)
         self.preview_image.setWordWrap(True)
         preview_layout.addWidget(self.preview_image, 2)
 
@@ -189,12 +183,12 @@ class FileBrowserWidget(QWidget):
         preview_layout.addWidget(self.preview_details)
 
         actions = QGridLayout()
-        self.open_button = QPushButton("Extern öffnen")
+        self.open_button = QPushButton("Öffnen")
         self.open_button.setObjectName("file_browser_open")
         self.open_button.setEnabled(False)
         self.open_button.clicked.connect(self.open_current)
 
-        self.show_button = QPushButton("Ordner anzeigen")
+        self.show_button = QPushButton("Ordner")
         self.show_button.setObjectName("file_browser_show")
         self.show_button.setEnabled(False)
         self.show_button.clicked.connect(self.show_current_folder)
@@ -204,7 +198,7 @@ class FileBrowserWidget(QWidget):
         self.copy_button.setEnabled(False)
         self.copy_button.clicked.connect(self.copy_current_path)
 
-        self.mark_button = QPushButton("Virtuell markieren")
+        self.mark_button = QPushButton("Markieren")
         self.mark_button.setObjectName("file_browser_mark")
         self.mark_button.setEnabled(False)
         self.mark_button.clicked.connect(self.toggle_mark)
@@ -323,7 +317,7 @@ class FileBrowserWidget(QWidget):
         self.preview_title.setText(data.title)
         self.preview_details.setText(data.details)
         state = self.database.virtual_item(path)
-        self.mark_button.setText("Markierung entfernen" if state.marked else "Virtuell markieren")
+        self.mark_button.setText("Markierung entfernen" if state.marked else "Markieren")
 
         if data.image is not None:
             pixmap = QPixmap.fromImage(data.image)
@@ -358,7 +352,7 @@ class FileBrowserWidget(QWidget):
         self.copy_button.setEnabled(False)
         self.mark_button.setEnabled(False)
         self.collection_button.setEnabled(False)
-        self.mark_button.setText("Virtuell markieren")
+        self.mark_button.setText("Markieren")
 
     def open_current(self) -> None:
         if self._current_path and self._current_path.exists():
@@ -380,7 +374,7 @@ class FileBrowserWidget(QWidget):
             return
         state = self.database.virtual_item(self._current_path)
         self.database.set_virtual_item(self._current_path, not state.marked, state.note)
-        self.mark_button.setText("Markierung entfernen" if not state.marked else "Virtuell markieren")
+        self.mark_button.setText("Markierung entfernen" if not state.marked else "Markieren")
 
     def add_to_collection(self) -> None:
         if not self._current_path or self._current_path.is_dir() or self._current_path.is_symlink():
