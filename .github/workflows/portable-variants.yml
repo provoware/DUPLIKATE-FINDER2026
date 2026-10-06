@@ -164,7 +164,16 @@ jobs:
           from pathlib import Path
           report=json.loads(Path("evidence/size-final.json").read_text(encoding="utf-8"))
           mb=lambda n: round(n/1024/1024,1)
-          text=(f"Recovery entpackt: {mb(report[\'recovery_bytes\'])} MiB\n" f"Lite entpackt: {mb(report[\'lite_bytes\'])} MiB\n" f"Ersparnis: {mb(report[\'saved_bytes\'])} MiB ({report[\'reduction_percent\']} %)\n" "Runtime bewusst nicht aggressiv beschnitten.\n")
+          recovery=mb(report["recovery_bytes"])
+          lite=mb(report["lite_bytes"])
+          saved=mb(report["saved_bytes"])
+          percent=report["reduction_percent"]
+          text=(
+              f"Recovery entpackt: {recovery} MiB\n"
+              f"Lite entpackt: {lite} MiB\n"
+              f"Ersparnis: {saved} MiB ({percent} %)\n"
+              "Runtime bewusst nicht aggressiv beschnitten.\n"
+          )
           Path("evidence/PAKETGROESSEN.txt").write_text(text,encoding="utf-8")
           print(text)
           PY
