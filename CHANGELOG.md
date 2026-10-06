@@ -23,6 +23,7 @@
 - verarbeitete Datenmenge im laufenden Prozess
 - datenmengengewichtete Restzeitschätzung bei Dateiinhalt- und Hash-Prüfungen
 - Markierungszustände für große Trefferlisten gebündelt aus SQLite geladen
+- Bedienoberfläche / Prozesssteuerung nach vollständiger Abnahme als FROZEN 🟢 markiert
 
 ## [0.4.0] – 2026-10-06
 
