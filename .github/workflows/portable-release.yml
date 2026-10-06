@@ -1,0 +1,66 @@
+name: Portables Linux-Paket
+
+on:
+  workflow_dispatch:
+  push:
+    tags: ["v*"]
+
+permissions:
+  contents: read
+
+jobs:
+  build:
+    name: Linux x86_64 portabel
+    runs-on: ubuntu-24.04
+    env:
+      PYTHON_ARCHIVE: cpython-3.12.15+20261003-x86_64-unknown-linux-gnu-install_only_stripped.tar.gz
+      PYTHON_SHA256: 731af898886c5f821890dc901eca3c651cca8e51fa7308c159d12a1194aeac91
+      PYTHON_URL: https://github.com/astral-sh/python-build-standalone/releases/download/20261003/cpython-3.12.15%2B20261003-x86_64-unknown-linux-gnu-install_only_stripped.tar.gz
+    steps:
+      - uses: actions/checkout@v4
+      - name: Portable Python-Laufzeit laden und prüfen
+        run: |
+          curl --fail --location --retry 3 --output "$PYTHON_ARCHIVE" "$PYTHON_URL"
+          echo "$PYTHON_SHA256  $PYTHON_ARCHIVE" | sha256sum --check --strict
+      - name: Paketverzeichnis bauen
+        run: |
+          set -euo pipefail
+          mkdir -p release/PROVOWARE-DUPLIKATE-FINDER-2026
+          tar -xzf "$PYTHON_ARCHIVE" -C release/PROVOWARE-DUPLIKATE-FINDER-2026
+          mv release/PROVOWARE-DUPLIKATE-FINDER-2026/python release/PROVOWARE-DUPLIKATE-FINDER-2026/runtime
+          R=release/PROVOWARE-DUPLIKATE-FINDER-2026
+          if ! "$R/runtime/bin/python3" -m pip --version >/dev/null 2>&1; then
+            "$R/runtime/bin/python3" -m ensurepip --upgrade
+          fi
+          "$R/runtime/bin/python3" -m pip install --disable-pip-version-check --no-cache-dir "PySide6>=6.8,<7"
+          cp -a app docs agents STARTEN.sh STARTEN.desktop README.md SECURITY.md CHANGELOG.md pyproject.toml "$R/"
+          mkdir -p "$R/data" "$R/logs" "$R/recovery" "$R/quarantine"
+          touch "$R/data/.gitkeep" "$R/logs/.gitkeep" "$R/recovery/.gitkeep" "$R/quarantine/.gitkeep"
+          chmod +x "$R/STARTEN.sh" "$R/STARTEN.desktop"
+      - name: Portablen Selbsttest ausführen
+        env:
+          QT_QPA_PLATFORM: offscreen
+        run: |
+          R=release/PROVOWARE-DUPLIKATE-FINDER-2026
+          PYTHONPATH="$R" "$R/runtime/bin/python3" - <<'PY'
+          from pathlib import Path
+          from app.startup.selftest import run_selftest
+          base = Path("release/PROVOWARE-DUPLIKATE-FINDER-2026")
+          checks = run_selftest(base)
+          bad = [c for c in checks if not c.ok]
+          for c in checks:
+              print(("OK" if c.ok else "FEHLER"), c.name, c.detail)
+          raise SystemExit(1 if bad else 0)
+          PY
+      - name: Archiv + Prüfsumme erzeugen
+        run: |
+          cd release
+          tar -czf PROVOWARE-DUPLIKATE-FINDER-2026-linux-x86_64.tar.gz PROVOWARE-DUPLIKATE-FINDER-2026
+          sha256sum PROVOWARE-DUPLIKATE-FINDER-2026-linux-x86_64.tar.gz > PROVOWARE-DUPLIKATE-FINDER-2026-linux-x86_64.tar.gz.sha256
+      - name: Release-Artefakt bereitstellen
+        uses: actions/upload-artifact@v4
+        with:
+          name: PROVOWARE-DUPLIKATE-FINDER-2026-linux-x86_64
+          path: |
+            release/PROVOWARE-DUPLIKATE-FINDER-2026-linux-x86_64.tar.gz
+            release/PROVOWARE-DUPLIKATE-FINDER-2026-linux-x86_64.tar.gz.sha256
