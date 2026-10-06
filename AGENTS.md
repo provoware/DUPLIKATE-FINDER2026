@@ -9,7 +9,7 @@ Robustes, laienfreundliches Linux-Werkzeug für Textsuche, Duplikatprüfung und 
 ## 2. Unverhandelbare Regeln
 
 1. **Kein Tkinter.** GUI ausschließlich PySide6/Qt.
-2. **Keine physischen Dateiänderungen in v0.1.x.**
+2. **Keine physischen Änderungen an Originaldateien im aktuellen Sicherheitsstand.**
 3. Keine direkten Lösch-, Verschiebe-, Umbenenn- oder Ersetz-APIs im Anwendungscode.
 4. Kritische Linux-Systembereiche bleiben gesperrt.
 5. Symlinks werden standardmäßig nicht verfolgt.

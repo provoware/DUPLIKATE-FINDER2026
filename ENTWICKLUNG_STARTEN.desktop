@@ -1,0 +1,9 @@
+[Desktop Entry]
+Type=Application
+Name=PROVOWARE DUPLIKATE-FINDER 2026 – Entwicklung
+Comment=Automatisch prüfen, vorbereiten und starten
+Exec=sh -c 'cd "$(dirname "%k")" && exec ./ENTWICKLUNG_STARTEN.sh'
+Icon=system-search
+Terminal=true
+Categories=Development;Utility;
+StartupNotify=true

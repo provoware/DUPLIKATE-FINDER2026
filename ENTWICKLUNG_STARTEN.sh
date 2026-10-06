@@ -23,6 +23,13 @@ else
   G=""; Y=""; R=""; C=""; N=""
 fi
 step(){ printf '%s▶%s %s\n' "$C" "$N" "$*"; }
+progress(){
+  local pct="$1" label="$2" filled=$((pct/10)) bar="" i
+  for ((i=0;i<10;i++)); do
+    if (( i < filled )); then bar+="█"; else bar+="░"; fi
+  done
+  printf '[%s] %3d%% · %s\n' "$bar" "$pct" "$label"
+}
 ok(){ printf '%s✔%s %s\n' "$G" "$N" "$*"; }
 warn(){ printf '%s⚠%s %s\n' "$Y" "$N" "$*"; }
 die(){ printf '%s✖ FEHLER:%s %s\n' "$R" "$N" "$*" >&2; exit 1; }
@@ -148,7 +155,13 @@ ensure_wheels(){
 }
 
 dependency_fingerprint(){
-  cat "$CFG" "$ROOT/pyproject.toml" | sha256sum | awk '{print $1}'
+  "$PY" - "$CFG" "$ROOT/pyproject.toml" <<'PY'
+import hashlib,sys
+h=hashlib.sha256()
+for name in sys.argv[1:]:
+    with open(name,"rb") as handle: h.update(handle.read())
+print(h.hexdigest())
+PY
 }
 
 dependencies_healthy(){
@@ -211,17 +224,23 @@ EOF
   *) die "Unbekannte Option: $MODE" ;;
 esac
 
+progress 5 "Start vorbereiten"
 ensure_runtime
+progress 20 "Python bereit"
 ensure_pip
 ensure_wheels
+progress 40 "Lokaler Paketvorrat bereit"
 install_dependencies
+progress 65 "Abhängigkeiten geprüft"
 run_profile
+progress 90 "System- und Projektzustand geprüft"
 
 export PYTHONNOUSERSITE=1
 export PYTHONDONTWRITEBYTECODE=1
 export PYTHONPATH="$ROOT"
 cd "$ROOT"
 
+progress 100 "Bereit"
 printf '\n%sPROVOWARE Entwicklungsumgebung BEREIT 🟢%s\n' "$G" "$N"
 printf 'Python: %s\n' "$("$PY" --version)"
 printf 'PySide6: %s\n' "$("$PY" -c 'import PySide6; print(PySide6.__version__)')"

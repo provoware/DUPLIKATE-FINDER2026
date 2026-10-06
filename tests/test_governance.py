@@ -40,3 +40,11 @@ def test_snapshot_is_stable_for_same_tree():
 def test_area_classification():
     assert "startup" in area_for("app/startup/bootstrap.py")
     assert "gui" in area_for("app/gui/theme.py")
+
+
+def test_text_catalog_manifest_matches_catalog_version():
+    manifest=json.loads((ROOT/"resources/texts/manifest.json").read_text(encoding="utf-8"))
+    entry=manifest["catalogs"][0]
+    catalog=json.loads((ROOT/entry["path"]).read_text(encoding="utf-8"))
+    assert entry["version"] == catalog["catalog_version"]
+    assert manifest["active_locale"] == catalog["locale"]
