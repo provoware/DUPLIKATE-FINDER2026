@@ -19,7 +19,8 @@ from app.formatting import format_bytes
 
 MAX_TEXT_PREVIEW_BYTES = 512 * 1024
 MAX_DOCUMENT_PREVIEW_CHARS = 100_000
-MEDIA_PROBE_TIMEOUT_SECONDS = 4
+MAX_DOCUMENT_XML_BYTES = 4 * 1024 * 1024
+MEDIA_PROBE_TIMEOUT_SECONDS = 1.5
 
 
 @dataclass(frozen=True)
@@ -78,7 +79,10 @@ def read_document_preview(path: Path) -> str:
     try:
         with zipfile.ZipFile(path) as archive:
             if suffix == ".docx":
-                xml_bytes = archive.read("word/document.xml")
+                info = archive.getinfo("word/document.xml")
+                if info.file_size > MAX_DOCUMENT_XML_BYTES:
+                    return "Dokumentvorschau abgebrochen: Der interne Dokumenttext ist ungewöhnlich groß."
+                xml_bytes = archive.read(info)
                 root = ET.fromstring(xml_bytes)
                 paragraphs: list[str] = []
                 for element in root.iter():
@@ -94,7 +98,10 @@ def read_document_preview(path: Path) -> str:
                 return _clip_document_text("\n".join(paragraphs))
 
             if suffix == ".odt":
-                xml_bytes = archive.read("content.xml")
+                info = archive.getinfo("content.xml")
+                if info.file_size > MAX_DOCUMENT_XML_BYTES:
+                    return "Dokumentvorschau abgebrochen: Der interne Dokumenttext ist ungewöhnlich groß."
+                xml_bytes = archive.read(info)
                 root = ET.fromstring(xml_bytes)
                 paragraphs = []
                 for element in root.iter():
