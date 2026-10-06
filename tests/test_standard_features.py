@@ -65,7 +65,8 @@ def test_wrong_export_version_is_rejected():
 
 def test_ui_source_contains_safe_import_backup_and_cpu_presets():
     root=Path(__file__).resolve().parents[1]
-    source=(root/"app/gui/enhancements.py").read_text(encoding="utf-8")
-    assert "PROVOWARE-vor-Import-" in source
+    enhancements=(root/"app/gui/enhancements.py").read_text(encoding="utf-8")
+    portability=(root/"app/gui/state_portability_controller.py").read_text(encoding="utf-8")
+    assert "PROVOWARE-vor-Import-" in portability
     for percent in ("25","50","75"):
-        assert percent in source
+        assert percent in enhancements
