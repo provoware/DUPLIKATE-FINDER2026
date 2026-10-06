@@ -1,0 +1,26 @@
+#!/usr/bin/env bash
+set -Eeuo pipefail
+
+APPDIR="${APPDIR:-$(cd -- "$(dirname -- "${BASH_SOURCE[0]}")" && pwd)}"
+ROOT="$APPDIR/usr/lib/provoware"
+PYTHON="$ROOT/runtime/bin/python3"
+
+if [[ ! -x "$PYTHON" ]]; then
+  printf '%s\n'     'PROVOWARE DUPLIKATE-FINDER 2026 konnte nicht gestartet werden.'     'Die eingebettete Python-Laufzeit fehlt oder ist nicht ausführbar.' >&2
+  exit 20
+fi
+
+export PYTHONNOUSERSITE=1
+export PYTHONDONTWRITEBYTECODE=1
+export PYTHONPATH="$ROOT"
+
+if [[ "${PROVOWARE_PORTABLE_DATA:-0}" == "1" && -n "${APPIMAGE:-}" ]]; then
+  export PROVOWARE_PROJECT_DIR="$(dirname -- "$APPIMAGE")/PROVOWARE-DATEN"
+else
+  export PROVOWARE_PROJECT_DIR="${PROVOWARE_PROJECT_DIR:-${XDG_DATA_HOME:-$HOME/.local/share}/provoware-duplicate-finder-2026}"
+fi
+
+mkdir -p "$PROVOWARE_PROJECT_DIR"
+cd "$ROOT"
+"$PYTHON" -m app.startup.bootstrap
+exec "$PYTHON" -m app.main "$@"
