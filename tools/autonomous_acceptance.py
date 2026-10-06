@@ -128,6 +128,22 @@ def ui_checks(output: Path) -> tuple[list[Result], list[dict]]:
             window.show()
             app.processEvents()
             hint = window.minimumSizeHint()
+            if zoom == 200 or (width == 800 and height == 600):
+                largest = sorted(
+                    (
+                        (widget.minimumSizeHint().width(), widget.minimumSizeHint().height(),
+                         widget.objectName() or "-", type(widget).__name__)
+                        for widget in window.findChildren(QWidget)
+                        if widget.isVisible()
+                    ),
+                    reverse=True,
+                )[:12]
+                print(f"UI-DIAG | {label} | Fensterbedarf {hint.width()}x{hint.height()}")
+                for min_w, min_h, name, kind in largest:
+                    print(f"UI-DIAG | {label} | {min_w}x{min_h} | {kind} | {name}")
+                for page_index in range(window.pages.count()):
+                    page_hint=window.pages.widget(page_index).minimumSizeHint()
+                    print(f"UI-DIAG | {label} | Seite {page_index} | {page_hint.width()}x{page_hint.height()}")
             results.append(Result("Oberfläche", f"{label} Mindestlayout", hint.width() <= width and hint.height() <= height, f"Bedarf {hint.width()}x{hint.height()} bei Fenster {width}x{height}"))
             for page_index in range(window.pages.count()):
                 window.nav.setCurrentRow(page_index)
