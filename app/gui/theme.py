@@ -184,12 +184,32 @@ def apply_accessible_theme(app:QApplication,zoom:int|None=None)->int:
             font-weight:900;
         }
         QLabel#status_label {
-            background:#0d2b23;
-            color:#eafff2;
-            border:1px solid #4ddd9c;
+            background:#10242f;
+            color:#eef8ff;
+            border:1px solid #5d8799;
             border-radius:6px;
             padding:5px 9px;
             font-weight:900;
+        }
+        QLabel#status_label[statusLevel="ok"] {
+            background:#0d2b23;
+            color:#eafff2;
+            border:1px solid #4ddd9c;
+        }
+        QLabel#status_label[statusLevel="warning"] {
+            background:#332914;
+            color:#fff4c2;
+            border:1px solid #e5bd45;
+        }
+        QLabel#status_label[statusLevel="error"] {
+            background:#3a1822;
+            color:#ffe8ee;
+            border:1px solid #ff6f8f;
+        }
+        QLabel#status_label[statusLevel="neutral"] {
+            background:#102a36;
+            color:#eaf8ff;
+            border:1px solid #57a6c2;
         }
         QLabel#step_label, QLabel#eta_label, QLabel#activity_label {
             color:#dbe8ef;
