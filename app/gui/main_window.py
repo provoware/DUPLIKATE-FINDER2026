@@ -1,10 +1,14 @@
 from __future__ import annotations
 
+import json
+from datetime import datetime
 from pathlib import Path
 
-from PySide6.QtCore import Qt
+from PySide6.QtCore import QUrl, Qt
+from PySide6.QtGui import QCloseEvent, QDesktopServices
 from PySide6.QtWidgets import (
     QAbstractItemView,
+    QApplication,
     QCheckBox,
     QComboBox,
     QFileDialog,
@@ -27,14 +31,18 @@ from PySide6.QtWidgets import (
     QWidget,
 )
 
-from app.gui.workers import DuplicateWorker, SearchWorker
+from app.core.scanner import ScanOptions
+from app.error_management import record_error
+from app.gui.design_tokens import BASE_SPACING, OUTER_MARGIN
+from app.gui.filter_dialog import ScanOptionsDialog
+from app.gui.workers import DuplicateWorker, ManagedWorker, SearchWorker
 from app.models.entities import DuplicateGroup, SearchHit, SearchJob
 from app.safety.policy import WRITE_FEATURES
+from app.settings import AppSettings, SettingsStore
+from app.state_transfer import StateImportError, build_export, validate_import
 from app.storage.database import Database
-from app.validation import validate_scan_root, validate_search_request
-from app.gui.design_tokens import BASE_SPACING, OUTER_MARGIN
 from app.texts import text as ui_text
-from app.error_management import record_error
+from app.validation import validate_scan_root, validate_search_request
 
 
 class MainWindow(QMainWindow):
@@ -50,18 +58,23 @@ class MainWindow(QMainWindow):
         super().__init__()
         self.base_dir = base_dir
         self.database = database
+        self.settings_store = SettingsStore(base_dir / "config" / "ui-settings.json")
+        self.settings = self.settings_store.load()
         self.selected_root: Path | None = None
         self.search_worker: SearchWorker | None = None
         self.duplicate_worker: DuplicateWorker | None = None
         self.last_hits: list[SearchHit] = []
         self.duplicate_groups_cache: list[DuplicateGroup] = []
+        self._last_phase = "bereit"
 
         self.setWindowTitle("PROVOWARE DUPLIKATE-FINDER 2026 – Nur-Lesen-Modus")
-        self.resize(1280, 800)
+        self.resize(self.settings.window_width, self.settings.window_height)
         self.setMinimumSize(760, 520)
         self._build_ui()
+        self._restore_last_root()
         self._refresh_collections()
         self._refresh_duplicate_view_from_database()
+        self._update_filter_summaries()
 
     def _heading(self, text: str) -> QLabel:
         label = QLabel(text)
@@ -77,15 +90,12 @@ class MainWindow(QMainWindow):
         frame = QFrame()
         frame.setProperty("card", True)
         layout = QVBoxLayout(frame)
-        layout.setContentsMargins(5, 4, 5, 4)
+        layout.setContentsMargins(8, 6, 8, 6)
         layout.setSpacing(3)
         a = QLabel(title)
-        a.setStyleSheet("font-weight: 700;")
+        a.setProperty("cardTitle", True)
         b = QLabel(value)
-        font = b.font()
-        font.setBold(True)
-        font.setPointSize(font.pointSize() + 2)
-        b.setFont(font)
+        b.setProperty("cardValue", True)
         layout.addWidget(a)
         layout.addWidget(b)
         return frame
@@ -96,20 +106,22 @@ class MainWindow(QMainWindow):
         root.setContentsMargins(OUTER_MARGIN, OUTER_MARGIN, OUTER_MARGIN, 10)
         root.setSpacing(BASE_SPACING)
 
-        header = QHBoxLayout()
+        header_frame = QFrame()
+        header_frame.setProperty("headerPanel", True)
+        header = QHBoxLayout(header_frame)
         title = self._heading("PROVOWARE DUPLIKATE-FINDER 2026")
         title.setObjectName("app_title")
         title.setWordWrap(True)
         mode = QLabel("🔒 NUR LESEN · ORIGINALDATEIEN GESCHÜTZT")
         mode.setObjectName("safety_banner")
+        mode.setProperty("safetyBanner", True)
         mode.setWordWrap(True)
-        mode.setStyleSheet("font-weight: 800; padding: 8px; border: 2px solid #555;")
-        header.addWidget(title)
-        header.addStretch(1)
+        header.addWidget(title, 1)
         header.addWidget(mode)
-        root.addLayout(header)
+        root.addWidget(header_frame)
 
         body = QHBoxLayout()
+        body.setSpacing(BASE_SPACING)
         self.nav = QListWidget()
         self.nav.setObjectName("main_navigation")
         self.nav.addItems([
@@ -122,7 +134,8 @@ class MainWindow(QMainWindow):
             "❔ Hilfe",
         ])
         self.nav.setCurrentRow(self.PAGE_DASHBOARD)
-        self.nav.setSelectionMode(QAbstractItemView.SingleSelection)
+        self.nav.setSelectionMode(QAbstractItemView.SelectionMode.SingleSelection)
+        self.nav.setMaximumWidth(190)
         body.addWidget(self.nav, 0)
 
         self.pages = QStackedWidget()
@@ -137,27 +150,58 @@ class MainWindow(QMainWindow):
         body.addWidget(self.pages, 1)
         root.addLayout(body, 1)
 
-        footer = QHBoxLayout()
+        process_panel = QFrame()
+        process_panel.setObjectName("process_panel")
+        process_panel.setProperty("processPanel", True)
+        process = QGridLayout(process_panel)
+        process.setContentsMargins(8, 6, 8, 6)
+        process.setHorizontalSpacing(10)
+        process.setVerticalSpacing(4)
+
         self.status_label = QLabel("🟢 Bereit")
         self.status_label.setObjectName("status_label")
-        self.status_label.setStyleSheet("font-weight: 800;")
-        self.activity_label = QLabel("Aktivität: bereit")
+        self.activity_label = QLabel("Aktueller Schritt: bereit")
         self.activity_label.setObjectName("activity_label")
-        self.activity_label.setToolTip("Zeigt an, woran das Programm gerade arbeitet.")
+        self.activity_label.setToolTip("Zeigt den aktuell ausgeführten Arbeitsschritt.")
+        self.eta_label = QLabel("Restzeit: –")
+        self.eta_label.setObjectName("activity_eta")
+        self.eta_label.setToolTip("Ungefähre Restzeit aus dem bisherigen Durchsatz.")
+
         self.progress_bar = QProgressBar()
         self.progress_bar.setObjectName("activity_progress")
         self.progress_bar.setRange(0, 100)
         self.progress_bar.setValue(100)
-        self.progress_bar.setFormat("%p %")
-        self.progress_bar.setMaximumWidth(180)
+        self.progress_bar.setFormat("Bereit")
+        self.progress_bar.setMinimumWidth(220)
+
+        self.pause_button = QPushButton("⏸ Pause")
+        self.pause_button.setObjectName("activity_pause")
+        self.pause_button.setProperty("warning", True)
+        self.pause_button.setEnabled(False)
+        self.pause_button.setToolTip("Hält den laufenden Auftrag an einem sicheren Prüfpunkt an.")
+        self.pause_button.clicked.connect(self._pause_or_resume)
+
+        self.cancel_button = QPushButton("■ Abbrechen")
+        self.cancel_button.setObjectName("activity_cancel")
+        self.cancel_button.setProperty("danger", True)
+        self.cancel_button.setEnabled(False)
+        self.cancel_button.setToolTip("Fordert einen sicheren Abbruch an. Originaldateien bleiben unverändert.")
+        self.cancel_button.clicked.connect(self._cancel_active_process)
+
         self.counter_label = QLabel("0 Dateien geprüft · 0 Treffer")
         self.counter_label.setObjectName("counter_label")
-        footer.addWidget(self.status_label)
-        footer.addWidget(self.activity_label)
-        footer.addWidget(self.progress_bar)
-        footer.addStretch(1)
-        footer.addWidget(self.counter_label)
-        root.addLayout(footer)
+        self.counter_label.setAlignment(Qt.AlignmentFlag.AlignRight | Qt.AlignmentFlag.AlignVCenter)
+
+        process.addWidget(self.status_label, 0, 0)
+        process.addWidget(self.activity_label, 0, 1, 1, 2)
+        process.addWidget(self.eta_label, 0, 3)
+        process.addWidget(self.progress_bar, 1, 0, 1, 2)
+        process.addWidget(self.pause_button, 1, 2)
+        process.addWidget(self.cancel_button, 1, 3)
+        process.addWidget(self.counter_label, 1, 4)
+        process.setColumnStretch(1, 1)
+        process.setColumnStretch(4, 1)
+        root.addWidget(process_panel)
 
         self.nav.currentRowChanged.connect(self.pages.setCurrentIndex)
         self.setCentralWidget(central)
@@ -165,12 +209,14 @@ class MainWindow(QMainWindow):
     def _dashboard_page(self) -> QWidget:
         page = QWidget()
         page.setObjectName("page_dashboard")
+        page.setProperty("pagePanel", True)
         layout = QVBoxLayout(page)
-        layout.setContentsMargins(2, 2, 2, 2)
-        layout.setSpacing(6)
+        layout.setContentsMargins(8, 8, 8, 8)
+        layout.setSpacing(8)
         layout.addWidget(self._heading("Übersicht"))
 
         cards = QGridLayout()
+        cards.setSpacing(8)
         cards.addWidget(self._card("Sicherheitsmodus", "🔒 Nur lesen"), 0, 0)
         cards.addWidget(self._card("Textsuche", "🟢 Bereit"), 0, 1)
         cards.addWidget(self._card("Duplikatprüfung", "🟢 SHA-256"), 1, 0)
@@ -179,12 +225,12 @@ class MainWindow(QMainWindow):
 
         feature_box = QFrame()
         feature_box.setObjectName("locked_write_features")
-        feature_box.setProperty("card", True)
+        feature_box.setProperty("lockedPanel", True)
         feature_layout = QGridLayout(feature_box)
         label = QLabel("Vorbereitete Dateiaktionen – sichtbar, aber technisch gesperrt")
         label.setWordWrap(True)
-        label.setStyleSheet("font-weight: 800;")
-        feature_layout.addWidget(label, 0, 0, 1, 2)
+        label.setProperty("sectionTitle", True)
+        feature_layout.addWidget(label, 0, 0, 1, 4)
 
         flags = {row["key"]: row for row in self.database.feature_flags()}
         for index, (key, text) in enumerate(WRITE_FEATURES.items()):
@@ -192,7 +238,7 @@ class MainWindow(QMainWindow):
             checkbox.setObjectName(f"feature_{key}")
             checkbox.setChecked(bool(flags[key]["enabled"]))
             checkbox.setEnabled(False)
-            checkbox.setToolTip("Vorbereitet, aber in Version 1 absichtlich gesperrt.")
+            checkbox.setToolTip("Vorbereitet, aber absichtlich gesperrt.")
             state = QLabel("🔒 AUS")
             state.setToolTip("Technisch gesperrt. Originaldateien bleiben unverändert.")
             row = 1 + index // 2
@@ -202,10 +248,13 @@ class MainWindow(QMainWindow):
         layout.addWidget(feature_box)
 
         quick = QGridLayout()
+        quick.setSpacing(8)
         go_search = QPushButton("🔎 Text suchen")
         go_search.setObjectName("dashboard_go_search")
+        go_search.setProperty("accent", True)
         go_duplicates = QPushButton("🟰 Duplikate prüfen")
         go_duplicates.setObjectName("dashboard_go_duplicates")
+        go_duplicates.setProperty("accent", True)
         go_collections = QPushButton("📁 Sammlungen")
         go_collections.setObjectName("dashboard_go_collections")
         go_search.clicked.connect(lambda: self.nav.setCurrentRow(self.PAGE_SEARCH))
@@ -224,6 +273,7 @@ class MainWindow(QMainWindow):
         label.setReadOnly(True)
         label.setPlaceholderText("Noch kein Ordner gewählt")
         choose = QPushButton("📁 Ordner wählen")
+        choose.setProperty("accent", True)
         choose.clicked.connect(self._choose_root)
         row.addWidget(label, 1)
         row.addWidget(choose)
@@ -232,7 +282,9 @@ class MainWindow(QMainWindow):
     def _search_page(self) -> QWidget:
         page = QWidget()
         page.setObjectName("page_search")
+        page.setProperty("pagePanel", True)
         layout = QVBoxLayout(page)
+        layout.setSpacing(8)
         layout.addWidget(self._heading("Textdateien durchsuchen"))
 
         root_row, self.root_label, choose = self._root_selector()
@@ -240,7 +292,22 @@ class MainWindow(QMainWindow):
         choose.setObjectName("search_choose_root")
         layout.addLayout(root_row)
 
-        query_grid = QGridLayout()
+        filter_panel = QFrame()
+        filter_panel.setProperty("section", True)
+        filter_layout = QHBoxLayout(filter_panel)
+        self.search_filter_summary = QLabel()
+        self.search_filter_summary.setObjectName("search_filter_summary")
+        self.search_filter_summary.setWordWrap(True)
+        filter_button = QPushButton("⚙ Prüfoptionen")
+        filter_button.setObjectName("search_filter_options")
+        filter_button.clicked.connect(self._open_scan_options)
+        filter_layout.addWidget(self.search_filter_summary, 1)
+        filter_layout.addWidget(filter_button)
+        layout.addWidget(filter_panel)
+
+        query_panel = QFrame()
+        query_panel.setProperty("section", True)
+        query_grid = QGridLayout(query_panel)
         self.query_edit = QLineEdit()
         self.query_edit.setObjectName("search_query")
         self.query_edit.setPlaceholderText("Suchbegriff")
@@ -253,21 +320,23 @@ class MainWindow(QMainWindow):
         self.contents_box.setChecked(True)
         self.search_button = QPushButton("🔎 SUCHEN")
         self.search_button.setObjectName("search_start")
+        self.search_button.setProperty("accent", True)
         self.search_button.clicked.connect(self._start_search)
         self.search_button.setToolTip("Startet eine reine Lese-Suche. Originaldateien werden nicht verändert.")
         query_grid.addWidget(self.query_edit, 0, 0, 1, 3)
         query_grid.addWidget(self.names_box, 1, 0)
         query_grid.addWidget(self.contents_box, 1, 1)
         query_grid.addWidget(self.search_button, 1, 2)
-        layout.addLayout(query_grid)
+        layout.addWidget(query_panel)
 
         info = QLabel(
-            "ℹ️ Die Textsuche liest nur unterstützte Textformate. Symbolische Verknüpfungen "
-            "und kritische Linux-Systembereiche werden nicht verfolgt."
+            "ℹ️ Textsuche liest nur unterstützte Textformate. Technische Projektordner können "
+            "automatisch ausgelassen werden. Symbolische Verknüpfungen und kritische Linux-Systembereiche "
+            "werden nicht verfolgt."
         )
         info.setObjectName("search_info")
         info.setWordWrap(True)
-        info.setProperty("card", True)
+        info.setProperty("infoPanel", True)
         layout.addWidget(info)
         layout.addStretch(1)
         return page
@@ -275,6 +344,7 @@ class MainWindow(QMainWindow):
     def _results_page(self) -> QWidget:
         page = QWidget()
         page.setObjectName("page_results")
+        page.setProperty("pagePanel", True)
         layout = QVBoxLayout(page)
 
         head = QHBoxLayout()
@@ -289,13 +359,15 @@ class MainWindow(QMainWindow):
         self.results.setObjectName("results_table")
         self.results.setHorizontalHeaderLabels(["Markiert", "Quelle", "Datei", "Zeile", "Fundstelle"])
         self.results.horizontalHeader().setStretchLastSection(True)
-        self.results.setSelectionBehavior(QAbstractItemView.SelectRows)
-        self.results.setSelectionMode(QAbstractItemView.SingleSelection)
-        self.results.setEditTriggers(QAbstractItemView.NoEditTriggers)
+        self.results.setSelectionBehavior(QAbstractItemView.SelectionBehavior.SelectRows)
+        self.results.setSelectionMode(QAbstractItemView.SelectionMode.SingleSelection)
+        self.results.setEditTriggers(QAbstractItemView.EditTrigger.NoEditTriggers)
         self.results.itemSelectionChanged.connect(self._load_selected_result_state)
         layout.addWidget(self.results, 1)
 
-        meta = QGridLayout()
+        meta_panel = QFrame()
+        meta_panel.setProperty("section", True)
+        meta = QGridLayout(meta_panel)
         self.result_mark = QCheckBox("Treffer markieren")
         self.result_mark.setObjectName("result_mark")
         self.result_note = QLineEdit()
@@ -309,34 +381,55 @@ class MainWindow(QMainWindow):
         add_collection = QPushButton("➕ In Sammlung aufnehmen")
         add_collection.setObjectName("result_add_collection")
         add_collection.clicked.connect(self._add_selected_result_to_collection)
+        copy_path = QPushButton("📋 Pfad kopieren")
+        copy_path.setObjectName("result_copy_path")
+        copy_path.clicked.connect(self._copy_selected_result_path)
+        open_folder = QPushButton("📂 Ordner öffnen")
+        open_folder.setObjectName("result_open_folder")
+        open_folder.clicked.connect(self._open_selected_result_folder)
         meta.addWidget(self.result_mark, 0, 0)
-        meta.addWidget(self.result_note, 0, 1, 1, 2)
-        meta.addWidget(save_meta, 1, 0, 1, 3)
+        meta.addWidget(self.result_note, 0, 1, 1, 3)
+        meta.addWidget(save_meta, 1, 0, 1, 2)
+        meta.addWidget(copy_path, 1, 2)
+        meta.addWidget(open_folder, 1, 3)
         meta.addWidget(QLabel("Sammlung:"), 2, 0)
-        meta.addWidget(self.result_collection, 2, 1)
-        meta.addWidget(add_collection, 2, 2)
-        layout.addLayout(meta)
+        meta.addWidget(self.result_collection, 2, 1, 1, 2)
+        meta.addWidget(add_collection, 2, 3)
+        layout.addWidget(meta_panel)
         return page
 
     def _duplicates_page(self) -> QWidget:
         page = QWidget()
         page.setObjectName("page_duplicates")
+        page.setProperty("pagePanel", True)
         layout = QVBoxLayout(page)
 
-        top = QVBoxLayout()
-        top.addWidget(self._heading("Duplikate – gruppiert und vollständig geprüft"))
+        top_panel = QFrame()
+        top_panel.setProperty("section", True)
+        top = QGridLayout(top_panel)
+        top.addWidget(self._heading("Duplikate – gruppiert und vollständig geprüft"), 0, 0, 1, 2)
+        self.duplicate_filter_summary = QLabel()
+        self.duplicate_filter_summary.setObjectName("duplicate_filter_summary")
+        self.duplicate_filter_summary.setWordWrap(True)
+        options = QPushButton("⚙ Prüfoptionen")
+        options.setObjectName("duplicate_filter_options")
+        options.clicked.connect(self._open_scan_options)
         self.duplicate_start = QPushButton("🟰 Gewählten Ordner prüfen")
         self.duplicate_start.setObjectName("duplicate_start")
+        self.duplicate_start.setProperty("accent", True)
         self.duplicate_start.clicked.connect(self._start_duplicate_scan)
-        top.addWidget(self.duplicate_start)
-        layout.addLayout(top)
+        top.addWidget(self.duplicate_filter_summary, 1, 0)
+        top.addWidget(options, 1, 1)
+        top.addWidget(self.duplicate_start, 2, 0, 1, 2)
+        layout.addWidget(top_panel)
 
         self.duplicate_root = QLabel("Suchordner: noch nicht gewählt")
         self.duplicate_root.setObjectName("duplicate_root")
         self.duplicate_root.setWordWrap(True)
+        self.duplicate_root.setProperty("infoPanel", True)
         layout.addWidget(self.duplicate_root)
 
-        splitter = QSplitter(Qt.Horizontal)
+        splitter = QSplitter(Qt.Orientation.Horizontal)
         splitter.setObjectName("duplicate_splitter")
         self.duplicate_group_list = QListWidget()
         self.duplicate_group_list.setObjectName("duplicate_group_list")
@@ -353,8 +446,8 @@ class MainWindow(QMainWindow):
         self.duplicate_members.setObjectName("duplicate_members")
         self.duplicate_members.setHorizontalHeaderLabels(["Datei", "Ordner", "Größe", "Geändert"])
         self.duplicate_members.horizontalHeader().setStretchLastSection(True)
-        self.duplicate_members.setSelectionBehavior(QAbstractItemView.SelectRows)
-        self.duplicate_members.setEditTriggers(QAbstractItemView.NoEditTriggers)
+        self.duplicate_members.setSelectionBehavior(QAbstractItemView.SelectionBehavior.SelectRows)
+        self.duplicate_members.setEditTriggers(QAbstractItemView.EditTrigger.NoEditTriggers)
         right_layout.addWidget(self.duplicate_members, 1)
         splitter.addWidget(right)
         splitter.setStretchFactor(0, 1)
@@ -367,17 +460,20 @@ class MainWindow(QMainWindow):
         )
         note.setObjectName("duplicate_safety_note")
         note.setWordWrap(True)
-        note.setProperty("card", True)
+        note.setProperty("infoPanel", True)
         layout.addWidget(note)
         return page
 
     def _collections_page(self) -> QWidget:
         page = QWidget()
         page.setObjectName("page_collections")
+        page.setProperty("pagePanel", True)
         layout = QVBoxLayout(page)
         layout.addWidget(self._heading("Virtuelle Sammlungen"))
 
-        create = QGridLayout()
+        create_panel = QFrame()
+        create_panel.setProperty("section", True)
+        create = QGridLayout(create_panel)
         self.collection_name = QLineEdit()
         self.collection_name.setObjectName("collection_name")
         self.collection_name.setPlaceholderText("Name der neuen Sammlung")
@@ -390,9 +486,9 @@ class MainWindow(QMainWindow):
         create.addWidget(self.collection_name, 0, 0)
         create.addWidget(self.collection_note, 0, 1)
         create.addWidget(create_button, 1, 0, 1, 2)
-        layout.addLayout(create)
+        layout.addWidget(create_panel)
 
-        splitter = QSplitter(Qt.Horizontal)
+        splitter = QSplitter(Qt.Orientation.Horizontal)
         self.collection_list = QListWidget()
         self.collection_list.setObjectName("collection_list")
         self.collection_list.currentRowChanged.connect(self._show_collection)
@@ -408,9 +504,9 @@ class MainWindow(QMainWindow):
         self.collection_items_table.setObjectName("collection_items")
         self.collection_items_table.setHorizontalHeaderLabels(["Datei", "Ordner", "Notiz"])
         self.collection_items_table.horizontalHeader().setStretchLastSection(True)
-        self.collection_items_table.setSelectionBehavior(QAbstractItemView.SelectRows)
-        self.collection_items_table.setSelectionMode(QAbstractItemView.SingleSelection)
-        self.collection_items_table.setEditTriggers(QAbstractItemView.NoEditTriggers)
+        self.collection_items_table.setSelectionBehavior(QAbstractItemView.SelectionBehavior.SelectRows)
+        self.collection_items_table.setSelectionMode(QAbstractItemView.SelectionMode.SingleSelection)
+        self.collection_items_table.setEditTriggers(QAbstractItemView.EditTrigger.NoEditTriggers)
         right_layout.addWidget(self.collection_items_table, 1)
         remove = QPushButton("➖ Nur aus Sammlung entfernen")
         remove.setObjectName("collection_remove")
@@ -424,23 +520,23 @@ class MainWindow(QMainWindow):
         safe = QLabel("ℹ️ Sammlungen sind rein virtuell. Die Dateien bleiben an ihrem Originalort.")
         safe.setObjectName("collection_safety_note")
         safe.setWordWrap(True)
-        safe.setProperty("card", True)
+        safe.setProperty("infoPanel", True)
         layout.addWidget(safe)
         return page
 
     def _journal_page(self) -> QWidget:
         page = QWidget()
         page.setObjectName("page_journal")
+        page.setProperty("pagePanel", True)
         layout = QVBoxLayout(page)
         layout.addWidget(self._heading("Änderungsjournal"))
         info = QLabel(
-            "🟢 Version 1 führt keine physischen Dateiänderungen aus. Das Journal-Schema ist "
-            "vorbereitet, bleibt für Originaldateien aber leer. Virtuelle Sammlungen und Notizen "
-            "liegen getrennt in der lokalen Datenbank."
+            "🟢 Originaldateien werden nicht verändert. Markierungen, Notizen, Sammlungen, "
+            "Einstellungen und Autospeicherstände liegen getrennt im PROVOWARE-Projektordner."
         )
         info.setObjectName("journal_info")
         info.setWordWrap(True)
-        info.setProperty("card", True)
+        info.setProperty("infoPanel", True)
         layout.addWidget(info)
         layout.addStretch(1)
         return page
@@ -448,28 +544,31 @@ class MainWindow(QMainWindow):
     def _help_page(self) -> QWidget:
         page = QWidget()
         page.setObjectName("page_help")
+        page.setProperty("pagePanel", True)
         layout = QVBoxLayout(page)
         layout.addWidget(self._heading("Hilfe – drei Stufen"))
 
-        level1 = QLabel("1. Kurz erklärt: Ordner wählen → Suche oder Duplikatprüfung starten → Treffer virtuell ordnen.")
-        level1.setWordWrap(True)
-        level1.setProperty("card", True)
-        layout.addWidget(level1)
-
-        level2 = QLabel("2. Direkt am Bedienelement: Fahre mit der Maus über einen Knopf oder ein Feld. Ein Tooltip erklärt die Funktion und mögliche Folgen.")
-        level2.setWordWrap(True)
-        level2.setProperty("card", True)
-        layout.addWidget(level2)
+        for text in (
+            "1. Kurz erklärt: Ordner wählen → Prüfoptionen kontrollieren → Suche oder Duplikatprüfung starten.",
+            "2. Direkt am Bedienelement: Maus über Knopf oder Feld bewegen. Der Tooltip erklärt Funktion und Folgen.",
+            "3. Prozesssteuerung: Laufende Prüfungen können sicher pausiert, fortgesetzt und abgebrochen werden. "
+            "Die Restzeit ist eine Schätzung aus dem bisherigen Durchsatz.",
+        ):
+            label = QLabel(text)
+            label.setWordWrap(True)
+            label.setProperty("infoPanel", True)
+            layout.addWidget(label)
 
         level3 = QLabel(
-            "3. Ausführliche Hilfe:\n"
+            "Weitere Hilfe:\n"
             "• Textsuche: " + ui_text("help.search_short") + "\n"
             "• Duplikate: " + ui_text("help.duplicates_short") + "\n"
             "• Sammlungen: " + ui_text("help.collections_short") + "\n"
-            "Bei einem Fehler zeigt das Programm einen sicheren Abbruch, eine verständliche Meldung und den Protokollordner."
+            "• Export/Import: überträgt nur PROVOWARE-Einstellungen und virtuelle Organisation.\n"
+            "• Autospeichern: Einstellungen alle fünf Minuten; virtuelle Änderungen werden sofort gespeichert."
         )
         level3.setWordWrap(True)
-        level3.setProperty("card", True)
+        level3.setProperty("infoPanel", True)
         layout.addWidget(level3)
 
         safety = QLabel(
@@ -477,22 +576,182 @@ class MainWindow(QMainWindow):
         )
         safety.setObjectName("help_safety")
         safety.setWordWrap(True)
-        safety.setStyleSheet("font-weight: 800;")
+        safety.setProperty("safetyBanner", True)
         layout.addWidget(safety)
         layout.addStretch(1)
         return page
 
+    def _restore_last_root(self) -> None:
+        raw = self.settings.last_root.strip()
+        if not raw:
+            return
+        validation = validate_scan_root(Path(raw))
+        if validation.ok:
+            self._set_selected_root(Path(raw))
+
+    def _set_selected_root(self, path: Path) -> None:
+        resolved = path.expanduser().resolve(strict=False)
+        self.selected_root = resolved
+        self.settings.last_root = str(resolved)
+        self.root_label.setText(str(resolved))
+        self.duplicate_root.setText(f"Suchordner: {resolved}")
+        self.save_settings()
+
     def _choose_root(self) -> None:
-        chosen = QFileDialog.getExistingDirectory(self, "Suchordner wählen", str(Path.home()))
+        start = str(self.selected_root or Path.home())
+        chosen = QFileDialog.getExistingDirectory(self, "Suchordner wählen", start)
         if not chosen:
             return
         validation = validate_scan_root(Path(chosen))
         if not validation.ok:
             QMessageBox.information(self, validation.title, validation.message)
             return
-        self.selected_root = Path(chosen)
-        self.root_label.setText(chosen)
-        self.duplicate_root.setText(f"Suchordner: {chosen}")
+        self._set_selected_root(Path(chosen))
+
+    def _current_scan_options(self) -> ScanOptions:
+        return ScanOptions(
+            skip_python_project_dirs=self.settings.skip_python_project_dirs,
+            skip_hidden_dirs=self.settings.skip_hidden_dirs,
+            excluded_extensions=frozenset(self.settings.excluded_extensions),
+        )
+
+    def _filter_summary_text(self) -> str:
+        project = (
+            "Entwicklungsordner werden ausgelassen"
+            if self.settings.skip_python_project_dirs
+            else "Entwicklungsordner werden mitgeprüft"
+        )
+        hidden = (
+            "versteckte Ordner werden ausgelassen"
+            if self.settings.skip_hidden_dirs
+            else "versteckte Ordner werden mitgeprüft"
+        )
+        count = len(self.settings.excluded_extensions)
+        return f"Filter: {project} · {hidden} · {count} Dateitypen ausgeschlossen"
+
+    def _update_filter_summaries(self) -> None:
+        text = self._filter_summary_text()
+        if hasattr(self, "search_filter_summary"):
+            self.search_filter_summary.setText(text)
+        if hasattr(self, "duplicate_filter_summary"):
+            self.duplicate_filter_summary.setText(
+                text + f" · SHA-256 parallel: max. {self.settings.resolved_cpu_workers()} Kerne"
+            )
+
+    def _open_scan_options(self) -> None:
+        dialog = ScanOptionsDialog(
+            self,
+            skip_python_project_dirs=self.settings.skip_python_project_dirs,
+            skip_hidden_dirs=self.settings.skip_hidden_dirs,
+            excluded_extensions=set(self.settings.excluded_extensions),
+        )
+        if dialog.exec() != dialog.DialogCode.Accepted:
+            return
+        self.settings.skip_python_project_dirs = dialog.python_dirs.isChecked()
+        self.settings.skip_hidden_dirs = dialog.hidden_dirs.isChecked()
+        self.settings.excluded_extensions = sorted(dialog.excluded_extensions())
+        self.save_settings()
+        self._update_filter_summaries()
+        self.status_label.setText("🟢 Prüfoptionen gespeichert")
+
+    def _active_worker(self) -> ManagedWorker | None:
+        for worker in (self.search_worker, self.duplicate_worker):
+            if worker is not None and worker.isRunning():
+                return worker
+        return None
+
+    def _begin_process(self, phase: str) -> None:
+        self.search_button.setEnabled(False)
+        self.duplicate_start.setEnabled(False)
+        self.pause_button.setEnabled(True)
+        self.pause_button.setText("⏸ Pause")
+        self.cancel_button.setEnabled(True)
+        self._last_phase = phase
+        self.status_label.setText("🟡 Verarbeitung läuft")
+        self.activity_label.setText(f"Aktueller Schritt: {phase}")
+        self.eta_label.setText("Restzeit: wird berechnet")
+
+    def _finish_process(self) -> None:
+        self.search_button.setEnabled(True)
+        self.duplicate_start.setEnabled(True)
+        self.pause_button.setEnabled(False)
+        self.pause_button.setText("⏸ Pause")
+        self.cancel_button.setEnabled(False)
+        self.progress_bar.setRange(0, 100)
+        self.progress_bar.setValue(100)
+        self.progress_bar.setFormat("100 %")
+        self.eta_label.setText("Restzeit: 0 s")
+
+    def _connect_worker(self, worker: ManagedWorker) -> None:
+        worker.progress.connect(self._process_progress)
+        worker.pause_changed.connect(self._process_pause_changed)
+        worker.cancelled.connect(self._process_cancelled)
+
+    def _process_progress(self, current: int, total: int, phase: str, eta_seconds: int) -> None:
+        self._last_phase = phase
+        self.activity_label.setText(f"Aktueller Schritt: {phase}")
+        if total <= 0:
+            self.progress_bar.setRange(0, 0)
+            self.progress_bar.setFormat("wird ermittelt …")
+            self.counter_label.setText(f"{current} Dateien entdeckt")
+        else:
+            self.progress_bar.setRange(0, total)
+            self.progress_bar.setValue(min(current, total))
+            percent = round((current / total) * 100) if total else 0
+            self.progress_bar.setFormat(f"{current} / {total} · {percent} %")
+        self.eta_label.setText(self._eta_text(eta_seconds))
+
+    @staticmethod
+    def _eta_text(seconds: int) -> str:
+        if seconds < 0:
+            return "Restzeit: wird berechnet"
+        if seconds < 60:
+            return f"Restzeit: ca. {seconds} s"
+        minutes, rest = divmod(seconds, 60)
+        if minutes < 60:
+            return f"Restzeit: ca. {minutes} min {rest:02d} s"
+        hours, minutes = divmod(minutes, 60)
+        return f"Restzeit: ca. {hours} h {minutes:02d} min"
+
+    def _pause_or_resume(self) -> None:
+        worker = self._active_worker()
+        if worker is None:
+            return
+        if worker.control.paused:
+            worker.request_resume()
+        else:
+            worker.request_pause()
+
+    def _process_pause_changed(self, paused: bool) -> None:
+        if paused:
+            self.status_label.setText("🟡 Pausiert")
+            self.activity_label.setText(f"Aktueller Schritt: pausiert · {self._last_phase}")
+            self.eta_label.setText("Restzeit: nach Fortsetzen")
+            self.pause_button.setText("▶ Fortsetzen")
+        else:
+            self.status_label.setText("🟡 Verarbeitung läuft")
+            self.activity_label.setText(f"Aktueller Schritt: {self._last_phase}")
+            self.pause_button.setText("⏸ Pause")
+
+    def _cancel_active_process(self) -> None:
+        worker = self._active_worker()
+        if worker is None:
+            return
+        worker.request_cancel()
+        self.cancel_button.setEnabled(False)
+        self.pause_button.setEnabled(False)
+        self.status_label.setText("🟡 Abbruch angefordert")
+        self.activity_label.setText("Aktueller Schritt: sicherer Abbruch wird abgeschlossen")
+        self.eta_label.setText("Restzeit: wenige Augenblicke")
+
+    def _process_cancelled(self, message: str) -> None:
+        self._finish_process()
+        self.status_label.setText("🟡 Vorgang abgebrochen · Originaldateien unverändert")
+        self.activity_label.setText("Aktueller Schritt: abgebrochen")
+        self.progress_bar.setValue(0)
+        self.progress_bar.setFormat("Abgebrochen")
+        self.eta_label.setText("Restzeit: –")
+        self.counter_label.setText(message)
 
     def _start_search(self) -> None:
         query = self.query_edit.text().strip()
@@ -505,6 +764,9 @@ class MainWindow(QMainWindow):
         if not validation.ok:
             QMessageBox.information(self, validation.title, validation.message)
             return
+        if self._active_worker() is not None:
+            QMessageBox.information(self, "Prüfung läuft", "Bitte zuerst den laufenden Vorgang beenden.")
+            return
 
         job = SearchJob(
             root=self.selected_root,
@@ -512,12 +774,10 @@ class MainWindow(QMainWindow):
             search_names=self.names_box.isChecked(),
             search_contents=self.contents_box.isChecked(),
         )
-        self.search_button.setEnabled(False)
-        self.status_label.setText("🟡 Textsuche läuft …")
-        self.activity_label.setText("Aktivität: Textdateien werden geprüft")
-        self.progress_bar.setRange(0, 0)
         self.counter_label.setText("Suche wird vorbereitet …")
-        self.search_worker = SearchWorker(job)
+        self._begin_process("Dateiliste wird vorbereitet")
+        self.search_worker = SearchWorker(job, self._current_scan_options())
+        self._connect_worker(self.search_worker)
         self.search_worker.completed.connect(self._search_finished)
         self.search_worker.failed.connect(self._search_failed)
         self.search_worker.start()
@@ -532,30 +792,32 @@ class MainWindow(QMainWindow):
             self.results.insertRow(row)
             state = self.database.virtual_item(hit.path)
             mark_item = QTableWidgetItem("★" if state.marked else "")
-            mark_item.setData(Qt.UserRole, str(hit.path))
+            mark_item.setData(Qt.ItemDataRole.UserRole, str(hit.path))
             self.results.setItem(row, 0, mark_item)
             self.results.setItem(row, 1, QTableWidgetItem(hit.source))
             self.results.setItem(row, 2, QTableWidgetItem(str(hit.path)))
             self.results.setItem(row, 3, QTableWidgetItem("" if hit.line_number is None else str(hit.line_number)))
             self.results.setItem(row, 4, QTableWidgetItem(hit.excerpt))
         self.results.setSortingEnabled(sorting)
-        self.search_button.setEnabled(True)
+        self._finish_process()
         self.status_label.setText("🟢 Textsuche abgeschlossen")
-        self.activity_label.setText("Aktivität: Suche abgeschlossen")
-        self.progress_bar.setRange(0, 100)
-        self.progress_bar.setValue(100)
+        self.activity_label.setText("Aktueller Schritt: Ergebnisse bereit")
         self.counter_label.setText(f"{job.scanned_files} Textdateien geprüft · {len(hits)} Treffer")
         self.result_info.setText(f"{len(hits)} Treffer")
         self.nav.setCurrentRow(self.PAGE_RESULTS)
 
     def _search_failed(self, message: str) -> None:
         entry = record_error(self.base_dir / "logs", "textsuche", message)
-        self.search_button.setEnabled(True)
+        self._finish_process()
         self.status_label.setText("🔴 Textsuche gestoppt")
-        self.activity_label.setText("Aktivität: sicher gestoppt")
-        self.progress_bar.setRange(0, 100)
+        self.activity_label.setText("Aktueller Schritt: sicher gestoppt")
         self.progress_bar.setValue(0)
-        QMessageBox.critical(self, "Suche gestoppt", f"Die Suche wurde sicher beendet.\n\n{message}\n\nLösung: {entry['solution']}")
+        self.eta_label.setText("Restzeit: –")
+        QMessageBox.critical(
+            self,
+            "Suche gestoppt",
+            f"Die Suche wurde sicher beendet.\n\n{message}\n\nLösung: {entry['solution']}",
+        )
 
     def _selected_result_path(self) -> Path | None:
         row = self.results.currentRow()
@@ -579,8 +841,25 @@ class MainWindow(QMainWindow):
             return
         self.database.set_virtual_item(path, self.result_mark.isChecked(), self.result_note.text())
         row = self.results.currentRow()
-        self.results.item(row, 0).setText("★" if self.result_mark.isChecked() else "")
+        item = self.results.item(row, 0)
+        if item:
+            item.setText("★" if self.result_mark.isChecked() else "")
         self.status_label.setText("🟢 Virtuelle Markierung gespeichert")
+
+    def _copy_selected_result_path(self) -> None:
+        path = self._selected_result_path()
+        if path is None:
+            QMessageBox.information(self, "Kein Treffer", "Bitte zuerst einen Treffer auswählen.")
+            return
+        QApplication.clipboard().setText(str(path))
+        self.status_label.setText("🟢 Pfad in die Zwischenablage kopiert")
+
+    def _open_selected_result_folder(self) -> None:
+        path = self._selected_result_path()
+        if path is None:
+            QMessageBox.information(self, "Kein Treffer", "Bitte zuerst einen Treffer auswählen.")
+            return
+        QDesktopServices.openUrl(QUrl.fromLocalFile(str(path.parent)))
 
     def _add_selected_result_to_collection(self) -> None:
         path = self._selected_result_path()
@@ -600,12 +879,22 @@ class MainWindow(QMainWindow):
         if not validation.ok:
             QMessageBox.information(self, validation.title, validation.message)
             return
-        self.duplicate_start.setEnabled(False)
-        self.status_label.setText("🟡 Duplikatprüfung läuft …")
-        self.activity_label.setText("Aktivität: Dateien werden auf vollständige Gleichheit geprüft")
-        self.progress_bar.setRange(0, 0)
-        self.duplicate_summary.setText("Dateigrößen werden gruppiert; nur Kandidaten werden vollständig gehasht.")
-        self.duplicate_worker = DuplicateWorker(self.selected_root)
+        if self._active_worker() is not None:
+            QMessageBox.information(self, "Prüfung läuft", "Bitte zuerst den laufenden Vorgang beenden.")
+            return
+
+        workers = self.settings.resolved_cpu_workers()
+        self.duplicate_summary.setText(
+            f"Dateigrößen werden gruppiert; nur Kandidaten werden vollständig gehasht. "
+            f"CPU-Begrenzung: maximal {workers} Kerne."
+        )
+        self._begin_process("Dateiliste wird vorbereitet")
+        self.duplicate_worker = DuplicateWorker(
+            self.selected_root,
+            self._current_scan_options(),
+            max_workers=workers,
+        )
+        self._connect_worker(self.duplicate_worker)
         self.duplicate_worker.completed.connect(self._duplicate_scan_finished)
         self.duplicate_worker.failed.connect(self._duplicate_scan_failed)
         self.duplicate_worker.start()
@@ -614,24 +903,26 @@ class MainWindow(QMainWindow):
         self.database.replace_duplicate_groups(groups)
         self.duplicate_groups_cache = list(groups)
         self._fill_duplicate_groups()
-        self.duplicate_start.setEnabled(True)
         duplicates = sum(len(group.paths) for group in groups)
+        self._finish_process()
         self.status_label.setText("🟢 Duplikatprüfung abgeschlossen")
+        self.activity_label.setText("Aktueller Schritt: Duplikatgruppen bereit")
         self.counter_label.setText(f"{scanned} Dateien geprüft · {len(groups)} Gruppen · {duplicates} Dateien")
         self.duplicate_summary.setText(
             f"{len(groups)} sichere Duplikatgruppen gefunden. Jede Gruppe besitzt identische Größe und SHA-256-Prüfsumme."
         )
 
     def _duplicate_scan_failed(self, message: str) -> None:
-        self.duplicate_start.setEnabled(True)
+        entry = record_error(self.base_dir / "logs", "duplikatpruefung", message)
+        self._finish_process()
         self.status_label.setText("🔴 Duplikatprüfung gestoppt")
-        self.activity_label.setText("Aktivität: sicher gestoppt")
-        self.progress_bar.setRange(0, 100)
+        self.activity_label.setText("Aktueller Schritt: sicher gestoppt")
         self.progress_bar.setValue(0)
+        self.eta_label.setText("Restzeit: –")
         QMessageBox.critical(
             self,
             "Duplikatprüfung gestoppt",
-            f"Die Prüfung wurde sicher beendet.\n\n{message}",
+            f"Die Prüfung wurde sicher beendet.\n\n{message}\n\nLösung: {entry['solution']}",
         )
 
     def _refresh_duplicate_view_from_database(self) -> None:
@@ -661,7 +952,7 @@ class MainWindow(QMainWindow):
             self.duplicate_members.insertRow(table_row)
             try:
                 stat = path.stat()
-                modified = str(int(stat.st_mtime))
+                modified = datetime.fromtimestamp(stat.st_mtime).strftime("%d.%m.%Y %H:%M")
             except OSError:
                 modified = "nicht verfügbar"
             self.duplicate_members.setItem(table_row, 0, QTableWidgetItem(path.name))
@@ -697,7 +988,7 @@ class MainWindow(QMainWindow):
         target_row = -1
         for row, collection in enumerate(collections):
             item = QListWidgetItem(collection.name)
-            item.setData(Qt.UserRole, collection.id)
+            item.setData(Qt.ItemDataRole.UserRole, collection.id)
             item.setToolTip(collection.note)
             self.collection_list.addItem(item)
             self.result_collection.addItem(collection.name, collection.id)
@@ -713,7 +1004,7 @@ class MainWindow(QMainWindow):
         item = self.collection_list.currentItem()
         if item is None:
             return None
-        value = item.data(Qt.UserRole)
+        value = item.data(Qt.ItemDataRole.UserRole)
         return int(value) if value is not None else None
 
     def _show_collection(self, _row: int) -> None:
@@ -733,7 +1024,7 @@ class MainWindow(QMainWindow):
             row = self.collection_items_table.rowCount()
             self.collection_items_table.insertRow(row)
             path_item = QTableWidgetItem(entry.path.name)
-            path_item.setData(Qt.UserRole, str(entry.path))
+            path_item.setData(Qt.ItemDataRole.UserRole, str(entry.path))
             self.collection_items_table.setItem(row, 0, path_item)
             self.collection_items_table.setItem(row, 1, QTableWidgetItem(str(entry.path.parent)))
             self.collection_items_table.setItem(row, 2, QTableWidgetItem(entry.note))
@@ -746,12 +1037,109 @@ class MainWindow(QMainWindow):
             QMessageBox.information(self, "Keine Auswahl", "Bitte einen Sammlungseintrag auswählen.")
             return
         item = self.collection_items_table.item(row, 0)
-        raw_path = item.data(Qt.UserRole) if item else None
+        raw_path = item.data(Qt.ItemDataRole.UserRole) if item else None
         if not raw_path:
             return
         self.database.remove_collection_item(collection_id, Path(str(raw_path)))
         self._show_collection(self.collection_list.currentRow())
         self.status_label.setText("🟢 Eintrag nur aus der virtuellen Sammlung entfernt")
+
+    def save_settings(self) -> Path:
+        self.settings.window_width = self.width()
+        self.settings.window_height = self.height()
+        if self.selected_root is not None:
+            self.settings.last_root = str(self.selected_root)
+        return self.settings_store.save(self.settings)
+
+    def export_provoware_state(self) -> None:
+        stamp = datetime.now().strftime("%Y%m%d-%H%M")
+        default = self.base_dir / "exports" / f"provoware-zustand-{stamp}.json"
+        path, _ = QFileDialog.getSaveFileName(
+            self,
+            "PROVOWARE-Zustand exportieren",
+            str(default),
+            "PROVOWARE-Zustand (*.json)",
+        )
+        if not path:
+            return
+        payload = build_export(self.settings.to_dict(), self.database.export_virtual_state())
+        try:
+            Path(path).write_text(
+                json.dumps(payload, ensure_ascii=False, indent=2) + "\n",
+                encoding="utf-8",
+            )
+        except OSError as exc:
+            QMessageBox.critical(self, "Export fehlgeschlagen", str(exc))
+            return
+        self.status_label.setText("🟢 PROVOWARE-Zustand exportiert")
+
+    def import_provoware_state(self) -> None:
+        path, _ = QFileDialog.getOpenFileName(
+            self,
+            "PROVOWARE-Zustand importieren",
+            str(self.base_dir / "exports"),
+            "PROVOWARE-Zustand (*.json)",
+        )
+        if not path:
+            return
+        try:
+            payload = validate_import(json.loads(Path(path).read_text(encoding="utf-8")))
+            imported_settings = AppSettings.from_dict(payload["settings"])
+            virtual_state = payload["virtual_state"]
+        except (OSError, ValueError, TypeError, StateImportError) as exc:
+            QMessageBox.critical(self, "Import abgelehnt", f"Die Datei wurde nicht übernommen.\n\n{exc}")
+            return
+
+        answer = QMessageBox.question(
+            self,
+            "Import bestätigen",
+            "Der Import ersetzt nur PROVOWARE-Einstellungen, Markierungen und virtuelle Sammlungen.\n"
+            "Originaldateien werden nicht verändert.\n\nJetzt übernehmen?",
+        )
+        if answer != QMessageBox.StandardButton.Yes:
+            return
+
+        try:
+            collections, items = self.database.import_virtual_state(virtual_state)
+        except Exception as exc:
+            QMessageBox.critical(self, "Import sicher gestoppt", str(exc))
+            return
+
+        self.settings = imported_settings
+        self.save_settings()
+        self._restore_last_root()
+        self._refresh_collections()
+        self._update_filter_summaries()
+        enhancements = getattr(self, "_ui_enhancements", None)
+        if enhancements is not None:
+            enhancements.refresh_from_settings()
+        self.status_label.setText(
+            f"🟢 Import abgeschlossen · {collections} Sammlungen · {items} Einträge"
+        )
+
+    def closeEvent(self, event: QCloseEvent) -> None:
+        worker = self._active_worker()
+        if worker is not None:
+            answer = QMessageBox.question(
+                self,
+                "Vorgang läuft",
+                "Ein Prüfauftrag läuft noch. Soll er sicher abgebrochen und das Programm beendet werden?",
+            )
+            if answer != QMessageBox.StandardButton.Yes:
+                event.ignore()
+                return
+            worker.request_cancel()
+            if not worker.wait(2500):
+                QMessageBox.information(
+                    self,
+                    "Abbruch läuft",
+                    "Der Auftrag beendet gerade einen sicheren Prüfschritt. "
+                    "Bitte das Fenster danach erneut schließen.",
+                )
+                event.ignore()
+                return
+        self.save_settings()
+        event.accept()
 
     @staticmethod
     def _human_size(size: int) -> str:
