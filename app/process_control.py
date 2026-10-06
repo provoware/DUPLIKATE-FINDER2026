@@ -71,17 +71,26 @@ class ProcessControl:
 
 @dataclass(frozen=True)
 class ProgressInfo:
-    step: str
-    current: int
-    total: int
-    elapsed_seconds: float
-    eta_seconds: float | None
+    step:str
+    current:int
+    total:int
+    elapsed_seconds:float
+    eta_seconds:float|None
+    processed_bytes:int=0
 
     @property
     def percent(self)->int:
-        if self.total <= 0:
+        if self.total<=0:
             return 0
         return max(0,min(100,round(self.current/self.total*100)))
+
+    @property
+    def items_per_second(self)->float:
+        return self.current/self.elapsed_seconds if self.current>0 and self.elapsed_seconds>0 else 0.0
+
+    @property
+    def bytes_per_second(self)->float:
+        return self.processed_bytes/self.elapsed_seconds if self.processed_bytes>0 and self.elapsed_seconds>0 else 0.0
 
 
 class ProgressTracker:
@@ -90,18 +99,27 @@ class ProgressTracker:
         total:int,
         step:str,
         paused_seconds:Callable[[],float]|None=None,
+        total_bytes:int=0,
     )->None:
         self.total=max(0,total)
+        self.total_bytes=max(0,int(total_bytes))
         self.step=step
         self.started=time.monotonic()
         self._paused_seconds=paused_seconds or (lambda:0.0)
 
-    def update(self,current:int,step:str|None=None)->ProgressInfo:
+    def update(self,current:int,step:str|None=None,processed_bytes:int=0)->ProgressInfo:
         elapsed=max(0.0,time.monotonic()-self.started-self._paused_seconds())
         active_step=step or self.step
         eta=None
-        if current>0 and self.total>current:
+        if (
+            processed_bytes>0
+            and self.total_bytes>processed_bytes
+            and elapsed>0
+        ):
+            bytes_per_second=processed_bytes/elapsed
+            eta=max(0.0,(self.total_bytes-processed_bytes)/bytes_per_second)
+        elif current>0 and self.total>current:
             eta=max(0.0,(elapsed/current)*(self.total-current))
         elif self.total and current>=self.total:
             eta=0.0
-        return ProgressInfo(active_step,current,self.total,elapsed,eta)
+        return ProgressInfo(active_step,current,self.total,elapsed,eta,max(0,int(processed_bytes)))

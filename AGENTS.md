@@ -88,3 +88,16 @@ Maschinenlesbar gilt `manifest/agents.manifest.json`.
 - Nach einem Patch werden gezielte Prüfungen ausgeführt.
 - Vor Merge bleibt die vollständige Regression Pflicht.
 - Jeder neue reproduzierbare Fehler erzeugt eine Lösung und einen Regressionstest-Vorschlag.
+
+
+## Freeze – Bedienoberfläche / Prozesssteuerung
+
+Seit v0.5.0 ist der Bereich **Bedienoberfläche / Prozesssteuerung = FROZEN**.
+
+Ohne ausdrückliche Wiederöffnung keine neuen Komfortfunktionen, kosmetischen Umbauten oder neuen Prozesssteuerungsvarianten beginnen.
+
+Ohne Wiederöffnung zulässig bleiben nur gezielte Sicherheitskorrekturen, reproduzierbare Regressionskorrekturen und zwingende Plattform-Kompatibilitätskorrekturen.
+
+Betroffen sind insbesondere `app/gui/**`, `app/process_control.py`, `app/progress_format.py`, `app/resource_monitor.py`, `app/cpu_limit.py` und `app/settings_store.py`.
+
+Eine Wiederöffnung erfordert Vorvalidierung, gezielte Tests und anschließend die vollständige 800×600-/100/150/200-%-Abnahme.
