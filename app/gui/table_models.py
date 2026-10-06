@@ -45,11 +45,7 @@ class SearchResultsModel(QAbstractTableModel):
         if role!=Qt.ItemDataRole.DisplayRole:
             return None
         if index.column()==0:
-            marked=self._marked.get(path)
-            if marked is None:
-                marked=self.database.virtual_item(path).marked
-                self._marked[path]=marked
-            return "★" if marked else ""
+            return "★" if self._marked.get(path,False) else ""
         if index.column()==1:
             return hit.source
         if index.column()==2:
@@ -61,9 +57,15 @@ class SearchResultsModel(QAbstractTableModel):
         return None
 
     def set_hits(self,hits:list[SearchHit])->None:
+        state=self.database.export_virtual_state()
+        marked={
+            Path(str(row.get("path",""))):bool(row.get("marked",False))
+            for row in state.get("virtual_items",[])
+            if row.get("path")
+        }
         self.beginResetModel()
         self._hits=list(hits)
-        self._marked.clear()
+        self._marked=marked
         self.endResetModel()
 
     def hit_at(self,row:int)->SearchHit|None:
@@ -86,7 +88,7 @@ class SearchResultsModel(QAbstractTableModel):
         reverse=order==Qt.SortOrder.DescendingOrder
         def key(hit:SearchHit):
             if column==0:
-                return (not self._marked.get(hit.path,self.database.virtual_item(hit.path).marked),str(hit.path).casefold())
+                return (not self._marked.get(hit.path,False),str(hit.path).casefold())
             if column==1:
                 return hit.source.casefold()
             if column==2:
