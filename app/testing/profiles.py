@@ -63,7 +63,7 @@ PROFILES: dict[str, Profile] = {
         (
             FileSpec("Leer zeichen/normal.txt", b"kein treffer\n"),
             FileSpec("Unicode/aeoeue-äöüß.txt", f"{QUERY}\n".encode("utf-8")),
-            FileSpec("Tief/a/b/c/d/e/tief.txt", f"{QUERY}\n".encode()),
+            FileSpec("Tief/a/b/c/d/e/tief.txt", f"TIEF-{QUERY}\n".encode()),
             FileSpec("Leer/leer.txt", b""),
             FileSpec("GleicheGroesse/eins.bin", b"AAAA"),
             FileSpec("GleicheGroesse/zwei.bin", b"BBBB"),
