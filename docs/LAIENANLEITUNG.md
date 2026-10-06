@@ -51,3 +51,30 @@ Fehlt er, wird er automatisch erstellt. Dort liegen nur PROVOWARE-Arbeitsdaten, 
 Die Anwendung stoppt den betroffenen Vorgang sicher und zeigt eine Lösung an. Zusätzlich wird der Fehler mit Zeitstempel und Fingerabdruck protokolliert.
 
 Originaldateien bleiben im aktuellen Sicherheitsstand unverändert.
+
+
+## Prozesssteuerung ab 0.3.1
+
+Laufende Suche und Duplikatprüfung können mit **Pause** angehalten, mit **Fortsetzen** weitergeführt und mit **Abbrechen** sauber beendet werden.
+
+Der untere Statusbereich zeigt:
+- aktuellen Schritt,
+- Prozentfortschritt,
+- grobe Restzeit,
+- Anzahl verarbeiteter Dateien.
+
+## Ausschlüsse
+
+Mit **Dateitypen auswählen** lassen sich häufige Typen per Ankreuzen auslassen. Python-/Entwicklungsordner wie `.venv`, `__pycache__`, `.git`, `build` und `dist` werden standardmäßig ausgelassen.
+
+## CPU-Kerne
+
+Im Dashboard kann festgelegt werden, wie viele Prozessorkerne PROVOWARE benutzen darf. Das verändert nicht die Systemeinstellungen des Rechners.
+
+## Autosave / Import / Export
+
+Einstellungen werden alle fünf Minuten automatisch gespeichert. Virtuelle Sammlungen und Markierungen werden ohnehin direkt in der lokalen Datenbank gespeichert.
+
+**Zustand exportieren** sichert Einstellungen und virtuelle Organisation als JSON-Datei. Originaldateien werden nicht kopiert.
+
+**Zustand importieren** prüft die Datei vor und nach der Übernahme. Originaldateien bleiben unverändert.

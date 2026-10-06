@@ -19,9 +19,7 @@ def export_state(database:Database,path:Path,settings:dict)->dict:
         "virtual_state":database.export_virtual_state(),
     }
     path.parent.mkdir(parents=True,exist_ok=True)
-    tmp=path.with_suffix(path.suffix+".tmp")
-    tmp.write_text(json.dumps(payload,ensure_ascii=False,indent=2),encoding="utf-8")
-    tmp.replace(path)
+    path.write_text(json.dumps(payload,ensure_ascii=False,indent=2),encoding="utf-8")
     return payload
 
 
@@ -46,5 +44,13 @@ def import_state(database:Database,path:Path)->dict:
     except (OSError,json.JSONDecodeError) as exc:
         raise ValueError(f"Importdatei konnte nicht gelesen werden: {exc}") from exc
     valid=validate_import_payload(payload)
+    expected_names={
+        str(item.get("name","")).strip()
+        for item in valid["virtual_state"].get("collections",[])
+        if str(item.get("name","")).strip()
+    }
     database.import_virtual_state(valid["virtual_state"])
+    actual_names={item.name for item in database.collections()}
+    if not expected_names.issubset(actual_names):
+        raise ValueError("Nachprüfung fehlgeschlagen: Nicht alle Sammlungen wurden übernommen.")
     return valid

@@ -70,3 +70,14 @@ Jeder neue Fehler braucht eine konkrete Lösung. Reproduzierbare Fehler sollen e
 ## Sicherheit
 
 Tk/Tkinter ist verboten. Originaldateien bleiben read-only. System-Python und Linux-Paketbestand werden zur Laufzeit nicht verändert.
+
+
+## Prozesssteuerung 0.3.1
+
+Hintergrundarbeiten verwenden `ProcessControl` mit kooperativen Checkpoints. Gewaltsames Thread-Beenden ist verboten.
+
+Scanner-Ausschlüsse werden zentral über `ScanOptions` definiert und dadurch von Textsuche und Duplikatprüfung gemeinsam verwendet.
+
+Benutzereinstellungen liegen unter `config/benutzer-einstellungen.json`. Virtuelle Organisation bleibt in SQLite. Import/Export transportiert ausschließlich virtuelle Zustände und Einstellungen.
+
+CPU-Affinität wird nur auf den laufenden PROVOWARE-Prozess bzw. dessen Threads angewendet.

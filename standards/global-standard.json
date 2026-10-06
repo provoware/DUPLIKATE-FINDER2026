@@ -16,7 +16,20 @@
       "height": 600
     },
     "status_requires_text": true,
-    "help_levels": 3
+    "help_levels": 3,
+    "list_style": {
+      "sortable": true,
+      "alternating_rows": true,
+      "hover_feedback": true,
+      "high_contrast": true,
+      "action_button_neon_border": true
+    },
+    "progress": {
+      "pause": true,
+      "cancel": true,
+      "current_step": true,
+      "estimated_remaining_time": true
+    }
   },
   "development": {
     "single_writer": true,
@@ -38,5 +51,10 @@
     "timestamps": true,
     "structured_json_for_state": true,
     "human_readable_summary": true
+  },
+  "persistence": {
+    "autosave_seconds": 300,
+    "import_pre_validation": true,
+    "import_post_validation": true
   }
 }

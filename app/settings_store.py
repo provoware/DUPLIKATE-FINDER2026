@@ -35,6 +35,4 @@ class SettingsStore:
         self.path.parent.mkdir(parents=True,exist_ok=True)
         clean=dict(DEFAULT_SETTINGS)
         clean.update({key:data[key] for key in clean if key in data})
-        tmp=self.path.with_suffix(".tmp")
-        tmp.write_text(json.dumps(clean,ensure_ascii=False,indent=2),encoding="utf-8")
-        tmp.replace(self.path)
+        self.path.write_text(json.dumps(clean,ensure_ascii=False,indent=2),encoding="utf-8")
