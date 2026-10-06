@@ -82,18 +82,20 @@ class MainWindow(QMainWindow):
     def _card(self, title: str, value: str) -> QFrame:
         frame = QFrame()
         frame.setProperty("card", True)
-        layout = QVBoxLayout(frame)
-        layout.setContentsMargins(5, 4, 5, 4)
-        layout.setSpacing(3)
+        layout = QHBoxLayout(frame)
+        layout.setContentsMargins(6, 4, 6, 4)
+        layout.setSpacing(6)
         a = QLabel(title)
         a.setStyleSheet("font-weight: 700;")
+        a.setWordWrap(True)
         b = QLabel(value)
+        b.setWordWrap(True)
         font = b.font()
         font.setBold(True)
         font.setPointSize(font.pointSize() + 2)
         b.setFont(font)
-        layout.addWidget(a)
-        layout.addWidget(b)
+        layout.addWidget(a, 1)
+        layout.addWidget(b, 0)
         return frame
 
     def _build_ui(self) -> None:
@@ -202,8 +204,8 @@ class MainWindow(QMainWindow):
         cards = QGridLayout()
         cards.addWidget(self._card("Sicherheitsmodus", "🔒 Nur lesen"), 0, 0)
         cards.addWidget(self._card("Textsuche", "🟢 Bereit"), 0, 1)
-        cards.addWidget(self._card("Duplikatprüfung", "🟢 SHA-256"), 0, 2)
-        cards.addWidget(self._card("Datenbank", "🟢 Lokal · SQLite"), 0, 3)
+        cards.addWidget(self._card("Duplikatprüfung", "🟢 SHA-256"), 1, 0)
+        cards.addWidget(self._card("Datenbank", "🟢 Lokal · SQLite"), 1, 1)
         layout.addLayout(cards)
 
         feature_box = QFrame()
