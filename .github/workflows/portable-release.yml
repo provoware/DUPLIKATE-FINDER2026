@@ -132,8 +132,10 @@ jobs:
           SITE="$("$P/runtime/bin/python3" -c 'import site; print(site.getsitepackages()[0])')"
           mkdir -p "$P/recovery/pyside6-simulation"
 
-          shopt -s nullglob
-          targets=("$SITE/PySide6" "$SITE"/PySide6-*.dist-info)
+          mapfile -d '' targets < <(
+            find "$SITE" -maxdepth 1 -mindepth 1 \
+              \( -iname 'pyside6' -o -iname 'pyside6-*.dist-info' \) -print0
+          )
           if (( ${#targets[@]} == 0 )); then
             echo "FEHLER | PySide6-Testobjekte nicht gefunden" >&2
             exit 1
