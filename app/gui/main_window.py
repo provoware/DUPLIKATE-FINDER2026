@@ -104,17 +104,17 @@ class MainWindow(QMainWindow):
     def _live_card(self, title: str, value: str, object_name: str) -> tuple[QFrame, QLabel]:
         frame = QFrame()
         frame.setProperty("card", True)
-        layout = QVBoxLayout(frame)
+        layout = QHBoxLayout(frame)
         layout.setContentsMargins(6, 4, 6, 4)
-        layout.setSpacing(2)
+        layout.setSpacing(6)
         heading = QLabel(title)
         heading.setStyleSheet("font-weight:700;")
         label = QLabel(value)
         label.setObjectName(object_name)
         label.setWordWrap(True)
         label.setToolTip("Wird während laufender Vorgänge automatisch aktualisiert.")
-        layout.addWidget(heading)
-        layout.addWidget(label)
+        layout.addWidget(heading,0)
+        layout.addWidget(label,1)
         return frame, label
 
     def _build_ui(self) -> None:
