@@ -33,8 +33,7 @@ jobs:
           set -euo pipefail
           P="$GITHUB_WORKSPACE/out/$PACKAGE"
           mkdir -p "$P"
-          cp -a . "$P/"
-          rm -rf "$P/.git" "$P/out"
+          tar --exclude=.git --exclude=out -cf - . | tar -xf - -C "$P"
           mkdir -p "$P/.provoware-dev"
           tar -xzf "$PYTHON_ARCHIVE" -C "$P/.provoware-dev"
           mv "$P/.provoware-dev/python" "$P/.provoware-dev/runtime"
