@@ -30,6 +30,9 @@ SQLite-Schema und persistente virtuelle Daten.
 ### `app/gui`
 PySide6-Darstellung. Lange Arbeiten laufen in Hintergrund-Threads, damit die Oberfläche bedienbar bleibt.
 
+### `app/file_browser`
+Modularer Nur-Lesen-Dateibrowser: Dateitypklassifikation, begrenzte Text-/Bild-/PDF-Vorschau und Qt-Dateisystemansicht. Der Browser besitzt keine physischen Schreibaktionen und nutzt die zentrale Sicherheitsrichtlinie.
+
 ### `app/startup`
 Selbsttest vor Freigabe der Oberfläche.
 
@@ -38,6 +41,7 @@ Selbsttest vor Freigabe der Oberfläche.
 - GUI darf keine Dateien löschen/verschieben/umbenennen.
 - Datenbank darf keine Originaldateien verändern.
 - Scanner darf keine Schreiboperationen besitzen.
+- Datei-Browser darf symbolische Verknüpfungen nicht automatisch verfolgen und keine Originaldateien verändern.
 - Release-Start darf System-Python nicht als Ersatz verwenden.
 
 ## Erweiterungspfad
