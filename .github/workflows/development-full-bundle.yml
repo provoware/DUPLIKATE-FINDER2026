@@ -20,7 +20,7 @@ jobs:
     name: Linux x86_64 Entwicklungs-Vollpaket
     runs-on: ubuntu-24.04
     env:
-      PACKAGE: PROVOWARE-DUPLIKATE-FINDER-2026-DEV-v0.2.1-linux-x86_64
+      PACKAGE: PROVOWARE-DUPLIKATE-FINDER-2026-DEV-v0.3.0-linux-x86_64
       PYTHON_ARCHIVE: cpython-3.12.15+20261003-x86_64-unknown-linux-gnu-install_only_stripped.tar.gz
       PYTHON_URL: https://github.com/astral-sh/python-build-standalone/releases/download/20261003/cpython-3.12.15%2B20261003-x86_64-unknown-linux-gnu-install_only_stripped.tar.gz
       PYTHON_SHA256: 731af898886c5f821890dc901eca3c651cca8e51fa7308c159d12a1194aeac91
@@ -87,16 +87,16 @@ jobs:
           set -euo pipefail
           P="$GITHUB_WORKSPACE/out/$PACKAGE"
           PY="$P/.provoware-dev/runtime/bin/python3"
-          "$PY" "$P/tools/build_metadata.py"             --archive "$GITHUB_WORKSPACE/out/$PACKAGE.tar.gz"             --output-dir "$P/reports"             --commit "$GITHUB_SHA"             --project-version "0.3.0-dev"
+          "$PY" "$P/tools/build_metadata.py"             --archive "$GITHUB_WORKSPACE/out/$PACKAGE.tar.gz"             --output-dir "$P/reports"             --commit "$GITHUB_SHA"             --project-version "0.3.0"
       - name: Vollpaket bereitstellen
         uses: actions/upload-artifact@v4
         with:
-          name: PROVOWARE-DUPLIKATE-FINDER-2026-DEV-v0.2.1-VOLLPAKET
+          name: PROVOWARE-DUPLIKATE-FINDER-2026-DEV-v0.3.0-VOLLPAKET
           compression-level: 0
           path: |
-            out/PROVOWARE-DUPLIKATE-FINDER-2026-DEV-v0.2.1-linux-x86_64.tar.gz
-            out/PROVOWARE-DUPLIKATE-FINDER-2026-DEV-v0.2.1-linux-x86_64.tar.gz.sha256
-            out/PROVOWARE-DUPLIKATE-FINDER-2026-DEV-v0.2.1-linux-x86_64/logs/ABHAENGIGKEITEN_AKTUELL.txt
-            out/PROVOWARE-DUPLIKATE-FINDER-2026-DEV-v0.2.1-linux-x86_64/.provoware-dev/systemprofil.json
-            out/PROVOWARE-DUPLIKATE-FINDER-2026-DEV-v0.2.1-linux-x86_64/reports/BUILD-NACHWEIS.json
-            out/PROVOWARE-DUPLIKATE-FINDER-2026-DEV-v0.2.1-linux-x86_64/reports/SBOM.spdx.json
+            out/PROVOWARE-DUPLIKATE-FINDER-2026-DEV-v0.3.0-linux-x86_64.tar.gz
+            out/PROVOWARE-DUPLIKATE-FINDER-2026-DEV-v0.3.0-linux-x86_64.tar.gz.sha256
+            out/PROVOWARE-DUPLIKATE-FINDER-2026-DEV-v0.3.0-linux-x86_64/logs/ABHAENGIGKEITEN_AKTUELL.txt
+            out/PROVOWARE-DUPLIKATE-FINDER-2026-DEV-v0.3.0-linux-x86_64/.provoware-dev/systemprofil.json
+            out/PROVOWARE-DUPLIKATE-FINDER-2026-DEV-v0.3.0-linux-x86_64/reports/BUILD-NACHWEIS.json
+            out/PROVOWARE-DUPLIKATE-FINDER-2026-DEV-v0.3.0-linux-x86_64/reports/SBOM.spdx.json
