@@ -78,3 +78,44 @@ Einstellungen werden alle fünf Minuten automatisch gespeichert. Virtuelle Samml
 **Zustand exportieren** sichert Einstellungen und virtuelle Organisation als JSON-Datei. Originaldateien werden nicht kopiert.
 
 **Zustand importieren** prüft die Datei vor und nach der Übernahme. Originaldateien bleiben unverändert.
+
+
+## Dateien & Vorschau ab v0.9.0
+
+Der Bereich **Dateien & Vorschau** ist zum Anschauen und virtuellen Organisieren gedacht.
+
+1. **Ordner wählen** anklicken.
+2. Gewünschten Ordner oder USB-Datenträger auswählen.
+3. Eine Datei **einmal anklicken**. Rechts erscheint die Vorschau.
+4. Einen Ordner **doppelt anklicken**, um hineinzuwechseln.
+
+Die kurzen Knöpfe bedeuten:
+
+- **Hoch:** einen Ordner nach oben wechseln.
+- **Neu laden:** nur die Anzeige aktualisieren.
+- **Öffnen:** Datei mit dem normalen Linux-Standardprogramm öffnen.
+- **Ordner:** den zugehörigen Ordner im Linux-Dateimanager anzeigen.
+- **Pfad kopieren:** vollständigen Dateipfad kopieren.
+- **Markieren:** nur innerhalb von PROVOWARE markieren.
+- **Zu Sammlung:** Datei virtuell einer Sammlung zuordnen; sie wird nicht verschoben.
+
+### Was kann direkt angezeigt werden?
+
+- Textdateien: Vorschau bis 512 KiB, zusätzlich Zeichencodierung sowie Zeilen-, Wort- und Zeichenzahl.
+- JSON: wenn möglich eingerückt und leichter lesbar.
+- Bilder: Vorschau plus Format, Pixelgröße, Megapixel und Seitenverhältnis.
+- PDF: Seiten einzeln ansehen und mit **Vorherige Seite / Nächste Seite** blättern.
+- WAV: zusätzlich Dauer, Kanäle, Abtastrate und Bit-Tiefe.
+- andere Audio-/Videoformate: sichere Grunddaten; für vollständige Wiedergabe weiterhin das normale Linux-Programm verwenden.
+
+## AppImage-Prototyp
+
+Das AppImage ist in v0.9.0 zunächst **nur eine getestete Zusatzvariante**, nicht der normale empfohlene Download.
+
+Der automatische Test prüft unter Ubuntu 22.04 und 24.04:
+- Startfähigkeit,
+- SHA-256-Prüfsumme,
+- Paketgröße,
+- Start aus einem simulierten USB-Pfad mit Leerzeichen.
+
+Lite und Recovery bleiben die stabilen Paketformen, bis der AppImage-Prototyp vollständig freigegeben ist.
