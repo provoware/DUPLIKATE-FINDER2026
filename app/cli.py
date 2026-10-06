@@ -6,11 +6,10 @@ import sys
 from pathlib import Path
 
 from app.core.duplicates import scan_duplicate_groups_to_database
-from app.core.scanner import FileScanner
-from app.core.search import TextSearcher
-from app.models.entities import FileRecord, ScanIssue, SearchHit, SearchJob
+from app.models.entities import SearchJob
 from app.startup.selftest import run_selftest
 from app.storage.database import Database
+from app.core.search_pipeline import run_search_to_database
 from app.validation import validate_scan_root, validate_search_request
 from app.workspace import ensure_workspace
 
@@ -85,69 +84,25 @@ class ConsoleUI:
         if not validation.ok:
             print(self.c("1;31", f"✖ {validation.title}: {validation.message}"))
             return
-        job = SearchJob(root=root, query=query, search_names=names, search_contents=contents)
-        job_id = 0
-        run_id = 0
-        hit_count = 0
-        inventory: list[FileRecord] = []
-        hit_buffer: list[SearchHit] = []
+
+        job = SearchJob(
+            root=root,
+            query=query,
+            search_names=names,
+            search_contents=contents,
+        )
         try:
-            job_id = self.database.create_search_job(job)
-            run_id = self.database.create_scan_run("search-console", root)
-
-            def record_issue(issue: ScanIssue) -> None:
-                self.database.record_scan_issue(run_id, issue)
-
-            scanner = FileScanner(on_error=record_issue)
-            for record in scanner.iter_text_files(root):
-                inventory.append(record)
-                if len(inventory) >= 500:
-                    self.database.append_scan_inventory(run_id, inventory)
-                    inventory.clear()
-            if inventory:
-                self.database.append_scan_inventory(run_id, inventory)
-
-            total_records, total_bytes = self.database.scan_inventory_totals(run_id)
-
-            def store_hit(hit: SearchHit) -> None:
-                nonlocal hit_count
-                hit_count += 1
-                hit_buffer.append(hit)
-                if len(hit_buffer) >= 200:
-                    self.database.append_search_hits(job_id, hit_buffer)
-                    hit_buffer.clear()
-
-            TextSearcher(
-                scanner,
-                on_hit=store_hit,
-                collect_hits=False,
-            ).search(
+            result = run_search_to_database(
                 job,
-                records=self.database.iter_scan_records(run_id),
-                total_records=total_records,
-                total_bytes=total_bytes,
+                self.database,
+                run_kind="search-console",
             )
-            if hit_buffer:
-                self.database.append_search_hits(job_id, hit_buffer)
-            errors = self.database.scan_error_count(run_id)
-            self.database.finish_scan_run(run_id, "fertig", job.scanned_files)
-            self.database.finish_search_job(
-                job_id,
-                status="fertig",
-                scanned_files=job.scanned_files,
-                hit_count=hit_count,
-                error_count=errors,
-            )
-            self.database.prune_search_jobs()
-            self.database.prune_scan_runs()
         except Exception as exc:
-            if run_id:
-                self.database.finish_scan_run(run_id, "fehler", job.scanned_files)
             print(self.c("1;31", f"✖ Suche sicher gestoppt: {exc}"))
             return
 
         page = self.database.search_hits_page(
-            job_id,
+            result.job_id,
             offset=0,
             limit=100,
             sort_column=2,
@@ -156,15 +111,18 @@ class ConsoleUI:
         print(
             self.c(
                 "1;32",
-                f"\n✔ {job.scanned_files} Textdateien geprüft · {hit_count} Treffer · "
-                f"{errors} übersprungen",
+                f"\n✔ {job.scanned_files} Textdateien geprüft · "
+                f"{result.hit_count} Treffer · {result.error_count} übersprungen",
             )
         )
         for index, hit in enumerate(self.last_hits, 1):
             line = f"Zeile {hit.line_number}" if hit.line_number else "Dateiname"
             print(f"{index:>3}) {hit.path} · {line} · {hit.excerpt[:100]}")
-        if hit_count > len(self.last_hits):
-            print(f"… weitere {hit_count - len(self.last_hits)} Treffer nicht aufgelistet.")
+        if result.hit_count > len(self.last_hits):
+            print(
+                f"… weitere {result.hit_count - len(self.last_hits)} "
+                "Treffer nicht aufgelistet."
+            )
         if self.last_hits:
             self._organize_hit()
 
