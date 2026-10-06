@@ -34,6 +34,7 @@ from app.storage.database import Database
 from app.validation import validate_scan_root, validate_search_request
 from app.gui.design_tokens import BASE_SPACING, OUTER_MARGIN
 from app.texts import text as ui_text
+from app.error_management import record_error
 
 
 class MainWindow(QMainWindow):
@@ -548,12 +549,13 @@ class MainWindow(QMainWindow):
         self.nav.setCurrentRow(self.PAGE_RESULTS)
 
     def _search_failed(self, message: str) -> None:
+        entry = record_error(self.base_dir / "logs", "textsuche", message)
         self.search_button.setEnabled(True)
         self.status_label.setText("🔴 Textsuche gestoppt")
         self.activity_label.setText("Aktivität: sicher gestoppt")
         self.progress_bar.setRange(0, 100)
         self.progress_bar.setValue(0)
-        QMessageBox.critical(self, "Suche gestoppt", f"Die Suche wurde sicher beendet.\n\n{message}")
+        QMessageBox.critical(self, "Suche gestoppt", f"Die Suche wurde sicher beendet.\n\n{message}\n\nLösung: {entry['solution']}")
 
     def _selected_result_path(self) -> Path | None:
         row = self.results.currentRow()

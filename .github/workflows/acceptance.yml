@@ -8,6 +8,10 @@ on:
 permissions:
   contents: read
 
+concurrency:
+  group: provoware-${{ github.workflow }}-${{ github.ref }}
+  cancel-in-progress: true
+
 jobs:
   abnahme:
     name: Autonome Gesamt-Abnahme
@@ -26,6 +30,8 @@ jobs:
           sudo apt-get install -y --no-install-recommends libegl1 libgl1 libxkbcommon0 libfontconfig1
       - name: Abhängigkeiten
         run: python -m pip install -e ".[test]"
+      - name: Manifeste prüfen
+        run: python tools/validate_manifests.py
       - name: Konsolen-Selbsttest
         run: python -m app.cli --selftest
       - name: Autonome Abnahme mit HTML-Raster

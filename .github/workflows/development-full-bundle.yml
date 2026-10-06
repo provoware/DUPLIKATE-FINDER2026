@@ -6,9 +6,14 @@ on:
     branches:
       - main
       - "feature/automatische-entwicklungsabhaengigkeiten-*"
+      - "feature/provoware-autonomie-standard-*"
 
 permissions:
   contents: read
+
+concurrency:
+  group: provoware-bundle-${{ github.workflow }}-${{ github.ref }}
+  cancel-in-progress: true
 
 jobs:
   vollpaket:
@@ -25,9 +30,20 @@ jobs:
         run: |
           sudo apt-get update
           sudo apt-get install -y --no-install-recommends libegl1 libgl1 libxkbcommon0 libfontconfig1
+      - name: Bau-Cache wiederverwenden
+        uses: actions/cache@v4
+        with:
+          path: |
+            .build-cache/python
+            .build-cache/wheels
+          key: devbundle-${{ runner.os }}-${{ runner.arch }}-${{ hashFiles('dependencies.env', 'pyproject.toml') }}
       - name: Gepruefte Python-Laufzeit laden
         run: |
-          curl --fail --location --retry 3 --output "$PYTHON_ARCHIVE" "$PYTHON_URL"
+          mkdir -p .build-cache/python
+          if [[ ! -f ".build-cache/python/$PYTHON_ARCHIVE" ]]; then
+            curl --fail --location --retry 3 --output ".build-cache/python/$PYTHON_ARCHIVE" "$PYTHON_URL"
+          fi
+          cp ".build-cache/python/$PYTHON_ARCHIVE" "$PYTHON_ARCHIVE"
           echo "$PYTHON_SHA256  $PYTHON_ARCHIVE" | sha256sum --check --strict
       - name: Vollpaket aufbauen
         run: |
@@ -40,8 +56,11 @@ jobs:
           mv "$P/.provoware-dev/python" "$P/.provoware-dev/runtime"
           PY="$P/.provoware-dev/runtime/bin/python3"
           "$PY" -m ensurepip --upgrade || true
-          mkdir -p "$P/.provoware-dev/wheelhouse"
-          "$PY" -m pip download --disable-pip-version-check --only-binary=:all: --dest "$P/.provoware-dev/wheelhouse" "PySide6==6.11.2" "pytest>=8,<9" "setuptools>=68" "wheel>=0.45"
+          mkdir -p "$P/.provoware-dev/wheelhouse" "$GITHUB_WORKSPACE/.build-cache/wheels"
+          if ! compgen -G "$GITHUB_WORKSPACE/.build-cache/wheels/pyside6-6.11.2-*.whl" >/dev/null; then
+            "$PY" -m pip download --disable-pip-version-check --only-binary=:all: --dest "$GITHUB_WORKSPACE/.build-cache/wheels" "PySide6==6.11.2" "pytest>=8,<9" "setuptools>=68" "wheel>=0.45"
+          fi
+          cp -a "$GITHUB_WORKSPACE/.build-cache/wheels/." "$P/.provoware-dev/wheelhouse/"
           "$PY" -m pip install --disable-pip-version-check --no-index --find-links "$P/.provoware-dev/wheelhouse" "PySide6==6.11.2" "pytest>=8,<9" "setuptools>=68" "wheel>=0.45"
           "$PY" -m pip install --disable-pip-version-check --no-index --find-links "$P/.provoware-dev/wheelhouse" --no-build-isolation --no-deps --editable "$P"
           chmod +x "$P/ENTWICKLUNG_STARTEN.sh"

@@ -13,6 +13,7 @@ from app.gui.main_window import MainWindow
 from app.gui.theme import apply_accessible_theme
 from app.logging_setup import configure_logging, install_exception_hook
 from app.startup.progress import StartupProgressDialog
+from app.checkpoints import CheckpointRecorder
 from app.startup.selftest import run_selftest
 from app.storage.database import Database
 from app.workspace import ensure_workspace
@@ -36,40 +37,42 @@ def main() -> int:
     apply_accessible_theme(app)
 
     dialog=StartupProgressDialog()
+    recorder=CheckpointRecorder(workspace/"checkpoints"/"startup.jsonl")
     dialog.show()
     app.processEvents()
+
+    def mark(index:int,name:str,ok:bool,detail:str)->None:
+        dialog.checkpoint(index,6,name,ok,detail)
+        recorder.add(name.casefold().replace(" ","-"),"green" if ok else "red",detail)
+        app.processEvents()
 
     preliminary=[
         ("Projektordner", True, str(workspace)),
         ("Abhängigkeiten", True, "Portable Python-/Qt-Laufzeit ist geladen."),
     ]
     for index,(name,ok,detail) in enumerate(preliminary,1):
-        dialog.checkpoint(index,6,name,ok,detail)
-        app.processEvents()
+        mark(index,name,ok,detail)
 
     database=Database(workspace/"data"/"duplicate_finder.sqlite3")
     database.initialize()
-    dialog.checkpoint(3,6,"Datenbank",True,"Lokale Datenbank ist bereit.")
-    app.processEvents()
+    mark(3,"Datenbank",True,"Lokale Datenbank ist bereit.")
 
     checks=run_selftest(workspace,require_gui=True)
     fatal=[check for check in checks if not check.ok]
-    dialog.checkpoint(4,6,"Sicherheit",not fatal,"Schutzregeln und Arbeitsordner wurden geprüft.")
-    app.processEvents()
+    mark(4,"Sicherheit",not fatal,"Schutzregeln und Arbeitsordner wurden geprüft.")
 
     if fatal:
         detail="\n".join(f"• {c.name}: {c.detail}" for c in fatal)
         logger.error("Startprüfung fehlgeschlagen: %s",detail)
-        dialog.checkpoint(5,6,"Start gestoppt",False,detail)
+        mark(5,"Start gestoppt",False,detail)
         QMessageBox.critical(None,"Startprüfung fehlgeschlagen","Das Programm wurde vorsorglich nicht gestartet.\n\n"+detail+f"\n\nProtokoll: {log_file}")
         return 2
 
     window=MainWindow(workspace,database)
     window._ui_enhancements=UiEnhancements(window,workspace,database)
-    dialog.checkpoint(5,6,"Oberfläche",True,"Fenster und Bedienhilfen sind vorbereitet.")
-    app.processEvents()
+    mark(5,"Oberfläche",True,"Fenster und Bedienhilfen sind vorbereitet.")
     window.show()
-    dialog.checkpoint(6,6,"Werkzeug",True,"PROVOWARE ist startbereit.")
+    mark(6,"Werkzeug",True,"PROVOWARE ist startbereit.")
     dialog.ready()
     app.processEvents()
     QTimer.singleShot(350,dialog.close)

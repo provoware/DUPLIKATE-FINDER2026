@@ -7,6 +7,8 @@ from logging.handlers import RotatingFileHandler
 from pathlib import Path
 from types import TracebackType
 
+from app.error_management import record_error
+
 
 def configure_logging(base_dir: Path) -> Path:
     log_dir = base_dir / "logs"
@@ -28,6 +30,7 @@ def install_exception_hook(log_file: Path) -> None:
     def hook(exc_type: type[BaseException], exc: BaseException, tb: TracebackType | None) -> None:
         logging.getLogger("provoware.unhandled").critical("Unbehandelter Fehler", exc_info=(exc_type, exc, tb))
         try:
+            record_error(log_file.parent, "unbehandelt", str(exc))
             (log_file.parent / "letzter_fehler.json").write_text(
                 json.dumps({"typ": exc_type.__name__, "meldung": str(exc), "protokoll": str(log_file)}, ensure_ascii=False, indent=2),
                 encoding="utf-8",

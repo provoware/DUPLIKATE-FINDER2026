@@ -9,6 +9,7 @@ CACHE="$DEV/cache"
 WHEELS="$DEV/wheelhouse"
 PY="$RUNTIME/bin/python3"
 PROFILE="$DEV/systemprofil.json"
+DEPS_STAMP="$DEV/dependency-fingerprint.sha256"
 
 [[ -f "$CFG" ]] || { echo "FEHLER: dependencies.env fehlt. Repository unvollstaendig." >&2; exit 20; }
 # shellcheck disable=SC1090
@@ -146,7 +147,25 @@ ensure_wheels(){
   ok "Lokaler Paketvorrat vervollstaendigt."
 }
 
+dependency_fingerprint(){
+  cat "$CFG" "$ROOT/pyproject.toml" | sha256sum | awk '{print $1}'
+}
+
+dependencies_healthy(){
+  "$PY" - "$PYSIDE6_VERSION" <<'PY' >/dev/null 2>&1
+import importlib.metadata as m, sys
+wanted=sys.argv[1]
+raise SystemExit(0 if m.version("PySide6")==wanted else 1)
+PY
+}
+
 install_dependencies(){
+  local current
+  current="$(dependency_fingerprint)"
+  if [[ -f "$DEPS_STAMP" ]] && [[ "$(cat "$DEPS_STAMP")" == "$current" ]] && dependencies_healthy; then
+    ok "Abhängigkeiten unverändert – vorhandenen geprüften Zustand wiederverwenden."
+    return
+  fi
   step "Abhaengigkeiten lokal pruefen und reparieren"
   "$PY" -m pip install --disable-pip-version-check --no-index --find-links "$WHEELS" "$SETUPTOOLS_SPEC" "$WHEEL_SPEC" "PySide6==$PYSIDE6_VERSION" "$PYTEST_SPEC"
   "$PY" -m pip install --disable-pip-version-check --no-index --find-links "$WHEELS" --no-build-isolation --no-deps --editable "$ROOT"
@@ -156,13 +175,16 @@ assert m.version("PySide6") == "$PYSIDE6_VERSION"
 print("PySide6", m.version("PySide6"))
 print("pytest", m.version("pytest"))
 PY
-  ok "Python-Abhaengigkeiten sind in Ordnung."
+  printf '%s\n' "$current" > "$DEPS_STAMP"
+  ok "Python-Abhaengigkeiten sind in Ordnung und registriert."
 }
 
 run_profile(){
   step "System, Bildschirm und Abhaengigkeiten vollautomatisch pruefen"
   "$PY" "$ROOT/tools/system_preflight.py" --root "$ROOT" --output "$PROFILE"
   "$PY" "$ROOT/tools/abhaengigkeiten_bericht.py" --profile "$PROFILE" --output-dir "$ROOT/logs"
+  "$PY" "$ROOT/tools/state_registry.py" --output "$ROOT/logs/PRUEFPLAN_AKTUELL.json"
+  "$PY" "$ROOT/tools/agent_router.py" --plan "$ROOT/logs/PRUEFPLAN_AKTUELL.json" --output "$ROOT/logs/AGENTENPLAN_AKTUELL.json"
   ok "Systemprofil gespeichert: .provoware-dev/systemprofil.json"
   ok "Lesbarer Bericht: logs/ABHAENGIGKEITEN_AKTUELL.txt"
 }
@@ -172,6 +194,7 @@ case "$MODE" in
   gui|--gui) MODE="gui" ;;
   --konsole) MODE="console" ;;
   --nur-pruefen) MODE="check" ;;
+  --schnelltest) MODE="quicktests" ;;
   --tests) MODE="tests" ;;
   --abnahme) MODE="acceptance" ;;
   -h|--hilfe|--help)
@@ -180,7 +203,8 @@ PROVOWARE Entwicklungsstart
   ./ENTWICKLUNG_STARTEN.sh              automatisch vorbereiten und GUI starten
   ./ENTWICKLUNG_STARTEN.sh --konsole    Konsolenoberflaeche starten
   ./ENTWICKLUNG_STARTEN.sh --nur-pruefen alles pruefen/reparieren, dann beenden
-  ./ENTWICKLUNG_STARTEN.sh --tests      Kompilierung + Tests
+  ./ENTWICKLUNG_STARTEN.sh --schnelltest gezielte Prüfungen für geänderte Bereiche
+  ./ENTWICKLUNG_STARTEN.sh --tests      vollständige Kompilierung + Tests
   ./ENTWICKLUNG_STARTEN.sh --abnahme    autonome 73/73-Abnahme
 EOF
     exit 0 ;;
@@ -207,6 +231,7 @@ case "$MODE" in
   gui) exec "$PY" -m app.main ;;
   console) exec "$PY" -m app.cli ;;
   check) "$PY" -m app.startup.bootstrap ;;
-  tests) "$PY" -m compileall -q app tests tools && exec "$PY" -m pytest ;;
+  quicktests) exec "$PY" tools/targeted_checks.py ;;
+  tests) exec "$PY" tools/targeted_checks.py --full ;;
   acceptance) export QT_QPA_PLATFORM=offscreen; exec "$PY" tools/autonomous_acceptance.py --output artifacts/abnahme ;;
 esac
