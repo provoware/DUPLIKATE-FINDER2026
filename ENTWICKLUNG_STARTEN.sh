@@ -24,7 +24,10 @@ else
 fi
 step(){ printf '%s▶%s %s\n' "$C" "$N" "$*"; }
 progress(){
-  local pct="$1" label="$2" filled=$((pct/10)) bar="" i
+  local pct="$1"
+  local label="$2"
+  local filled=$((pct/10))
+  local bar="" i
   for ((i=0;i<10;i++)); do
     if (( i < filled )); then bar+="█"; else bar+="░"; fi
   done
@@ -210,6 +213,10 @@ case "$MODE" in
   --schnelltest) MODE="quicktests" ;;
   --tests) MODE="tests" ;;
   --abnahme) MODE="acceptance" ;;
+  --fortschrittstest)
+    progress 5 "Fortschrittstest"
+    progress 100 "Fortschrittstest"
+    exit 0 ;;
   -h|--hilfe|--help)
     cat <<'EOF'
 PROVOWARE Entwicklungsstart
