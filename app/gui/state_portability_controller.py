@@ -1,6 +1,7 @@
 from __future__ import annotations
 
 from collections.abc import Callable
+import logging
 from datetime import datetime
 from pathlib import Path
 from typing import Any
@@ -9,6 +10,8 @@ from PySide6.QtWidgets import QFileDialog, QMessageBox
 
 from app.settings_store import SettingsStore
 from app.state_portability import export_state, import_state
+
+LOGGER = logging.getLogger(__name__)
 
 
 class StatePortabilityController:
@@ -51,6 +54,7 @@ class StatePortabilityController:
                 self.collect_settings(),
             )
         except Exception as exc:
+            LOGGER.exception("Zustandsexport fehlgeschlagen")
             QMessageBox.critical(
                 self.window,
                 "Export fehlgeschlagen",
@@ -98,6 +102,7 @@ class StatePortabilityController:
             )
             payload = import_state(self.database, Path(path))
         except Exception as exc:
+            LOGGER.exception("Zustandsimport fehlgeschlagen")
             QMessageBox.critical(
                 self.window,
                 "Import abgelehnt",
