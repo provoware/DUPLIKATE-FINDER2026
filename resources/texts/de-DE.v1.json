@@ -1,0 +1,28 @@
+{
+  "catalog_version": "1.0.0",
+  "locale": "de-DE",
+  "startup": {
+    "title": "PROVOWARE startet",
+    "activity": "Prüfung läuft …",
+    "ready": "Alles bereit.",
+    "failed": "Start sicher gestoppt.",
+    "workspace": "Projektordner",
+    "dependencies": "Abhängigkeiten",
+    "database": "Datenbank",
+    "safety": "Sicherheit",
+    "gui": "Oberfläche"
+  },
+  "status": {
+    "green": "Bereit",
+    "yellow": "Prüfung nötig",
+    "red": "Fehler – sicher gestoppt"
+  },
+  "help": {
+    "level1": "Kurz erklärt",
+    "level2": "Mehr dazu",
+    "level3": "Ausführliche Hilfe",
+    "search_short": "Hier wählst du einen Ordner und suchst nach Text oder Dateinamen.",
+    "duplicates_short": "Hier werden nur vollständig identische Dateien gruppiert. Es wird nichts gelöscht.",
+    "collections_short": "Sammlungen ordnen Treffer nur virtuell. Originaldateien bleiben unverändert."
+  }
+}

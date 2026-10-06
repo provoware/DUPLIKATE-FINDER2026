@@ -1,0 +1,19 @@
+{
+  "$schema": "https://json-schema.org/draft/2020-12/schema",
+  "type": "object",
+  "required": [
+    "timestamp",
+    "id",
+    "status",
+    "message"
+  ],
+  "properties": {
+    "status": {
+      "enum": [
+        "green",
+        "yellow",
+        "red"
+      ]
+    }
+  }
+}

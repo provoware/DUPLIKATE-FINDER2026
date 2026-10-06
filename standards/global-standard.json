@@ -1,0 +1,42 @@
+{
+  "$schema": "../schemas/global-standard.schema.json",
+  "standard_version": "1.0.0",
+  "language": {
+    "locale": "de-DE",
+    "plain_language": true,
+    "avoid_unexplained_english": true
+  },
+  "ui": {
+    "base_spacing_px": 8,
+    "small_spacing_px": 4,
+    "large_spacing_px": 16,
+    "minimum_click_height_px": 40,
+    "baseline_window": {
+      "width": 800,
+      "height": 600
+    },
+    "status_requires_text": true,
+    "help_levels": 3
+  },
+  "development": {
+    "single_writer": true,
+    "prefer_targeted_patch": true,
+    "pre_validation": true,
+    "post_validation": true,
+    "full_regression_before_merge": true,
+    "reuse_unchanged_state": true
+  },
+  "network": {
+    "prefer_local_cache": true,
+    "download_only_when_missing_or_hash_changed": true
+  },
+  "errors": {
+    "every_error_requires_solution_record": true,
+    "regression_test_when_reproducible": true
+  },
+  "logging": {
+    "timestamps": true,
+    "structured_json_for_state": true,
+    "human_readable_summary": true
+  }
+}

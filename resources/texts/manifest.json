@@ -1,0 +1,11 @@
+{
+  "schema_version": "1.0.0",
+  "active_locale": "de-DE",
+  "catalogs": [
+    {
+      "locale": "de-DE",
+      "version": "1.0.0",
+      "path": "resources/texts/de-DE.v1.json"
+    }
+  ]
+}

@@ -1,0 +1,22 @@
+{
+  "$schema": "https://json-schema.org/draft/2020-12/schema",
+  "type": "object",
+  "required": [
+    "schema_version",
+    "timestamp",
+    "aggregate_sha256",
+    "files",
+    "areas"
+  ],
+  "properties": {
+    "files": {
+      "type": "object"
+    },
+    "areas": {
+      "type": "array",
+      "items": {
+        "type": "string"
+      }
+    }
+  }
+}

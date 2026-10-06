@@ -1,0 +1,11 @@
+{
+  "config_version": "1.0.0",
+  "project_dir": "AUTO",
+  "ui": {
+    "zoom_percent": 100,
+    "window_profile": "auto"
+  },
+  "safety": {
+    "follow_symlinks": false
+  }
+}
