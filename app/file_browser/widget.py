@@ -131,11 +131,11 @@ class FileBrowserWidget(QWidget):
         )
 
         controls.addWidget(self.root_label, 0, 0, 1, 2)
-        controls.addWidget(choose, 0, 2)
-        controls.addWidget(up, 0, 3)
-        controls.addWidget(self.query, 1, 0, 1, 2)
-        controls.addWidget(self.kind, 1, 2)
-        controls.addWidget(refresh, 1, 3)
+        controls.addWidget(choose, 1, 0)
+        controls.addWidget(up, 1, 1)
+        controls.addWidget(self.query, 2, 0)
+        controls.addWidget(self.kind, 2, 1)
+        controls.addWidget(refresh, 3, 0, 1, 2)
         root.addLayout(controls)
 
         splitter = QSplitter(Qt.Orientation.Horizontal)
@@ -148,6 +148,7 @@ class FileBrowserWidget(QWidget):
         self.table.setSelectionBehavior(QAbstractItemView.SelectionBehavior.SelectRows)
         self.table.setSelectionMode(QAbstractItemView.SelectionMode.SingleSelection)
         self.table.setEditTriggers(QAbstractItemView.EditTrigger.NoEditTriggers)
+        self.table.setMinimumWidth(0)
         self.table.doubleClicked.connect(self._activate_index)
         self.table.selectionModel().currentChanged.connect(self._selection_changed)
         self.table.horizontalHeader().setStretchLastSection(True)
@@ -155,6 +156,7 @@ class FileBrowserWidget(QWidget):
 
         preview_frame = QFrame()
         preview_frame.setObjectName("file_preview_panel")
+        preview_frame.setMinimumWidth(0)
         preview_frame.setProperty("section", True)
         preview_layout = QVBoxLayout(preview_frame)
 
@@ -183,7 +185,7 @@ class FileBrowserWidget(QWidget):
         self.preview_details.setTextInteractionFlags(Qt.TextInteractionFlag.TextSelectableByMouse)
         preview_layout.addWidget(self.preview_details)
 
-        actions = QHBoxLayout()
+        actions = QGridLayout()
         self.open_button = QPushButton("Extern öffnen")
         self.open_button.setObjectName("file_browser_open")
         self.open_button.setEnabled(False)
@@ -209,11 +211,11 @@ class FileBrowserWidget(QWidget):
         self.collection_button.setEnabled(False)
         self.collection_button.clicked.connect(self.add_to_collection)
 
-        actions.addWidget(self.open_button)
-        actions.addWidget(self.show_button)
-        actions.addWidget(self.copy_button)
-        actions.addWidget(self.mark_button)
-        actions.addWidget(self.collection_button)
+        actions.addWidget(self.open_button, 0, 0)
+        actions.addWidget(self.show_button, 0, 1)
+        actions.addWidget(self.copy_button, 1, 0)
+        actions.addWidget(self.mark_button, 1, 1)
+        actions.addWidget(self.collection_button, 2, 0, 1, 2)
         preview_layout.addLayout(actions)
 
         splitter.addWidget(preview_frame)
