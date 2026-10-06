@@ -25,9 +25,13 @@ def find_duplicate_groups(
         by_size[record.size].append(record)
 
     candidates=[record for same_size in by_size.values() if len(same_size)>1 for record in same_size]
-    tracker=ProgressTracker(len(candidates),"Duplikatkandidaten vollständig prüfen")
+    pause_provider=(lambda:scanner.control.paused_seconds) if scanner and scanner.control else None
+    tracker=ProgressTracker(len(candidates),"Duplikatkandidaten vollständig prüfen",pause_provider)
     checked=0
     groups:list[DuplicateGroup]=[]
+
+    if progress and not candidates:
+        progress(tracker.update(0,"Keine gleich großen Kandidaten – fertig"))
 
     for size,same_size in by_size.items():
         if len(same_size)<2:
@@ -58,4 +62,6 @@ def scan_duplicate_groups(
 )->tuple[int,list[DuplicateGroup]]:
     active_scanner=scanner or FileScanner()
     records=list(active_scanner.iter_files(root))
+    if progress:
+        progress(ProgressInfo("Nach Dateigröße vorsortieren",0,0,0.0,None))
     return len(records),find_duplicate_groups(records,scanner=active_scanner,progress=progress)
