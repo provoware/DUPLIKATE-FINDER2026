@@ -45,3 +45,22 @@ def test_dashboard_keeps_write_features_visible_but_disabled():
     assert "setEnabled(False)" in source
     for key in ("move_files", "rename_files", "quarantine", "delete_files"):
         assert key in (APP / "safety" / "policy.py").read_text(encoding="utf-8")
+
+
+def test_startup_never_uses_system_package_manager_or_network_installer():
+    sources = [
+        (ROOT / "STARTEN.sh").read_text(encoding="utf-8").casefold(),
+        (ROOT / "STARTEN_KONSOLE.sh").read_text(encoding="utf-8").casefold(),
+        (APP / "startup" / "bootstrap.py").read_text(encoding="utf-8").casefold(),
+    ]
+    forbidden = ("sudo ", "apt install", "apt-get install", "dnf ", "pacman ", "zypper ", "curl ", "wget ")
+    for source in sources:
+        for needle in forbidden:
+            assert needle not in source
+
+
+def test_console_entrypoint_exists_and_reuses_core():
+    source = (APP / "cli.py").read_text(encoding="utf-8")
+    assert "TextSearcher" in source
+    assert "scan_duplicate_groups" in source
+    assert "validate_scan_root" in source

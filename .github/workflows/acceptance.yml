@@ -1,0 +1,38 @@
+name: Autonome Abnahme
+
+on:
+  push:
+    branches: [main, "feature/**", "chore/**"]
+  pull_request:
+
+permissions:
+  contents: read
+
+jobs:
+  abnahme:
+    name: Autonome Gesamt-Abnahme
+    runs-on: ubuntu-24.04
+    env:
+      QT_QPA_PLATFORM: offscreen
+    steps:
+      - uses: actions/checkout@v4
+      - uses: actions/setup-python@v5
+        with:
+          python-version: "3.12"
+          cache: pip
+      - name: Qt-Laufzeit für Prüfbilder
+        run: |
+          sudo apt-get update
+          sudo apt-get install -y --no-install-recommends libegl1 libgl1 libxkbcommon0 libfontconfig1
+      - name: Abhängigkeiten
+        run: python -m pip install -e ".[test]"
+      - name: Konsolen-Selbsttest
+        run: python -m app.cli --selftest
+      - name: Autonome Abnahme mit HTML-Raster
+        run: python tools/autonomous_acceptance.py --output artifacts/abnahme
+      - name: Abnahmebericht sichern
+        if: always()
+        uses: actions/upload-artifact@v4
+        with:
+          name: autonome-abnahme-html
+          path: artifacts/abnahme
