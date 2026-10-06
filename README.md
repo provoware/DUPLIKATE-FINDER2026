@@ -45,9 +45,16 @@ Die Prüfung wird automatisiert in GitHub Actions ausgeführt und erzeugt zusät
 
 ## Portabler Start
 
-Das veröffentlichte Linux-Paket enthält eine eigene Python-3.12-Laufzeit und PySide6. `STARTEN.sh` verwendet ausschließlich `runtime/bin/python3`.
+Für Linux gibt es zwei klar getrennte Profile:
 
-Fehlt diese Laufzeit, bricht der Start verständlich ab. Es wird **nicht** heimlich auf System-Python ausgewichen und es werden keine Linux-Systempakete installiert.
+- **Lite:** normale Nutzung, vollständige geprüfte Laufzeit, aber ohne doppelten Offline-Reparaturvorrat und ohne Entwicklungs-/Abnahmedateien.
+- **Recovery:** gleiche Programmfunktionen plus lokaler PySide6-Reparaturvorrat für eine Offline-Wiederherstellung.
+
+Beide Profile enthalten eine eigene Python-3.12-Laufzeit und PySide6. Die Laufzeit wird bewusst **nicht aggressiv beschnitten**.
+
+`STARTEN.sh` verwendet ausschließlich `runtime/bin/python3`. Für USB-Sticks gibt es zusätzlich `STARTEN_VOM_STICK.sh`. Wenn ein Linux-System Programme direkt vom Stick ausführen darf, startet das Werkzeug dort. Ist der Stick mit der Linux-Sicherheitsoption `noexec` eingehängt, wird nur die Programmlaufzeit in einen lokalen Cache kopiert und von dort gestartet.
+
+Fehlt die portable Laufzeit, wird **nicht** heimlich auf System-Python ausgewichen und es werden keine Linux-Systempakete installiert.
 
 ## Entwicklung
 
@@ -96,7 +103,7 @@ tools/        Prüfwerkzeuge
 
 ## Projektstatus
 
-**v0.7.0 – robuste Scan-Pipeline / SQLite-Großlisten / Nur-Lesen-Sicherheitsstand · Robustheit & Skalierung FROZEN 🟢**
+**v0.7.1 – Wartung / Portable Lite + Recovery / effizientere Entwicklung / verbesserte Sichtbarkeit**
 
 Physische Dateiänderungen sind noch nicht freigegeben. Dieser Bereich bleibt gesperrt, bis ein eigener Änderungsvertrag, Vorschau, Transaktionsjournal, Rückgängig-Funktion und separate Abnahmetests existieren.
 
@@ -126,6 +133,8 @@ Die Konsole verwendet nummerierte Menüs, sichere Vorauswahlen und dieselben Sch
 - sichtbare Anzahl übersprungener oder nicht lesbarer Dateien
 - geprüfter SHA-256-Zwischenspeicher für unveränderte Dateien
 - Drag & Drop von Suchtreffern in virtuelle Sammlungen
+- klarere Arbeitsführung direkt auf der Übersicht
+- stärkere Navigation-, Fokus- und Statuskontraste
 - farblich und textlich eindeutiger Status
 - rotierende Protokolle im Ordner logs/
 - lokaler Selbsttest im Dashboard
