@@ -89,3 +89,22 @@ Nach Umsetzung des modularen Datei-/Medienbrowsers und der bereichsspezifischen 
 - Portable Lite/Recovery einschließlich Funktionsgleichheit.
 
 Der Bereich **Bedienoberfläche / Prozesssteuerung ist damit für v0.8.0 wieder FROZEN 🟢**.
+
+
+## Re-Freeze v0.9.0
+
+Der Bereich wurde für die ausdrücklich beauftragte Laienoptimierung und Vorschau-Erweiterung erneut begrenzt geöffnet.
+
+Nach Umsetzung wurden erfolgreich geprüft:
+
+- gezielte Entwicklungsprüfung,
+- Kern- und Sicherheitstests,
+- 800 × 600,
+- 100 %, 150 % und 200 %,
+- autonome Gesamt-Abnahme,
+- Portable Lite/Recovery einschließlich Funktionsgleichheit,
+- AppImage-Bau auf Ubuntu 22.04,
+- AppImage-Start auf Ubuntu 22.04 und 24.04,
+- AppImage-Start aus simuliertem USB-Pfad mit Leerzeichen.
+
+**Bedienoberfläche / Prozesssteuerung = FROZEN 🟢 ab v0.9.0.**
