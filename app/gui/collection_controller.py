@@ -1,5 +1,6 @@
 from __future__ import annotations
 
+import sqlite3
 from typing import Any
 
 from PySide6.QtCore import Qt
@@ -26,11 +27,25 @@ class CollectionController:
                 str(exc),
             )
             return
-        except Exception as exc:
+        except sqlite3.IntegrityError:
             QMessageBox.information(
                 self.window,
                 ui_text("collections.error_create_title", "Sammlung nicht angelegt"),
-                f"{exc}",
+                ui_text(
+                    "collections.error_duplicate_name",
+                    "Eine Sammlung mit diesem Namen existiert bereits.",
+                ),
+            )
+            return
+        except sqlite3.Error:
+            QMessageBox.critical(
+                self.window,
+                ui_text("collections.error_create_title", "Sammlung nicht angelegt"),
+                ui_text(
+                    "collections.error_database",
+                    "Die lokale Datenbank konnte die Sammlung nicht speichern. "
+                    "Bitte den Selbsttest ausführen und es danach erneut versuchen.",
+                ),
             )
             return
 
