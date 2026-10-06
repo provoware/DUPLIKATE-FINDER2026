@@ -129,6 +129,37 @@
           "full_800x600_100_150_200_acceptance",
           "post_validation"
         ]
+      },
+      {
+        "id": "robustness_scaling",
+        "name": "Robustheit / Skalierung",
+        "status": "FROZEN",
+        "since_version": "0.7.0",
+        "frozen_on": "2026-10-06",
+        "scope": [
+          "app/core/scanner.py",
+          "app/core/search.py",
+          "app/core/duplicates.py",
+          "app/core/hashing.py",
+          "app/storage/**",
+          "app/gui/table_models.py",
+          "app/gui/workers.py",
+          "app/settings_store.py",
+          "app/state_portability.py"
+        ],
+        "allowed_without_reopen": [
+          "safety_correction",
+          "regression_correction",
+          "required_platform_compatibility",
+          "schema_migration_for_approved_feature"
+        ],
+        "reopen_requires": [
+          "explicit_scope_decision",
+          "pre_validation",
+          "targeted_tests",
+          "full_acceptance",
+          "post_validation"
+        ]
       }
     ]
   }
