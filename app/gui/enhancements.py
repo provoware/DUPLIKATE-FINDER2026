@@ -6,7 +6,7 @@ from math import ceil
 
 from PySide6.QtCore import QEvent, QMimeData, QObject, QPoint, QTimer, Qt, QUrl
 from PySide6.QtGui import QDesktopServices, QDrag
-from PySide6.QtWidgets import QApplication, QComboBox, QDialog, QFileDialog, QFrame, QGridLayout, QHeaderView, QLabel, QMessageBox, QPushButton, QTableWidget, QVBoxLayout
+from PySide6.QtWidgets import QApplication, QComboBox, QDialog, QFileDialog, QFrame, QGridLayout, QHeaderView, QLabel, QMessageBox, QPushButton, QTableView, QVBoxLayout
 
 from app.gui.theme import ZOOM_STEPS, apply_accessible_theme
 from app.startup.selftest import run_selftest
@@ -14,6 +14,7 @@ from app.core.scanner import ScanOptions
 from app.cpu_limit import CpuLimiter
 from app.settings_store import SettingsStore
 from app.state_portability import export_state, import_state
+from app.resource_monitor import ResourceMonitor
 
 MIME_PATH = "application/x-provoware-path"
 
@@ -28,6 +29,7 @@ class UiEnhancements(QObject):
         self.store = SettingsStore(base_dir / "config" / "benutzer-einstellungen.json")
         self.settings = self.store.load()
         self.cpu_limiter = CpuLimiter()
+        self.resource_monitor = ResourceMonitor()
         self.zoom = int(self.settings.get("zoom_percent", 100))
         self._configure_sorting()
         self._configure_drag_drop()
@@ -44,12 +46,16 @@ class UiEnhancements(QObject):
         self.autosave_timer = QTimer(self)
         self.autosave_timer.timeout.connect(self._autosave)
         self.autosave_timer.start(300_000)
+        self.resource_timer = QTimer(self)
+        self.resource_timer.timeout.connect(self._refresh_resources)
+        self.resource_timer.start(1_000)
+        self._refresh_resources()
         self._refresh_status_style()
 
     def _configure_sorting(self) -> None:
         for table_name in ("results", "duplicate_members", "collection_items_table"):
             table = getattr(self.window, table_name, None)
-            if isinstance(table, QTableWidget):
+            if isinstance(table, QTableView):
                 table.setSortingEnabled(True)
                 table.horizontalHeader().setSectionsClickable(True)
                 table.horizontalHeader().setSortIndicatorShown(True)
@@ -58,8 +64,11 @@ class UiEnhancements(QObject):
                 table.setWordWrap(False)
                 table.verticalHeader().setVisible(False)
                 table.verticalHeader().setDefaultSectionSize(34)
-                table.setToolTip("Spaltenüberschrift anklicken, um die Liste zu sortieren.")
-        if isinstance(getattr(self.window, "results", None), QTableWidget):
+                table.setToolTip(
+                    "Virtuelle Liste: nur sichtbare Zeilen werden dargestellt. "
+                    "Spaltenüberschrift anklicken, um zu sortieren."
+                )
+        if isinstance(getattr(self.window, "results", None), QTableView):
             header=self.window.results.horizontalHeader()
             header.setSectionResizeMode(0, QHeaderView.ResizeMode.ResizeToContents)
             header.setSectionResizeMode(1, QHeaderView.ResizeMode.ResizeToContents)
@@ -67,13 +76,13 @@ class UiEnhancements(QObject):
             header.setSectionResizeMode(3, QHeaderView.ResizeMode.ResizeToContents)
             header.setSectionResizeMode(4, QHeaderView.ResizeMode.Stretch)
             self.window.results.setColumnWidth(2, 300)
-        if isinstance(getattr(self.window, "duplicate_members", None), QTableWidget):
+        if isinstance(getattr(self.window, "duplicate_members", None), QTableView):
             header=self.window.duplicate_members.horizontalHeader()
             header.setSectionResizeMode(0,QHeaderView.ResizeMode.ResizeToContents)
             header.setSectionResizeMode(1,QHeaderView.ResizeMode.Stretch)
             header.setSectionResizeMode(2,QHeaderView.ResizeMode.ResizeToContents)
             header.setSectionResizeMode(3,QHeaderView.ResizeMode.ResizeToContents)
-        if isinstance(getattr(self.window, "collection_items_table", None), QTableWidget):
+        if isinstance(getattr(self.window, "collection_items_table", None), QTableView):
             header=self.window.collection_items_table.horizontalHeader()
             header.setSectionResizeMode(0,QHeaderView.ResizeMode.ResizeToContents)
             header.setSectionResizeMode(1,QHeaderView.ResizeMode.Stretch)
@@ -155,6 +164,23 @@ class UiEnhancements(QObject):
         grid.addWidget(self.autosave_info, 1, 2)
 
         layout.insertWidget(max(1, layout.count() - 1), panel)
+
+    def _refresh_resources(self) -> None:
+        snapshot=self.resource_monitor.sample()
+        ram=self.window._human_size(snapshot.process_ram_bytes)
+        swap_used=self.window._human_size(snapshot.swap_used_bytes)
+        swap_total=self.window._human_size(snapshot.swap_total_bytes)
+        self.window.dashboard_resource_value.setText(
+            f"CPU {snapshot.process_cpu_percent:.0f} % · RAM {ram} · SWAP {swap_used}/{swap_total}"
+        )
+        sys_used=self.window._human_size(snapshot.system_ram_used_bytes)
+        sys_total=self.window._human_size(snapshot.system_ram_total_bytes)
+        self.window.dashboard_resource_value.setToolTip(
+            f"PROVOWARE CPU: {snapshot.process_cpu_percent:.1f} %\n"
+            f"PROVOWARE RAM: {ram}\n"
+            f"System-RAM: {sys_used} von {sys_total}\n"
+            f"SWAP (Auslagerung): {swap_used} von {swap_total}"
+        )
 
     def _open_tools_dialog(self) -> None:
         dialog=QDialog(self.window)
@@ -397,11 +423,11 @@ class UiEnhancements(QObject):
             elif event.type() == QEvent.Type.MouseMove and event.buttons() & Qt.MouseButton.LeftButton and self.drag_start is not None:
                 distance = (event.position().toPoint() - self.drag_start).manhattanLength()
                 if distance >= QApplication.startDragDistance():
-                    row = self.window.results.currentRow()
-                    item = self.window.results.item(row, 2) if row >= 0 else None
-                    if item:
+                    index=self.window.results.currentIndex()
+                    path=self.window.results_model.path_at(index.row()) if index.isValid() else None
+                    if path is not None:
                         mime = QMimeData()
-                        mime.setData(MIME_PATH, item.text().encode("utf-8"))
+                        mime.setData(MIME_PATH, str(path).encode("utf-8"))
                         drag = QDrag(self.window.results)
                         drag.setMimeData(mime)
                         drag.exec(Qt.DropAction.CopyAction)
@@ -430,6 +456,7 @@ class UiEnhancements(QObject):
     def dispose(self) -> None:
         self._autosave()
         self.autosave_timer.stop()
+        self.resource_timer.stop()
         self.timer.stop()
         if self.app is not None and self.install_global_filter:
             self.app.removeEventFilter(self)
