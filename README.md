@@ -19,8 +19,8 @@ Die später vorgesehenen Dateiaktionen **Verschieben**, **Umbenennen**, **Quaran
 
 | Bereich | Stand |
 | --- | --- |
-| Aktueller stabiler Release | **v0.8.0** |
-| Aktueller Entwicklungsstand | **v0.9.0** |
+| Version dieses Quellstands | **v0.9.0** |
+| Aktuelle veröffentlichte Version | [Downloadseite](https://github.com/provoware/DUPLIKATE-FINDER2026/releases/latest) |
 | Zielsystem | Linux x86_64 |
 | Portable Python | **3.12.15** |
 | Oberfläche | PySide6 / Qt **6.11.2** |
@@ -40,7 +40,7 @@ Die später vorgesehenen Dateiaktionen **Verschieben**, **Umbenennen**, **Quaran
 | Recovery v0.9.0 entpackt (CI) | **985,8 MiB** |
 | AppImage-Prototyp v0.9.0 | **ca. 263 MB** |
 
-Die Paketwerte stammen aus dem veröffentlichten GitHub-Release **v0.8.0**. Der v0.9.0-Zweig entwickelt neue Vorschau- und Bedienfunktionen; AppImage ist dort zunächst nur ein getrennt getesteter Prototyp.
+Die mit v0.8.0 bezeichneten Werte gehören zum vorherigen Release; die v0.9.0-Werte sind gerundete Messwerte der automatischen Paketprüfung. Exakte Größen und Prüfsummen des veröffentlichten Pakets stehen auf der Downloadseite und im Nachweispaket. AppImage bleibt ein getrennt getesteter Prototyp.
 
 ## Für Einsteiger: in drei Schritten
 
@@ -53,7 +53,8 @@ Kurze Knöpfe wie **Hoch**, **Neu laden**, **Öffnen**, **Ordner** und **Markier
 ## Wichtige Links
 
 - Repository: https://github.com/provoware/DUPLIKATE-FINDER2026
-- Aktueller Release v0.8.0: https://github.com/provoware/DUPLIKATE-FINDER2026/releases/tag/v0.8.0
+- Aktueller veröffentlichter Release: https://github.com/provoware/DUPLIKATE-FINDER2026/releases/latest
+- Versionshinweise v0.9.0: https://github.com/provoware/DUPLIKATE-FINDER2026/blob/main/docs/RELEASE_NOTES_v0.9.0.md
 - Alle Releases: https://github.com/provoware/DUPLIKATE-FINDER2026/releases
 - Fehler melden / Verbesserung vorschlagen: https://github.com/provoware/DUPLIKATE-FINDER2026/issues
 - Sicherheitsinformationen: https://github.com/provoware/DUPLIKATE-FINDER2026/blob/main/SECURITY.md
