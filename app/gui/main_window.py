@@ -22,13 +22,13 @@ from PySide6.QtWidgets import (
     QProgressBar,
     QSplitter,
     QStackedWidget,
-    QTableWidget,
-    QTableWidgetItem,
+    QTableView,
     QVBoxLayout,
     QWidget,
 )
 
 from app.gui.workers import DuplicateWorker, SearchWorker
+from app.gui.table_models import CollectionItemsModel, DuplicateMembersModel, SearchResultsModel
 from app.core.scanner import ScanOptions
 from app.process_control import ProgressInfo
 from app.progress_format import format_eta
@@ -59,6 +59,9 @@ class MainWindow(QMainWindow):
         self.duplicate_worker: DuplicateWorker | None = None
         self.last_hits: list[SearchHit] = []
         self.duplicate_groups_cache: list[DuplicateGroup] = []
+        self.results_model = SearchResultsModel(database, self)
+        self.duplicate_members_model = DuplicateMembersModel(self)
+        self.collection_items_model = CollectionItemsModel(self)
         self.scan_options = ScanOptions()
         self._process_paused = False
 
@@ -97,6 +100,22 @@ class MainWindow(QMainWindow):
         layout.addWidget(a, 1)
         layout.addWidget(b, 0)
         return frame
+
+    def _live_card(self, title: str, value: str, object_name: str) -> tuple[QFrame, QLabel]:
+        frame = QFrame()
+        frame.setProperty("card", True)
+        layout = QVBoxLayout(frame)
+        layout.setContentsMargins(6, 4, 6, 4)
+        layout.setSpacing(2)
+        heading = QLabel(title)
+        heading.setStyleSheet("font-weight:700;")
+        label = QLabel(value)
+        label.setObjectName(object_name)
+        label.setWordWrap(True)
+        label.setToolTip("Wird während laufender Vorgänge automatisch aktualisiert.")
+        layout.addWidget(heading)
+        layout.addWidget(label)
+        return frame, label
 
     def _build_ui(self) -> None:
         central = QWidget()
@@ -213,8 +232,14 @@ class MainWindow(QMainWindow):
 
         cards = QGridLayout()
         cards.addWidget(self._card("Sicherheitsmodus", "🔒 Nur lesen"), 0, 0)
-        cards.addWidget(self._card("Textsuche", "🟢 Bereit"), 0, 1)
-        cards.addWidget(self._card("Duplikatprüfung", "🟢 SHA-256"), 1, 0)
+        process_card, self.dashboard_process_value = self._live_card(
+            "Vorgang", "🟢 Bereit", "dashboard_process_metrics"
+        )
+        resource_card, self.dashboard_resource_value = self._live_card(
+            "Ressourcen", "CPU – · RAM – · SWAP –", "dashboard_resource_metrics"
+        )
+        cards.addWidget(process_card, 0, 1)
+        cards.addWidget(resource_card, 1, 0)
         cards.addWidget(self._card("Datenbank", "🟢 Lokal · SQLite"), 1, 1)
         layout.addLayout(cards)
 
@@ -352,14 +377,17 @@ class MainWindow(QMainWindow):
         head.addWidget(self.result_info)
         layout.addLayout(head)
 
-        self.results = QTableWidget(0, 5)
+        self.results = QTableView()
         self.results.setObjectName("results_table")
-        self.results.setHorizontalHeaderLabels(["Markiert", "Quelle", "Datei", "Zeile", "Fundstelle"])
+        self.results.setModel(self.results_model)
+        self.results.setSortingEnabled(True)
         self.results.horizontalHeader().setStretchLastSection(True)
         self.results.setSelectionBehavior(QAbstractItemView.SelectRows)
         self.results.setSelectionMode(QAbstractItemView.SingleSelection)
         self.results.setEditTriggers(QAbstractItemView.NoEditTriggers)
-        self.results.itemSelectionChanged.connect(self._load_selected_result_state)
+        self.results.selectionModel().selectionChanged.connect(
+            lambda _selected, _deselected: self._load_selected_result_state()
+        )
         layout.addWidget(self.results, 1)
 
         meta = QGridLayout()
@@ -422,9 +450,10 @@ class MainWindow(QMainWindow):
         self.duplicate_summary.setObjectName("duplicate_summary")
         self.duplicate_summary.setWordWrap(True)
         right_layout.addWidget(self.duplicate_summary)
-        self.duplicate_members = QTableWidget(0, 4)
+        self.duplicate_members = QTableView()
         self.duplicate_members.setObjectName("duplicate_members")
-        self.duplicate_members.setHorizontalHeaderLabels(["Datei", "Ordner", "Größe", "Geändert"])
+        self.duplicate_members.setModel(self.duplicate_members_model)
+        self.duplicate_members.setSortingEnabled(True)
         self.duplicate_members.horizontalHeader().setStretchLastSection(True)
         self.duplicate_members.setSelectionBehavior(QAbstractItemView.SelectRows)
         self.duplicate_members.setEditTriggers(QAbstractItemView.NoEditTriggers)
@@ -477,9 +506,10 @@ class MainWindow(QMainWindow):
         self.collection_summary.setObjectName("collection_summary")
         self.collection_summary.setWordWrap(True)
         right_layout.addWidget(self.collection_summary)
-        self.collection_items_table = QTableWidget(0, 3)
+        self.collection_items_table = QTableView()
         self.collection_items_table.setObjectName("collection_items")
-        self.collection_items_table.setHorizontalHeaderLabels(["Datei", "Ordner", "Notiz"])
+        self.collection_items_table.setModel(self.collection_items_model)
+        self.collection_items_table.setSortingEnabled(True)
         self.collection_items_table.horizontalHeader().setStretchLastSection(True)
         self.collection_items_table.setSelectionBehavior(QAbstractItemView.SelectRows)
         self.collection_items_table.setSelectionMode(QAbstractItemView.SingleSelection)
@@ -604,21 +634,7 @@ class MainWindow(QMainWindow):
 
     def _search_finished(self, job: SearchJob, hits: list[SearchHit]) -> None:
         self.last_hits = list(hits)
-        sorting = self.results.isSortingEnabled()
-        self.results.setSortingEnabled(False)
-        self.results.setRowCount(0)
-        for hit in hits:
-            row = self.results.rowCount()
-            self.results.insertRow(row)
-            state = self.database.virtual_item(hit.path)
-            mark_item = QTableWidgetItem("★" if state.marked else "")
-            mark_item.setData(Qt.UserRole, str(hit.path))
-            self.results.setItem(row, 0, mark_item)
-            self.results.setItem(row, 1, QTableWidgetItem(hit.source))
-            self.results.setItem(row, 2, QTableWidgetItem(str(hit.path)))
-            self.results.setItem(row, 3, QTableWidgetItem("" if hit.line_number is None else str(hit.line_number)))
-            self.results.setItem(row, 4, QTableWidgetItem(hit.excerpt))
-        self.results.setSortingEnabled(sorting)
+        self.results_model.set_hits(self.last_hits)
         self.search_button.setEnabled(True)
         self._set_process_idle()
         self.status_label.setText("🟢 Textsuche abgeschlossen")
@@ -626,7 +642,8 @@ class MainWindow(QMainWindow):
         self.progress_bar.setRange(0, 100)
         self.progress_bar.setValue(100)
         self.counter_label.setText(f"{job.scanned_files} Textdateien geprüft · {len(hits)} Treffer")
-        self.result_info.setText(f"{len(hits)} Treffer")
+        self.result_info.setText(f"{len(hits)} Treffer · virtuelle Liste")
+        self.dashboard_process_value.setText(f"🟢 Fertig · {job.scanned_files} Dateien · {len(hits)} Treffer")
         self.nav.setCurrentRow(self.PAGE_RESULTS)
 
     def _search_failed(self, message: str) -> None:
@@ -706,6 +723,7 @@ class MainWindow(QMainWindow):
         self.progress_bar.setRange(0, 100)
         self.progress_bar.setValue(0)
         self.counter_label.setText(message)
+        self.dashboard_process_value.setText("🟡 Abgebrochen")
 
     def _on_process_progress(self, info: ProgressInfo) -> None:
         self.step_label.setText(f"Schritt: {info.step}")
@@ -715,12 +733,16 @@ class MainWindow(QMainWindow):
             self.eta_label.setText("Restzeit: wird nach der Erfassung berechnet")
             if info.current > 0:
                 self.counter_label.setText(f"{info.current} Dateien bisher erfasst")
+                self.dashboard_process_value.setText(f"Erfassen · {info.current} Dateien")
             return
         self.progress_bar.setRange(0, 100)
         self.progress_bar.setFormat("%p %")
         self.progress_bar.setValue(info.percent)
         self.eta_label.setText("Restzeit: " + format_eta(info.eta_seconds))
-        self.counter_label.setText(f"{info.current} von {info.total} verarbeitet")
+        rate=f"{info.items_per_second:.1f} Datei/s" if info.items_per_second>0 else "Geschwindigkeit wird ermittelt"
+        amount=self._human_size(info.processed_bytes) if info.processed_bytes>0 else "nur Metadaten"
+        self.counter_label.setText(f"{info.current}/{info.total} · {rate} · {amount}")
+        self.dashboard_process_value.setText(f"{rate} · {amount} · Rest {format_eta(info.eta_seconds)}")
 
     def _set_process_idle(self) -> None:
         self.pause_button.setEnabled(False)
@@ -752,11 +774,8 @@ class MainWindow(QMainWindow):
             self.duplicate_filter_info.setText(f"Ausschlüsse: {python_text} · {type_text}")
 
     def _selected_result_path(self) -> Path | None:
-        row = self.results.currentRow()
-        if row < 0:
-            return None
-        item = self.results.item(row, 2)
-        return Path(item.text()) if item else None
+        index = self.results.currentIndex()
+        return self.results_model.path_at(index.row()) if index.isValid() else None
 
     def _load_selected_result_state(self) -> None:
         path = self._selected_result_path()
@@ -771,9 +790,9 @@ class MainWindow(QMainWindow):
         if path is None:
             QMessageBox.information(self, "Kein Treffer", "Bitte zuerst einen Treffer auswählen.")
             return
-        self.database.set_virtual_item(path, self.result_mark.isChecked(), self.result_note.text())
-        row = self.results.currentRow()
-        self.results.item(row, 0).setText("★" if self.result_mark.isChecked() else "")
+        marked=self.result_mark.isChecked()
+        self.database.set_virtual_item(path, marked, self.result_note.text())
+        self.results_model.set_marked(path,marked)
         self.status_label.setText("🟢 Virtuelle Markierung gespeichert")
 
     def _add_selected_result_to_collection(self) -> None:
@@ -828,6 +847,7 @@ class MainWindow(QMainWindow):
         self.duplicate_summary.setText(
             f"{len(groups)} sichere Duplikatgruppen gefunden. Jede Gruppe besitzt identische Größe und SHA-256-Prüfsumme."
         )
+        self.dashboard_process_value.setText(f"🟢 Fertig · {scanned} Dateien · {len(groups)} Gruppen")
 
     def _duplicate_scan_failed(self, message: str) -> None:
         entry = record_error(self.base_dir / "logs", "duplikatpruefung", message)
@@ -856,28 +876,14 @@ class MainWindow(QMainWindow):
         if self.duplicate_groups_cache:
             self.duplicate_group_list.setCurrentRow(0)
         else:
-            self.duplicate_members.setRowCount(0)
+            self.duplicate_members_model.set_group(None)
 
     def _show_duplicate_group(self, row: int) -> None:
         if row < 0 or row >= len(self.duplicate_groups_cache):
+            self.duplicate_members_model.set_group(None)
             return
         group = self.duplicate_groups_cache[row]
-        sorting = self.duplicate_members.isSortingEnabled()
-        self.duplicate_members.setSortingEnabled(False)
-        self.duplicate_members.setRowCount(0)
-        for path in group.paths:
-            table_row = self.duplicate_members.rowCount()
-            self.duplicate_members.insertRow(table_row)
-            try:
-                stat = path.stat()
-                modified = str(int(stat.st_mtime))
-            except OSError:
-                modified = "nicht verfügbar"
-            self.duplicate_members.setItem(table_row, 0, QTableWidgetItem(path.name))
-            self.duplicate_members.setItem(table_row, 1, QTableWidgetItem(str(path.parent)))
-            self.duplicate_members.setItem(table_row, 2, QTableWidgetItem(self._human_size(group.size)))
-            self.duplicate_members.setItem(table_row, 3, QTableWidgetItem(modified))
-        self.duplicate_members.setSortingEnabled(sorting)
+        self.duplicate_members_model.set_group(group)
         self.duplicate_summary.setText(
             f"Gruppe {row + 1}: {len(group.paths)} vollständig identische Dateien · "
             f"je {self._human_size(group.size)} · SHA-256 {group.sha256[:16]}…"
@@ -916,7 +922,7 @@ class MainWindow(QMainWindow):
             self.collection_list.setCurrentRow(target_row if target_row >= 0 else 0)
         else:
             self.collection_summary.setText("Noch keine Sammlung angelegt.")
-            self.collection_items_table.setRowCount(0)
+            self.collection_items_model.set_items([])
 
     def _current_collection_id(self) -> int | None:
         item = self.collection_list.currentItem()
@@ -928,37 +934,25 @@ class MainWindow(QMainWindow):
     def _show_collection(self, _row: int) -> None:
         collection_id = self._current_collection_id()
         if collection_id is None:
+            self.collection_items_model.set_items([])
             return
         collection = next((c for c in self.database.collections() if c.id == collection_id), None)
         if collection is None:
+            self.collection_items_model.set_items([])
             return
         items = self.database.collection_items(collection_id)
         suffix = f" · {collection.note}" if collection.note else ""
         self.collection_summary.setText(f"{collection.name} · {len(items)} Einträge{suffix}")
-        sorting = self.collection_items_table.isSortingEnabled()
-        self.collection_items_table.setSortingEnabled(False)
-        self.collection_items_table.setRowCount(0)
-        for entry in items:
-            row = self.collection_items_table.rowCount()
-            self.collection_items_table.insertRow(row)
-            path_item = QTableWidgetItem(entry.path.name)
-            path_item.setData(Qt.UserRole, str(entry.path))
-            self.collection_items_table.setItem(row, 0, path_item)
-            self.collection_items_table.setItem(row, 1, QTableWidgetItem(str(entry.path.parent)))
-            self.collection_items_table.setItem(row, 2, QTableWidgetItem(entry.note))
-        self.collection_items_table.setSortingEnabled(sorting)
+        self.collection_items_model.set_items(items)
 
     def _remove_selected_collection_item(self) -> None:
         collection_id = self._current_collection_id()
-        row = self.collection_items_table.currentRow()
-        if collection_id is None or row < 0:
+        index=self.collection_items_table.currentIndex()
+        path=self.collection_items_model.path_at(index.row()) if index.isValid() else None
+        if collection_id is None or path is None:
             QMessageBox.information(self, "Keine Auswahl", "Bitte einen Sammlungseintrag auswählen.")
             return
-        item = self.collection_items_table.item(row, 0)
-        raw_path = item.data(Qt.UserRole) if item else None
-        if not raw_path:
-            return
-        self.database.remove_collection_item(collection_id, Path(str(raw_path)))
+        self.database.remove_collection_item(collection_id,path)
         self._show_collection(self.collection_list.currentRow())
         self.status_label.setText("🟢 Eintrag nur aus der virtuellen Sammlung entfernt")
 
