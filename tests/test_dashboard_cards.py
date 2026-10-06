@@ -6,7 +6,7 @@ ROOT=Path(__file__).resolve().parents[1]
 
 def test_dashboard_cards_use_clear_four_column_layout():
     source=(ROOT/"app/gui/main_window.py").read_text(encoding="utf-8")
-    start=source.index("def _card")
+    start=source.index("def _build_card")
     block=source[start:source.index("def _build_ui",start)]
     assert "QVBoxLayout(frame)" in block
     assert 'setProperty("cardTitle", True)' in block
