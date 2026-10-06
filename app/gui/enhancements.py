@@ -264,21 +264,43 @@ class UiEnhancements(QObject):
             "excluded_extensions":sorted(self.window.scan_options.excluded_extensions),
         }
 
+    def _save_settings(self, *, show_dialog: bool) -> bool:
+        try:
+            self.store.save(self._collect_settings())
+        except OSError as exc:
+            report_ui_error(
+                self.window,
+                area="einstellungen",
+                title="Einstellungen nicht gespeichert",
+                lead="Die lokalen Programmeinstellungen konnten nicht geschrieben werden.",
+                error=exc,
+                show_dialog=show_dialog,
+            )
+            if hasattr(self, "autosave_info"):
+                self.autosave_info.setText("Autosicherung fehlgeschlagen")
+            return False
+        return True
+
     def _autosave(self) -> None:
-        self.settings=self._collect_settings()
-        self.store.save(self.settings)
-        stamp=datetime.now().strftime("%H:%M")
-        if hasattr(self,"autosave_info"):
+        self.settings = self._collect_settings()
+        if not self._save_settings(show_dialog=False):
+            return
+        stamp = datetime.now().strftime("%H:%M")
+        if hasattr(self, "autosave_info"):
             self.autosave_info.setText(f"Gesichert um {stamp}")
         if self.window._active_worker() is None:
-            set_status(self.window.status_label, "OK · Einstellungen automatisch gesichert", "ok")
+            set_status(
+                self.window.status_label,
+                "OK · Einstellungen automatisch gesichert",
+                "ok",
+            )
 
     def _cpu_changed(self) -> None:
         requested=int(self.cpu_combo.currentData() or 0)
         active=self.cpu_limiter.apply(requested)
-        self.settings["cpu_cores"]=requested
-        self.store.save(self._collect_settings())
-        label="alle verfügbaren" if requested == 0 else str(active)
+        self.settings["cpu_cores"] = requested
+        self._save_settings(show_dialog=True)
+        label = "alle verfügbaren" if requested == 0 else str(active)
         set_status(self.window.status_label, f"OK · CPU-Begrenzung: {label} Kern(e) für PROVOWARE", "ok")
 
     def _adapt_to_screen(self) -> None:
@@ -308,8 +330,12 @@ class UiEnhancements(QObject):
             width = min(width, area.width())
             height = min(height, area.height())
         self.window.resize(width, height)
-        set_status(self.window.status_label, f"OK · Fenstergröße {width} × {height}", "ok")
-        self.store.save(self._collect_settings())
+        set_status(
+            self.window.status_label,
+            f"OK · Fenstergröße {width} × {height}",
+            "ok",
+        )
+        self._save_settings(show_dialog=True)
 
     def _zoom_from_combo(self) -> None:
         value = self.zoom_combo.currentData()
@@ -348,7 +374,7 @@ class UiEnhancements(QObject):
             self.zoom_combo.blockSignals(False)
         set_status(self.window.status_label, f"OK · Seitenzoom {value} %", "ok")
         if hasattr(self, "cpu_combo"):
-            self.store.save(self._collect_settings())
+            self._save_settings(show_dialog=True)
 
     def _show_selftest(self) -> None:
         checks = run_selftest(self.base_dir, require_gui=True)
