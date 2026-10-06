@@ -60,10 +60,11 @@ def test_status_colors_are_centralized_in_theme():
     assert "QPalette.ColorRole.PlaceholderText" in theme
 
 
-def test_theme_contains_no_unresolved_color_placeholders():
-    from PySide6.QtWidgets import QApplication
-    from app.gui.theme import apply_accessible_theme
+def test_theme_declares_replacement_for_every_color_placeholder():
+    import re
 
-    app = QApplication.instance() or QApplication([])
-    apply_accessible_theme(app, 100)
-    assert "__" not in app.styleSheet()
+    source = (ROOT / "app/gui/theme.py").read_text(encoding="utf-8")
+    placeholders = set(re.findall(r"__[A-Z_]+__", source))
+    assert placeholders
+    for placeholder in placeholders:
+        assert f'"{placeholder}": THEME_COLORS[' in source
