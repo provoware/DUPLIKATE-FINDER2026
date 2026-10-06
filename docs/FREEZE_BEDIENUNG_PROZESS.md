@@ -38,3 +38,15 @@ Eine bewusste Wiederöffnung erfordert:
 4. kleinen gezielten Patch,
 5. vollständige 800×600-/100/150/200-%-Abnahme,
 6. Nachvalidierung und erneute Freeze-Entscheidung.
+
+
+## Kontrollierte Wiederöffnung für v0.7.1
+
+Am 2026-10-06 wurde der Bereich auf ausdrücklichen Nutzerauftrag erneut begrenzt geöffnet. Umfang:
+
+- bessere Toolführung auf der Übersicht,
+- stärkere Farben und Kontraste,
+- bessere Sichtbarkeit von Navigation, Status und Hauptaktionen,
+- wartungsneutrales Zusammenführen doppelter UI-Hilfslogik.
+
+Neue Fachfunktionen gehören nicht zu dieser Wiederöffnung. Vor dem Merge ist erneut die vollständige 800×600-/100/150/200-%-Abnahme erforderlich. Danach wird der Bereich wieder auf **FROZEN** gesetzt.
