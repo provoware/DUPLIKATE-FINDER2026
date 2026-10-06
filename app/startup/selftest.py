@@ -10,6 +10,7 @@ from pathlib import Path
 
 from app.safety.policy import SafetyPolicy, SafetyViolation
 from app.storage.database import Database
+from app.testing.runner import run_profile
 
 
 @dataclass(frozen=True)
@@ -80,5 +81,17 @@ def run_selftest(base_dir: Path, require_gui: bool = True) -> list[Check]:
         checks.append(Check("Systemschutz", False, "Sperre hat /etc nicht blockiert"))
     except SafetyViolation:
         checks.append(Check("Systemschutz", True, "Kritische Systembereiche werden blockiert"))
+
+    try:
+        result = run_profile("mini")
+        checks.append(
+            Check(
+                "Dateisystem-Test",
+                result.ok,
+                result.detail,
+            )
+        )
+    except Exception as exc:
+        checks.append(Check("Dateisystem-Test", False, str(exc)))
 
     return checks
