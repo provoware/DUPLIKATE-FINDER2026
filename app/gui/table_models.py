@@ -3,35 +3,34 @@ from __future__ import annotations
 from collections import OrderedDict
 from datetime import datetime
 from pathlib import Path
+from typing import Any
 
 from PySide6.QtCore import QAbstractTableModel, QModelIndex, Qt
 
+from app.formatting import format_bytes
 from app.models.entities import CollectionItem, DuplicateGroup, SearchHit
 from app.storage.database import Database
-from app.formatting import format_bytes
 
 
-class SearchResultsModel(QAbstractTableModel):
-    """Echte Treffer-Virtualisierung: SQLite + kleiner Seitenpuffer."""
+class _PagedTableModel(QAbstractTableModel):
+    """Gemeinsamer Vertrag für SQLite-seitenweise Tabellenmodelle."""
 
-    HEADERS = ("Markiert", "Quelle", "Datei", "Zeile", "Fundstelle")
+    HEADERS: tuple[str, ...] = ()
 
     def __init__(
         self,
-        database: Database,
         parent=None,
+        *,
         page_size: int = 200,
         max_pages: int = 8,
     ) -> None:
         super().__init__(parent)
-        self.database = database
         self.page_size = max(25, int(page_size))
         self.max_pages = max(2, int(max_pages))
-        self._job_id: int | None = None
         self._count = 0
-        self._sort_column = 2
+        self._sort_column = 0
         self._descending = False
-        self._pages: OrderedDict[int, list[tuple[SearchHit, bool]]] = OrderedDict()
+        self._pages: OrderedDict[int, list[Any]] = OrderedDict()
 
     @property
     def cached_row_count(self) -> int:
@@ -57,6 +56,59 @@ class SearchResultsModel(QAbstractTableModel):
             return self.HEADERS[section]
         return None
 
+    def _cached_page(self, page_number: int):
+        if page_number not in self._pages:
+            return None
+        page = self._pages.pop(page_number)
+        self._pages[page_number] = page
+        return page
+
+    def _remember_page(self, page_number: int, page):
+        self._pages[page_number] = page
+        while len(self._pages) > self.max_pages:
+            self._pages.popitem(last=False)
+        return page
+
+    def _row(self, row: int):
+        if row < 0 or row >= self._count:
+            return None
+        page = self._load_page(row // self.page_size)
+        local = row % self.page_size
+        return page[local] if local < len(page) else None
+
+    def _load_page(self, page_number: int):
+        raise NotImplementedError
+
+    def _set_sort_state(
+        self,
+        column: int,
+        order: Qt.SortOrder,
+    ) -> None:
+        self._sort_column = max(0, min(len(self.HEADERS) - 1, int(column)))
+        self._descending = order == Qt.SortOrder.DescendingOrder
+
+
+class SearchResultsModel(_PagedTableModel):
+    """Echte Treffer-Virtualisierung: SQLite + kleiner Seitenpuffer."""
+
+    HEADERS = ("Markiert", "Quelle", "Datei", "Zeile", "Fundstelle")
+
+    def __init__(
+        self,
+        database: Database,
+        parent=None,
+        page_size: int = 200,
+        max_pages: int = 8,
+    ) -> None:
+        super().__init__(
+            parent,
+            page_size=page_size,
+            max_pages=max_pages,
+        )
+        self.database = database
+        self._job_id: int | None = None
+        self._sort_column = 2
+
     def set_job(self, job_id: int | None, hit_count: int | None = None) -> None:
         self.beginResetModel()
         self._job_id = job_id
@@ -71,10 +123,9 @@ class SearchResultsModel(QAbstractTableModel):
     def _load_page(self, page_number: int) -> list[tuple[SearchHit, bool]]:
         if self._job_id is None:
             return []
-        if page_number in self._pages:
-            page = self._pages.pop(page_number)
-            self._pages[page_number] = page
-            return page
+        cached = self._cached_page(page_number)
+        if cached is not None:
+            return cached
         page = self.database.search_hits_page(
             self._job_id,
             offset=page_number * self.page_size,
@@ -82,18 +133,7 @@ class SearchResultsModel(QAbstractTableModel):
             sort_column=self._sort_column,
             descending=self._descending,
         )
-        self._pages[page_number] = page
-        while len(self._pages) > self.max_pages:
-            self._pages.popitem(last=False)
-        return page
-
-    def _row(self, row: int) -> tuple[SearchHit, bool] | None:
-        if row < 0 or row >= self._count:
-            return None
-        page_number = row // self.page_size
-        page = self._load_page(page_number)
-        local = row % self.page_size
-        return page[local] if local < len(page) else None
+        return self._remember_page(page_number, page)
 
     def data(self, index: QModelIndex, role=Qt.ItemDataRole.DisplayRole):
         if not index.isValid():
@@ -157,13 +197,12 @@ class SearchResultsModel(QAbstractTableModel):
         order: Qt.SortOrder = Qt.SortOrder.AscendingOrder,
     ) -> None:
         self.layoutAboutToBeChanged.emit()
-        self._sort_column = max(0, min(len(self.HEADERS) - 1, int(column)))
-        self._descending = order == Qt.SortOrder.DescendingOrder
+        self._set_sort_state(column, order)
         self._pages.clear()
         self.layoutChanged.emit()
 
 
-class DuplicateMembersModel(QAbstractTableModel):
+class DuplicateMembersModel(_PagedTableModel):
     """Produktiv SQLite-seitenweise; Legacy-set_group bleibt für kleine API-Tests."""
 
     HEADERS = ("Datei", "Ordner", "Größe", "Geändert")
@@ -175,36 +214,15 @@ class DuplicateMembersModel(QAbstractTableModel):
         page_size: int = 200,
         max_pages: int = 8,
     ) -> None:
-        super().__init__(parent)
+        super().__init__(
+            parent,
+            page_size=page_size,
+            max_pages=max_pages,
+        )
         self.database = database
-        self.page_size = max(25, int(page_size))
-        self.max_pages = max(2, int(max_pages))
         self._group_id: int | None = None
         self._group_size = 0
-        self._count = 0
-        self._sort_column = 0
-        self._descending = False
-        self._pages: OrderedDict[int, list[tuple[Path, int, int]]] = OrderedDict()
         self._legacy_paths: list[Path] = []
-
-    @property
-    def cached_row_count(self) -> int:
-        return sum(len(page) for page in self._pages.values())
-
-    def rowCount(self, parent=QModelIndex()) -> int:
-        return 0 if parent.isValid() else self._count
-
-    def columnCount(self, parent=QModelIndex()) -> int:
-        return 0 if parent.isValid() else len(self.HEADERS)
-
-    def headerData(self, section, orientation, role=Qt.ItemDataRole.DisplayRole):
-        if (
-            role == Qt.ItemDataRole.DisplayRole
-            and orientation == Qt.Orientation.Horizontal
-            and 0 <= section < len(self.HEADERS)
-        ):
-            return self.HEADERS[section]
-        return None
 
     def set_group_id(
         self,
@@ -241,10 +259,9 @@ class DuplicateMembersModel(QAbstractTableModel):
                 (path, self._group_size, 0)
                 for path in self._legacy_paths[start : start + self.page_size]
             ]
-        if page_number in self._pages:
-            page = self._pages.pop(page_number)
-            self._pages[page_number] = page
-            return page
+        cached = self._cached_page(page_number)
+        if cached is not None:
+            return cached
         page = self.database.duplicate_members_page(
             self._group_id,
             offset=page_number * self.page_size,
@@ -252,17 +269,7 @@ class DuplicateMembersModel(QAbstractTableModel):
             sort_column=self._sort_column,
             descending=self._descending,
         )
-        self._pages[page_number] = page
-        while len(self._pages) > self.max_pages:
-            self._pages.popitem(last=False)
-        return page
-
-    def _row(self, row: int) -> tuple[Path, int, int] | None:
-        if row < 0 or row >= self._count:
-            return None
-        page = self._load_page(row // self.page_size)
-        local = row % self.page_size
-        return page[local] if local < len(page) else None
+        return self._remember_page(page_number, page)
 
     def data(self, index: QModelIndex, role=Qt.ItemDataRole.DisplayRole):
         if not index.isValid():
@@ -303,24 +310,22 @@ class DuplicateMembersModel(QAbstractTableModel):
         order: Qt.SortOrder = Qt.SortOrder.AscendingOrder,
     ) -> None:
         self.layoutAboutToBeChanged.emit()
-        self._sort_column = max(0, min(len(self.HEADERS) - 1, int(column)))
-        self._descending = order == Qt.SortOrder.DescendingOrder
+        self._set_sort_state(column, order)
         if self.database is not None and self._group_id is not None:
             self._pages.clear()
         else:
-            reverse = self._descending
             self._legacy_paths.sort(
                 key=lambda path: (
                     path.name.casefold()
                     if self._sort_column == 0
                     else str(path).casefold()
                 ),
-                reverse=reverse,
+                reverse=self._descending,
             )
         self.layoutChanged.emit()
 
 
-class CollectionItemsModel(QAbstractTableModel):
+class CollectionItemsModel(_PagedTableModel):
     """Produktiv SQLite-seitenweise; set_items bleibt als kleine Kompatibilitätsschicht."""
 
     HEADERS = ("Datei", "Ordner", "Notiz")
@@ -332,35 +337,14 @@ class CollectionItemsModel(QAbstractTableModel):
         page_size: int = 200,
         max_pages: int = 8,
     ) -> None:
-        super().__init__(parent)
+        super().__init__(
+            parent,
+            page_size=page_size,
+            max_pages=max_pages,
+        )
         self.database = database
-        self.page_size = max(25, int(page_size))
-        self.max_pages = max(2, int(max_pages))
         self._collection_id: int | None = None
-        self._count = 0
-        self._sort_column = 0
-        self._descending = False
-        self._pages: OrderedDict[int, list[CollectionItem]] = OrderedDict()
         self._legacy_items: list[CollectionItem] = []
-
-    @property
-    def cached_row_count(self) -> int:
-        return sum(len(page) for page in self._pages.values())
-
-    def rowCount(self, parent=QModelIndex()) -> int:
-        return 0 if parent.isValid() else self._count
-
-    def columnCount(self, parent=QModelIndex()) -> int:
-        return 0 if parent.isValid() else len(self.HEADERS)
-
-    def headerData(self, section, orientation, role=Qt.ItemDataRole.DisplayRole):
-        if (
-            role == Qt.ItemDataRole.DisplayRole
-            and orientation == Qt.Orientation.Horizontal
-            and 0 <= section < len(self.HEADERS)
-        ):
-            return self.HEADERS[section]
-        return None
 
     def set_collection(self, collection_id: int | None) -> None:
         self.beginResetModel()
@@ -386,10 +370,9 @@ class CollectionItemsModel(QAbstractTableModel):
         if self.database is None or self._collection_id is None:
             start = page_number * self.page_size
             return self._legacy_items[start : start + self.page_size]
-        if page_number in self._pages:
-            page = self._pages.pop(page_number)
-            self._pages[page_number] = page
-            return page
+        cached = self._cached_page(page_number)
+        if cached is not None:
+            return cached
         page = self.database.collection_items_page(
             self._collection_id,
             offset=page_number * self.page_size,
@@ -397,17 +380,7 @@ class CollectionItemsModel(QAbstractTableModel):
             sort_column=self._sort_column,
             descending=self._descending,
         )
-        self._pages[page_number] = page
-        while len(self._pages) > self.max_pages:
-            self._pages.popitem(last=False)
-        return page
-
-    def _row(self, row: int) -> CollectionItem | None:
-        if row < 0 or row >= self._count:
-            return None
-        page = self._load_page(row // self.page_size)
-        local = row % self.page_size
-        return page[local] if local < len(page) else None
+        return self._remember_page(page_number, page)
 
     def data(self, index: QModelIndex, role=Qt.ItemDataRole.DisplayRole):
         if not index.isValid():
@@ -439,13 +412,10 @@ class CollectionItemsModel(QAbstractTableModel):
         order: Qt.SortOrder = Qt.SortOrder.AscendingOrder,
     ) -> None:
         self.layoutAboutToBeChanged.emit()
-        self._sort_column = max(0, min(len(self.HEADERS) - 1, int(column)))
-        self._descending = order == Qt.SortOrder.DescendingOrder
+        self._set_sort_state(column, order)
         if self.database is not None and self._collection_id is not None:
             self._pages.clear()
         else:
-            reverse = self._descending
-
             def key(item: CollectionItem):
                 if self._sort_column == 0:
                     return item.path.name.casefold()
@@ -453,5 +423,8 @@ class CollectionItemsModel(QAbstractTableModel):
                     return str(item.path.parent).casefold()
                 return item.note.casefold()
 
-            self._legacy_items.sort(key=key, reverse=reverse)
+            self._legacy_items.sort(
+                key=key,
+                reverse=self._descending,
+            )
         self.layoutChanged.emit()
