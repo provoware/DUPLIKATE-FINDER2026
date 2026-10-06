@@ -208,7 +208,7 @@ class MainWindow(QMainWindow):
         page.setObjectName("page_dashboard")
         layout = QVBoxLayout(page)
         layout.setContentsMargins(2, 2, 2, 2)
-        layout.setSpacing(6)
+        layout.setSpacing(4)
         layout.addWidget(self._heading("Übersicht"))
 
         cards = QGridLayout()
