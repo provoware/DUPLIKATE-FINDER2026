@@ -188,7 +188,7 @@ class MainWindow(QMainWindow):
         self.pages.addWidget(self._results_page())
         self.pages.addWidget(self._duplicates_page())
         self.pages.addWidget(self._collections_page())
-        self.file_browser = FileBrowserWidget(self)
+        self.file_browser = FileBrowserWidget(self.database, self)
         self.pages.addWidget(self.file_browser)
         self.pages.addWidget(self._journal_page())
         self.pages.addWidget(self._help_page())
