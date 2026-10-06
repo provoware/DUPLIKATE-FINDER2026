@@ -1,8 +1,8 @@
 from __future__ import annotations
 
-import importlib.util
 import shutil
 import sqlite3
+import subprocess
 import sys
 import tempfile
 from dataclasses import dataclass
@@ -26,12 +26,23 @@ def run_selftest(base_dir: Path, require_gui: bool = True) -> list[Check]:
     checks.append(Check("Python", py_ok, f"Python {sys.version_info.major}.{sys.version_info.minor} aktiv"))
 
     if require_gui:
-        has_pyside = importlib.util.find_spec("PySide6") is not None
-        checks.append(Check(
-            "PySide6",
-            has_pyside,
-            "Grafikbibliothek verfügbar" if has_pyside else "PySide6 fehlt in der aktiven Laufzeit",
-        ))
+        try:
+            gui_probe = subprocess.run(
+                [sys.executable, "-c", "from PySide6.QtWidgets import QApplication"],
+                capture_output=True,
+                text=True,
+                timeout=30,
+            )
+            has_pyside = gui_probe.returncode == 0
+            gui_detail = (
+                "Grafikbibliothek verfügbar"
+                if has_pyside
+                else "PySide6/Qt konnte nicht geladen werden: " + (gui_probe.stderr.strip().splitlines()[-1] if gui_probe.stderr.strip() else "unbekannter Fehler")
+            )
+        except (OSError, subprocess.SubprocessError) as exc:
+            has_pyside = False
+            gui_detail = f"GUI-Prüfung fehlgeschlagen: {exc}"
+        checks.append(Check("PySide6", has_pyside, gui_detail))
 
     for directory_name in ("data", "logs", "recovery", "quarantine"):
         directory = base_dir / directory_name
