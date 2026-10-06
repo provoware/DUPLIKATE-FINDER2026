@@ -18,9 +18,9 @@ jobs:
     name: Linux x86_64 portabel · E2E
     runs-on: ubuntu-24.04
     env:
-      VERSION: "0.3.0"
+      VERSION: "0.3.1"
       PACKAGE_DIR: PROVOWARE-DUPLIKATE-FINDER-2026
-      ARCHIVE: PROVOWARE-DUPLIKATE-FINDER-2026-v0.3.0-linux-x86_64.tar.gz
+      ARCHIVE: PROVOWARE-DUPLIKATE-FINDER-2026-v0.3.1-linux-x86_64.tar.gz
       PYTHON_ARCHIVE: cpython-3.12.15+20261003-x86_64-unknown-linux-gnu-install_only_stripped.tar.gz
       PYTHON_SHA256: 731af898886c5f821890dc901eca3c651cca8e51fa7308c159d12a1194aeac91
       PYTHON_URL: https://github.com/astral-sh/python-build-standalone/releases/download/20261003/cpython-3.12.15%2B20261003-x86_64-unknown-linux-gnu-install_only_stripped.tar.gz
@@ -67,8 +67,8 @@ jobs:
           import tomllib
           from pathlib import Path
           cfg = tomllib.loads(Path("release/PROVOWARE-DUPLIKATE-FINDER-2026/pyproject.toml").read_text(encoding="utf-8"))
-          assert cfg["project"]["version"] == "0.3.0"
-          print("OK | Paketversion 0.3.0")
+          assert cfg["project"]["version"] == "0.3.1"
+          print("OK | Paketversion 0.3.1")
           PY
 
       - name: Selbsttest vor Archivierung
@@ -214,9 +214,9 @@ jobs:
       - name: Release-Paket und komplette E2E-Evidenz bereitstellen
         uses: actions/upload-artifact@v4
         with:
-          name: PROVOWARE-DUPLIKATE-FINDER-2026-v0.3.0-linux-x86_64-E2E
+          name: PROVOWARE-DUPLIKATE-FINDER-2026-v0.3.1-linux-x86_64-E2E
           compression-level: 0
           path: |
-            release/PROVOWARE-DUPLIKATE-FINDER-2026-v0.3.0-linux-x86_64.tar.gz
-            release/PROVOWARE-DUPLIKATE-FINDER-2026-v0.3.0-linux-x86_64.tar.gz.sha256
+            release/PROVOWARE-DUPLIKATE-FINDER-2026-v0.3.1-linux-x86_64.tar.gz
+            release/PROVOWARE-DUPLIKATE-FINDER-2026-v0.3.1-linux-x86_64.tar.gz.sha256
             e2e/evidence/

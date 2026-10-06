@@ -1,6 +1,6 @@
 # PROVOWARE DUPLIKATE-FINDER 2026
 
-Lokales Linux-Werkzeug für **Textsuche**, **vollständige Duplikatprüfung** und **virtuelle Organisation**. Der Sicherheitskern von Version 0.3.0 arbeitet gegenüber Originaldateien ausschließlich lesend.
+Lokales Linux-Werkzeug für **Textsuche**, **vollständige Duplikatprüfung** und **virtuelle Organisation**. Der Sicherheitskern von Version 0.3.1 arbeitet gegenüber Originaldateien ausschließlich lesend.
 
 ## Sicherheitsversprechen
 
@@ -94,7 +94,7 @@ tools/        Prüfwerkzeuge
 
 ## Projektstatus
 
-**v0.3.0 – autonome Entwicklung / Klick-&-Start / Nur-Lesen-Sicherheitsstand**
+**v0.3.1 – Prozesssteuerung / Hochkontrast-UI / Nur-Lesen-Sicherheitsstand**
 
 Physische Dateiänderungen sind noch nicht freigegeben. Dieser Bereich bleibt gesperrt, bis ein eigener Änderungsvertrag, Vorschau, Transaktionsjournal, Rückgängig-Funktion und separate Abnahmetests existieren.
 
@@ -114,6 +114,13 @@ Die Konsole verwendet nummerierte Menüs, sichere Vorauswahlen und dieselben Sch
 
 ## Komfort und Diagnose
 
+- Pause / Fortsetzen / sicherer Abbruch laufender Prüfungen
+- Prozentfortschritt, aktueller Schritt und grobe Restzeit
+- CPU-Kernbegrenzer nur für PROVOWARE
+- Autosave der Einstellungen alle fünf Minuten
+- sicherer JSON-Import/-Export der virtuellen Organisation
+- auswählbare Datei- und Entwicklungsordner-Ausschlüsse
+- dunkles Hochkontrast-Design mit klaren Aktionsrändern
 - automatische Bildschirmgrößen-Erkennung
 - Ausgangsbasis 800 × 600
 - auswählbare Fensterprofile
