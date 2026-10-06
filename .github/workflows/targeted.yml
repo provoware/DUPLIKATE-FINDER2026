@@ -2,7 +2,7 @@ name: Gezielte Entwicklungsprüfung
 
 on:
   push:
-    branches: ["feature/**", "chore/**"]
+    branches: ["feature/**", "chore/**", "fix/**", "release/**"]
 
 permissions:
   contents: read
