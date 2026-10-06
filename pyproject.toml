@@ -16,3 +16,7 @@ test = ["pytest>=8,<9"]
 pythonpath = ["."]
 testpaths = ["tests"]
 addopts = "-q"
+
+[tool.setuptools.packages.find]
+include = ["app*"]
+exclude = ["tests*", "tools*", "agents*", "docs*", "data*", "logs*", "recovery*", "quarantine*"]
