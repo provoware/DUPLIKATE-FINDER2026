@@ -7,6 +7,7 @@ from PySide6.QtWidgets import QListWidgetItem, QMessageBox
 
 from app.texts import text as ui_text
 from app.gui.error_feedback import report_ui_error
+from app.gui.status_feedback import set_status
 
 
 class CollectionController:
@@ -40,8 +41,10 @@ class CollectionController:
         self.window.collection_name.clear()
         self.window.collection_note.clear()
         self.refresh(select_id=collection_id)
-        self.window.status_label.setText(
-            ui_text("collections.status_created", "OK · Virtuelle Sammlung angelegt")
+        set_status(
+            self.window.status_label,
+            ui_text("collections.status_created", "OK · Virtuelle Sammlung angelegt"),
+            "ok",
         )
 
     def refresh(self, select_id: int | None = None) -> None:
@@ -169,9 +172,11 @@ class CollectionController:
                 error=exc,
             )
             return
-        self.window.status_label.setText(
+        set_status(
+            self.window.status_label,
             ui_text(
                 "collections.status_removed",
                 "OK · Eintrag nur aus der virtuellen Sammlung entfernt",
-            )
+            ),
+            "ok",
         )
