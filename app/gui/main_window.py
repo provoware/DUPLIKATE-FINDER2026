@@ -103,7 +103,7 @@ class MainWindow(QMainWindow):
     def _build_ui(self) -> None:
         central = QWidget()
         root = QVBoxLayout(central)
-        root.setContentsMargins(OUTER_MARGIN, OUTER_MARGIN, OUTER_MARGIN, 10)
+        root.setContentsMargins(10, 8, 10, 6)
         root.setSpacing(BASE_SPACING)
 
         header_frame = QFrame()
@@ -154,7 +154,7 @@ class MainWindow(QMainWindow):
         process_panel.setObjectName("process_panel")
         process_panel.setProperty("processPanel", True)
         process = QGridLayout(process_panel)
-        process.setContentsMargins(8, 6, 8, 6)
+        process.setContentsMargins(8, 4, 8, 4)
         process.setHorizontalSpacing(10)
         process.setVerticalSpacing(4)
 
