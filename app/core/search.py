@@ -24,7 +24,10 @@ class TextSearcher:
         job.status=JobStatus.RUNNING
         records=list(self.scanner.iter_text_files(job.root))
         pause_provider=(lambda:self.scanner.control.paused_seconds) if self.scanner.control else None
-        tracker=ProgressTracker(len(records),"Textdateien durchsuchen",pause_provider)
+        total_bytes=sum(record.size for record in records) if job.search_contents else 0
+        tracker=ProgressTracker(
+            len(records),"Textdateien durchsuchen",pause_provider,total_bytes=total_bytes
+        )
         processed_bytes=0
 
         for index,record in enumerate(records,start=1):
