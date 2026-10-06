@@ -8,6 +8,7 @@ from PySide6.QtCore import QAbstractTableModel, QModelIndex, Qt
 
 from app.models.entities import CollectionItem, DuplicateGroup, SearchHit
 from app.storage.database import Database
+from app.formatting import format_bytes
 
 
 class SearchResultsModel(QAbstractTableModel):
@@ -205,19 +206,6 @@ class DuplicateMembersModel(QAbstractTableModel):
             return self.HEADERS[section]
         return None
 
-    @staticmethod
-    def _human_size(size: int) -> str:
-        value = float(size)
-        for unit in ("B", "KB", "MB", "GB", "TB"):
-            if value < 1024 or unit == "TB":
-                return (
-                    f"{value:.1f} {unit}"
-                    if unit != "B"
-                    else f"{int(value)} B"
-                )
-            value /= 1024
-        return f"{size} B"
-
     def set_group_id(
         self,
         group_id: int | None,
@@ -294,7 +282,7 @@ class DuplicateMembersModel(QAbstractTableModel):
         if index.column() == 1:
             return str(path.parent)
         if index.column() == 2:
-            return self._human_size(size or self._group_size)
+            return format_bytes(size or self._group_size)
         if index.column() == 3:
             return (
                 datetime.fromtimestamp(mtime_ns / 1_000_000_000).strftime(
