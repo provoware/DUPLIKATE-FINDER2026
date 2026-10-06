@@ -12,6 +12,7 @@ from PySide6.QtWidgets import (
     QFrame,
     QGridLayout,
     QHBoxLayout,
+    QInputDialog,
     QLabel,
     QLineEdit,
     QMessageBox,
@@ -26,6 +27,7 @@ from PySide6.QtWidgets import (
 from app.file_browser.classification import classify_path
 from app.file_browser.preview import build_preview
 from app.safety.policy import SafetyPolicy, SafetyViolation
+from app.storage.database import Database
 
 
 class FileFilterProxy(QSortFilterProxyModel):
@@ -59,8 +61,9 @@ class FileFilterProxy(QSortFilterProxyModel):
 
 
 class FileBrowserWidget(QWidget):
-    def __init__(self, parent=None) -> None:
+    def __init__(self, database: Database, parent=None) -> None:
         super().__init__(parent)
+        self.database = database
         self.setObjectName("file_browser")
         self.setProperty("area", "files")
         self._root: Path | None = None
@@ -91,10 +94,12 @@ class FileBrowserWidget(QWidget):
         self.root_label.setObjectName("file_browser_root")
         self.root_label.setReadOnly(True)
         self.root_label.setPlaceholderText("Noch kein Ordner oder Datenträger gewählt")
+        self.root_label.setAccessibleName("Aktueller Dateiordner")
 
         choose = QPushButton("Ordner / Datenträger wählen")
         choose.setObjectName("file_browser_choose")
         choose.setProperty("primaryAction", True)
+        choose.setAccessibleName("Ordner oder externen Datenträger auswählen")
         choose.clicked.connect(self.choose_root)
 
         up = QPushButton("Eine Ebene hoch")
@@ -108,10 +113,12 @@ class FileBrowserWidget(QWidget):
         self.query = QLineEdit()
         self.query.setObjectName("file_browser_query")
         self.query.setPlaceholderText("Dateiname filtern")
+        self.query.setAccessibleName("Dateiliste nach Dateiname filtern")
         self.query.textChanged.connect(self.proxy.set_query)
 
         self.kind = QComboBox()
         self.kind.setObjectName("file_browser_kind")
+        self.kind.setAccessibleName("Dateityp filtern")
         self.kind.addItem("Alle Dateitypen", "all")
         self.kind.addItem("Text", "text")
         self.kind.addItem("Bilder", "image")
@@ -192,9 +199,21 @@ class FileBrowserWidget(QWidget):
         self.copy_button.setEnabled(False)
         self.copy_button.clicked.connect(self.copy_current_path)
 
+        self.mark_button = QPushButton("Virtuell markieren")
+        self.mark_button.setObjectName("file_browser_mark")
+        self.mark_button.setEnabled(False)
+        self.mark_button.clicked.connect(self.toggle_mark)
+
+        self.collection_button = QPushButton("Zu Sammlung")
+        self.collection_button.setObjectName("file_browser_collection")
+        self.collection_button.setEnabled(False)
+        self.collection_button.clicked.connect(self.add_to_collection)
+
         actions.addWidget(self.open_button)
         actions.addWidget(self.show_button)
         actions.addWidget(self.copy_button)
+        actions.addWidget(self.mark_button)
+        actions.addWidget(self.collection_button)
         preview_layout.addLayout(actions)
 
         splitter.addWidget(preview_frame)
@@ -272,9 +291,22 @@ class FileBrowserWidget(QWidget):
 
     def show_preview(self, path: Path) -> None:
         self._current_path = path
-        self.open_button.setEnabled(path.exists())
-        self.show_button.setEnabled(path.exists())
+        exists = path.exists()
+        is_link = path.is_symlink()
+        self.open_button.setEnabled(exists and not is_link)
+        self.show_button.setEnabled(exists)
         self.copy_button.setEnabled(True)
+        self.mark_button.setEnabled(exists and not path.is_dir() and not is_link)
+        self.collection_button.setEnabled(exists and not path.is_dir() and not is_link)
+
+        if is_link:
+            self.preview_title.setText(path.name)
+            self.preview_image.clear()
+            self.preview_image.setText("Symbolische Verknüpfung – Vorschau und externes Öffnen sind aus Sicherheitsgründen deaktiviert.")
+            self.preview_image.setVisible(True)
+            self.preview_text.setVisible(False)
+            self.preview_details.setText(f"Pfad: {path}\nTyp: symbolische Verknüpfung")
+            return
 
         if path.is_dir():
             self._clear_preview("Ordner – doppelklicken, um hineinzuwechseln.")
@@ -285,6 +317,8 @@ class FileBrowserWidget(QWidget):
         data = build_preview(path)
         self.preview_title.setText(data.title)
         self.preview_details.setText(data.details)
+        state = self.database.virtual_item(path)
+        self.mark_button.setText("Markierung entfernen" if state.marked else "Virtuell markieren")
 
         if data.image is not None:
             pixmap = QPixmap.fromImage(data.image)
@@ -317,6 +351,9 @@ class FileBrowserWidget(QWidget):
         self.open_button.setEnabled(False)
         self.show_button.setEnabled(False)
         self.copy_button.setEnabled(False)
+        self.mark_button.setEnabled(False)
+        self.collection_button.setEnabled(False)
+        self.mark_button.setText("Virtuell markieren")
 
     def open_current(self) -> None:
         if self._current_path and self._current_path.exists():
@@ -331,3 +368,43 @@ class FileBrowserWidget(QWidget):
     def copy_current_path(self) -> None:
         if self._current_path:
             QGuiApplication.clipboard().setText(str(self._current_path))
+
+
+    def toggle_mark(self) -> None:
+        if not self._current_path or self._current_path.is_dir() or self._current_path.is_symlink():
+            return
+        state = self.database.virtual_item(self._current_path)
+        self.database.set_virtual_item(self._current_path, not state.marked, state.note)
+        self.mark_button.setText("Markierung entfernen" if not state.marked else "Virtuell markieren")
+
+    def add_to_collection(self) -> None:
+        if not self._current_path or self._current_path.is_dir() or self._current_path.is_symlink():
+            return
+        collections = self.database.collections()
+        if not collections:
+            QMessageBox.information(
+                self,
+                "Keine Sammlung vorhanden",
+                "Lege zuerst im Bereich „Sammlungen“ eine virtuelle Sammlung an.",
+            )
+            return
+        names = [item.name for item in collections]
+        name, ok = QInputDialog.getItem(
+            self,
+            "Zu Sammlung hinzufügen",
+            "Sammlung:",
+            names,
+            0,
+            False,
+        )
+        if not ok:
+            return
+        selected = next((item for item in collections if item.name == name), None)
+        if selected is None:
+            return
+        self.database.add_collection_item(selected.id, self._current_path)
+        QMessageBox.information(
+            self,
+            "Virtuell hinzugefügt",
+            f"Die Datei wurde der Sammlung „{selected.name}“ zugeordnet.\nDie Originaldatei blieb unverändert.",
+        )
