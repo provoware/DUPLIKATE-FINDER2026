@@ -90,3 +90,23 @@ Der gesamte Ordner wird von Git ignoriert.
 ```
 
 Keine manuelle virtuelle Umgebung und kein manuelles `pip install`.
+
+
+## Optionale Medienanalyse ab v0.9.0
+
+Für die normalen Programmfunktionen ist **FFmpeg/ffprobe nicht erforderlich**.
+
+Ist das Programm `ffprobe` auf dem Linux-System bereits vorhanden, kann PROVOWARE zusätzliche technische Angaben zu Audio- und Videodateien auslesen, zum Beispiel:
+
+- Laufzeit,
+- Containerformat,
+- Audio-/Video-Codec,
+- Bildauflösung,
+- Bildrate,
+- Tonkanäle,
+- Abtastrate,
+- Bitrate.
+
+Fehlt `ffprobe`, startet das Werkzeug trotzdem normal. Die Vorschau zeigt dann die verfügbaren Basisdaten und einen verständlichen Hinweis.
+
+**Wichtig:** v0.9.0 fügt FFmpeg/ffprobe nicht als Pflichtabhängigkeit zum Lite-, Recovery- oder AppImage-Paket hinzu.
