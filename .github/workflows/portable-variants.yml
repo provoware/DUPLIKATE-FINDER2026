@@ -2,8 +2,6 @@ name: Portable Lite und Recovery
 
 on:
   workflow_dispatch:
-  push:
-    branches: ["chore/portable-*", "release/portable-*"]
   pull_request:
     paths:
       - ".github/workflows/portable-variants.yml"
