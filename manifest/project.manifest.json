@@ -4,7 +4,7 @@
   "project": {
     "id": "provoware-duplicate-finder-2026",
     "name": "PROVOWARE DUPLIKATE-FINDER 2026",
-    "version": "0.5.0",
+    "version": "0.5.1",
     "language": "de-DE"
   },
   "runtime": {
@@ -75,7 +75,9 @@
       "cpu_core_limit"
     ],
     "performance": [
-      "virtual_table_models",
+      "sqlite_paged_search_results",
+      "bounded_gui_page_cache",
+      "database_backed_sorting",
       "process_cpu_ram_swap",
       "items_per_second",
       "processed_bytes",
