@@ -23,8 +23,9 @@ def test_real_search_virtualization_contract():
     model=(ROOT/"app/gui/table_models.py").read_text(encoding="utf-8")
     worker=(ROOT/"app/gui/workers.py").read_text(encoding="utf-8")
     main=(ROOT/"app/gui/main_window.py").read_text(encoding="utf-8")
+    search_controller=(ROOT/"app/gui/search_controller.py").read_text(encoding="utf-8")
     assert "search_hits_page" in model
     assert "max_pages" in model
     assert "collect_hits=False" in worker
-    assert "results_model.set_job" in main
+    assert "results_model.set_job" in search_controller
     assert "last_hits" not in main
