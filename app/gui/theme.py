@@ -5,6 +5,8 @@ import os
 from PySide6.QtGui import QFont
 from PySide6.QtWidgets import QApplication
 
+from app.gui.design_tokens import MIN_CLICK_HEIGHT
+
 
 ZOOM_STEPS = (80, 90, 100, 110, 125, 150, 175, 200)
 SUPPORTED_ZOOM = ZOOM_STEPS
@@ -31,11 +33,7 @@ def apply_accessible_theme(app: QApplication, zoom: int | None = None) -> int:
             background:#ffffff; border:1px solid #9aa9b7;
             border-radius:7px; padding:7px;
         }
-        QPushButton {
-            background:#ffffff; color:#12344d; border:2px solid #3a6f94;
-            border-radius:6px; padding:8px 12px; font-weight:700;
-        }
-        QPushButton:hover { background:#e9f5ff; border-color:#005fcc; }
+NaN        QPushButton:hover { background:#e9f5ff; border-color:#005fcc; }
         QPushButton:focus { border:3px solid #d68a00; }
         QPushButton:disabled { color:#616b75; background:#e5e9ed; border-color:#a3adb6; }
         QLineEdit, QComboBox {

@@ -44,7 +44,7 @@ def run_selftest(base_dir: Path, require_gui: bool = True) -> list[Check]:
             gui_detail = f"GUI-Prüfung fehlgeschlagen: {exc}"
         checks.append(Check("PySide6", has_pyside, gui_detail))
 
-    for directory_name in ("data", "logs", "recovery", "quarantine"):
+    for directory_name in ("data", "logs", "recovery", "quarantine", "exports", "reports", "checkpoints", "config"):
         directory = base_dir / directory_name
         try:
             directory.mkdir(parents=True, exist_ok=True)
