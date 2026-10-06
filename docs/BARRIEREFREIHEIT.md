@@ -21,6 +21,10 @@ Die Oberfläche soll auch ohne technische Vorkenntnisse und bei vergrößerter S
 - jeder Hauptbereich besitzt eine eigene Akzentfarbe; Überschriften, Beschriftungen und Fokuszustände bleiben zusätzlich textlich eindeutig,
 - die neue Datei-Vorschau zeigt Metadaten als auswählbaren Text und bietet für nicht darstellbare Formate eine verständliche Textmeldung,
 - Textvorschauen sind begrenzt, damit sehr große Dateien die Oberfläche nicht blockieren.
+- Browseraktionen besitzen kurze sichtbare Beschriftungen und zusätzliche erklärende Tooltips,
+- die Bedienfolge „Ordner wählen → Datei anklicken → Vorschau rechts“ ist direkt im Bereich sichtbar,
+- PDF-Navigation zeigt aktuelle Seite und Gesamtseitenzahl zusätzlich als Text,
+- fehlende Medien-Metadaten werden als verständlicher Hinweis statt als technischer Fehler dargestellt.
 
 ## Automatische Prüfung
 
