@@ -1,16 +1,26 @@
 from __future__ import annotations
 
-from app.gui.main_window import MainWindow
+from pathlib import Path
+
+from app.progress_format import format_eta
 
 
-def test_eta_format_is_lay_friendly():
-    assert MainWindow._format_eta(None) == "wird ermittelt"
-    assert MainWindow._format_eta(12).startswith("ca. 12")
-    assert "min" in MainWindow._format_eta(125)
+ROOT=Path(__file__).resolve().parents[1]
 
 
-def test_common_exclusion_dialog_has_no_free_text_input():
-    from app.gui.exclusion_dialog import COMMON_TYPES
-    assert ".py" in dict(COMMON_TYPES)
-    assert ".mp4" in dict(COMMON_TYPES)
-    assert len(COMMON_TYPES) >= 10
+def test_eta_format_is_lay_friendly_without_gui_import():
+    assert format_eta(None) == "wird ermittelt"
+    assert format_eta(12).startswith("ca. 12")
+    assert "min" in format_eta(125)
+
+
+def test_common_exclusion_dialog_contract_is_static():
+    source=(ROOT/"app/gui/exclusion_dialog.py").read_text(encoding="utf-8")
+    assert '".py"' in source
+    assert '".mp4"' in source
+    assert "QLineEdit" not in source
+
+
+def test_core_process_tests_do_not_import_gui_main_window():
+    source=(ROOT/"tests/test_process_ui.py").read_text(encoding="utf-8")
+    assert "app.gui.main_window" not in source

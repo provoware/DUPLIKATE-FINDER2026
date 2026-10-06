@@ -31,6 +31,7 @@ from PySide6.QtWidgets import (
 from app.gui.workers import DuplicateWorker, SearchWorker
 from app.core.scanner import ScanOptions
 from app.process_control import ProgressInfo
+from app.progress_format import format_eta
 from app.models.entities import DuplicateGroup, SearchHit, SearchJob
 from app.safety.policy import WRITE_FEATURES
 from app.storage.database import Database
@@ -680,7 +681,7 @@ class MainWindow(QMainWindow):
         self.progress_bar.setRange(0, 100)
         self.progress_bar.setValue(info.percent)
         self.step_label.setText(f"Schritt: {info.step}")
-        self.eta_label.setText("Restzeit: " + self._format_eta(info.eta_seconds))
+        self.eta_label.setText("Restzeit: " + format_eta(info.eta_seconds))
         if info.total > 0:
             self.counter_label.setText(f"{info.current} von {info.total} verarbeitet")
 
@@ -689,19 +690,6 @@ class MainWindow(QMainWindow):
         self.cancel_button.setEnabled(False)
         self.pause_button.setText("⏸ Pause")
         self._process_paused = False
-
-    @staticmethod
-    def _format_eta(seconds: float | None) -> str:
-        if seconds is None:
-            return "wird ermittelt"
-        value=max(0,int(round(seconds)))
-        if value < 60:
-            return f"ca. {value} s"
-        minutes, sec=divmod(value,60)
-        if minutes < 60:
-            return f"ca. {minutes} min {sec:02d} s"
-        hours, minutes=divmod(minutes,60)
-        return f"ca. {hours} h {minutes:02d} min"
 
     def _choose_excluded_types(self) -> None:
         from app.gui.exclusion_dialog import ExclusionDialog
