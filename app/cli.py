@@ -5,9 +5,10 @@ import shutil
 import sys
 from pathlib import Path
 
-from app.core.duplicates import scan_duplicate_groups
+from app.core.duplicates import scan_duplicate_groups_to_database
+from app.core.scanner import FileScanner
 from app.core.search import TextSearcher
-from app.models.entities import SearchJob
+from app.models.entities import FileRecord, ScanIssue, SearchHit, SearchJob
 from app.startup.selftest import run_selftest
 from app.storage.database import Database
 from app.validation import validate_scan_root, validate_search_request
@@ -85,20 +86,86 @@ class ConsoleUI:
             print(self.c("1;31", f"✖ {validation.title}: {validation.message}"))
             return
         job = SearchJob(root=root, query=query, search_names=names, search_contents=contents)
+        job_id = 0
+        run_id = 0
+        hit_count = 0
+        inventory: list[FileRecord] = []
+        hit_buffer: list[SearchHit] = []
         try:
-            self.last_hits = TextSearcher().search(job)
+            job_id = self.database.create_search_job(job)
+            run_id = self.database.create_scan_run("search-console", root)
+
+            def record_issue(issue: ScanIssue) -> None:
+                self.database.record_scan_issue(run_id, issue)
+
+            scanner = FileScanner(on_error=record_issue)
+            for record in scanner.iter_text_files(root):
+                inventory.append(record)
+                if len(inventory) >= 500:
+                    self.database.append_scan_inventory(run_id, inventory)
+                    inventory.clear()
+            if inventory:
+                self.database.append_scan_inventory(run_id, inventory)
+
+            total_records, total_bytes = self.database.scan_inventory_totals(run_id)
+
+            def store_hit(hit: SearchHit) -> None:
+                nonlocal hit_count
+                hit_count += 1
+                hit_buffer.append(hit)
+                if len(hit_buffer) >= 200:
+                    self.database.append_search_hits(job_id, hit_buffer)
+                    hit_buffer.clear()
+
+            TextSearcher(
+                scanner,
+                on_hit=store_hit,
+                collect_hits=False,
+            ).search(
+                job,
+                records=self.database.iter_scan_records(run_id),
+                total_records=total_records,
+                total_bytes=total_bytes,
+            )
+            if hit_buffer:
+                self.database.append_search_hits(job_id, hit_buffer)
+            errors = self.database.scan_error_count(run_id)
+            self.database.finish_scan_run(run_id, "fertig", job.scanned_files)
+            self.database.finish_search_job(
+                job_id,
+                status="fertig",
+                scanned_files=job.scanned_files,
+                hit_count=hit_count,
+                error_count=errors,
+            )
+            self.database.prune_search_jobs()
+            self.database.prune_scan_runs()
         except Exception as exc:
+            if run_id:
+                self.database.finish_scan_run(run_id, "fehler", job.scanned_files)
             print(self.c("1;31", f"✖ Suche sicher gestoppt: {exc}"))
             return
-        ordered = sorted(self.last_hits, key=lambda h: (str(h.path).casefold(), h.line_number or 0))
-        self.last_hits = ordered
-        print(self.c("1;32", f"\n✔ {job.scanned_files} Textdateien geprüft · {len(ordered)} Treffer"))
-        for index, hit in enumerate(ordered[:100], 1):
+
+        page = self.database.search_hits_page(
+            job_id,
+            offset=0,
+            limit=100,
+            sort_column=2,
+        )
+        self.last_hits = [hit for hit, _marked in page]
+        print(
+            self.c(
+                "1;32",
+                f"\n✔ {job.scanned_files} Textdateien geprüft · {hit_count} Treffer · "
+                f"{errors} übersprungen",
+            )
+        )
+        for index, hit in enumerate(self.last_hits, 1):
             line = f"Zeile {hit.line_number}" if hit.line_number else "Dateiname"
             print(f"{index:>3}) {hit.path} · {line} · {hit.excerpt[:100]}")
-        if len(ordered) > 100:
-            print(f"… weitere {len(ordered) - 100} Treffer nicht aufgelistet.")
-        if ordered:
+        if hit_count > len(self.last_hits):
+            print(f"… weitere {hit_count - len(self.last_hits)} Treffer nicht aufgelistet.")
+        if self.last_hits:
             self._organize_hit()
 
     def _organize_hit(self) -> None:
@@ -142,18 +209,36 @@ class ConsoleUI:
         if root is None:
             return
         try:
-            scanned, groups = scan_duplicate_groups(root)
+            scanned, group_count, errors = scan_duplicate_groups_to_database(
+                root,
+                self.database,
+            )
         except Exception as exc:
             print(self.c("1;31", f"✖ Prüfung sicher gestoppt: {exc}"))
             return
-        self.database.replace_duplicate_groups(groups)
-        print(self.c("1;32", f"\n✔ {scanned} Dateien geprüft · {len(groups)} sichere Gruppen"))
-        for i, group in enumerate(groups, 1):
-            waste = group.size * (len(group.paths) - 1)
-            print(f"\n{i}) {len(group.paths)} Dateien · {group.size} Byte · mehrfach: {waste} Byte")
-            for path in group.paths:
+        summaries = self.database.duplicate_group_summaries()
+        print(
+            self.c(
+                "1;32",
+                f"\n✔ {scanned} Dateien inventarisiert · {group_count} sichere Gruppen · "
+                f"{errors} übersprungen",
+            )
+        )
+        for i, (group_id, _digest, size, members) in enumerate(summaries[:100], 1):
+            waste = size * (members - 1)
+            print(f"\n{i}) {members} Dateien · {size} Byte · mehrfach: {waste} Byte")
+            page = self.database.duplicate_members_page(
+                group_id,
+                offset=0,
+                limit=50,
+            )
+            for path, _member_size, _mtime_ns in page:
                 print(f"     {path}")
-        if not groups:
+            if members > len(page):
+                print(f"     … {members - len(page)} weitere")
+        if len(summaries) > 100:
+            print(f"… {len(summaries) - 100} weitere Gruppen nicht aufgelistet.")
+        if not summaries:
             print("Keine vollständig identischen Dateien gefunden.")
 
     def collections(self) -> None:
@@ -162,10 +247,17 @@ class ConsoleUI:
         if not collections:
             print("Noch keine Sammlungen vorhanden.")
         for i, col in enumerate(collections, 1):
-            items = self.database.collection_items(col.id)
-            print(f"{i}) {col.name} · {len(items)} Einträge")
-            for entry in items[:20]:
+            count = self.database.collection_item_count(col.id)
+            items = self.database.collection_items_page(
+                col.id,
+                offset=0,
+                limit=20,
+            )
+            print(f"{i}) {col.name} · {count} Einträge")
+            for entry in items:
                 print(f"     {entry.path}")
+            if count > len(items):
+                print(f"     … {count - len(items)} weitere")
         print("\n  1) Neue Sammlung anlegen\n  0) Zurück")
         if self.choice("Auswahl: ", {"0", "1"}) == "1":
             name = input("Sammlungsname: ").strip()

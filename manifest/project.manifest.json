@@ -4,7 +4,7 @@
   "project": {
     "id": "provoware-duplicate-finder-2026",
     "name": "PROVOWARE DUPLIKATE-FINDER 2026",
-    "version": "0.6.0",
+    "version": "0.7.0",
     "language": "de-DE"
   },
   "runtime": {
@@ -81,7 +81,21 @@
       "process_cpu_ram_swap",
       "items_per_second",
       "processed_bytes",
-      "byte_weighted_eta"
+      "byte_weighted_eta",
+      "sqlite_scan_inventory",
+      "quick_fingerprint_prefilter",
+      "stable_file_identity_checks",
+      "sha256_metadata_cache",
+      "paged_duplicate_members",
+      "paged_collection_items",
+      "bounded_scan_history"
+    ],
+    "robustness": [
+      "transactional_schema_migrations",
+      "atomic_settings_write",
+      "atomic_state_export",
+      "transactional_state_import",
+      "visible_scan_errors"
     ]
   },
   "governance": {

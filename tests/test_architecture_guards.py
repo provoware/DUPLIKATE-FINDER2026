@@ -84,3 +84,4 @@ def test_dependency_contract_is_documented():
     text = (ROOT / "dependencies.env").read_text(encoding="utf-8")
     assert 'PYTHON_VERSION="3.12.15"' in text
     assert 'PYSIDE6_VERSION="6.11.2"' in text
+

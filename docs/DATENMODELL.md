@@ -42,3 +42,11 @@ Enthält unter anderem:
 
 - `safety_mode = read_only`
 - `schema_version = 1`
+
+
+## Ergänzung ab v0.7.0
+
+Für skalierbare Scans existieren zusätzlich `scan_runs`, `scan_inventory` und `scan_errors`.
+Das Inventar speichert Dateimetadaten und temporäre Prüfwerte pro Lauf. `files` dient als wiederverwendbarer SHA-256-Zwischenspeicher, dessen Treffer nur bei identischer Dateidentität verwendet werden.
+
+Das Schema wird nicht mehr nur implizit erzeugt, sondern über `app/storage/migrations.py` versioniert weiterentwickelt. Die aktuelle Schema-Version steht in `app_state.schema_version`.

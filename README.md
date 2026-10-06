@@ -25,10 +25,12 @@ Gesucht werden kann in Dateinamen und/oder Dateiinhalten.
 ### Duplikate
 Die Duplikatprüfung kann reguläre Dateien aller Dateitypen prüfen. Ablauf:
 
-1. Dateien nach Größe gruppieren.
-2. Nur Gruppen mit gleicher Größe weiterprüfen.
-3. vollständige SHA-256-Prüfsumme berechnen.
-4. nur identische Prüfsummen als Duplikatgruppe anzeigen.
+1. Dateien speicherschonend in einem lokalen SQLite-Inventar erfassen.
+2. Nur gleiche Dateigrößen als Kandidaten weiterprüfen.
+3. Kandidaten mit einer kurzen Inhaltsprobe vorsortieren.
+4. Verbleibende Kandidaten vollständig mit SHA-256 prüfen.
+5. während der Prüfung kontrollieren, ob die Datei unverändert geblieben ist.
+6. nur identische vollständige SHA-256-Prüfsummen als Duplikatgruppe anzeigen.
 
 ### Virtuelle Sammlungen
 Treffer können markiert, kommentiert und Sammlungen zugeordnet werden. Die Originaldatei bleibt dabei unverändert an ihrem Speicherort.
@@ -94,7 +96,7 @@ tools/        Prüfwerkzeuge
 
 ## Projektstatus
 
-**v0.6.0 – barrierearme Oberfläche / virtualisierte Trefferlisten / Nur-Lesen-Sicherheitsstand**
+**v0.7.0 – robuste Scan-Pipeline / SQLite-Großlisten / Nur-Lesen-Sicherheitsstand**
 
 Physische Dateiänderungen sind noch nicht freigegeben. Dieser Bereich bleibt gesperrt, bis ein eigener Änderungsvertrag, Vorschau, Transaktionsjournal, Rückgängig-Funktion und separate Abnahmetests existieren.
 
@@ -120,6 +122,9 @@ Die Konsole verwendet nummerierte Menüs, sichere Vorauswahlen und dieselben Sch
 - Schrift-/Seitenzoom 80–200 %
 - Strg + Mausrad für Zoom
 - sortierbare Ergebnistabellen
+- SQLite-seitenweise Suchtreffer, Sammlungen und Duplikatmitglieder
+- sichtbare Anzahl übersprungener oder nicht lesbarer Dateien
+- geprüfter SHA-256-Zwischenspeicher für unveränderte Dateien
 - Drag & Drop von Suchtreffern in virtuelle Sammlungen
 - farblich und textlich eindeutiger Status
 - rotierende Protokolle im Ordner logs/

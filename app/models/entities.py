@@ -21,6 +21,15 @@ class FileRecord:
     size: int
     mtime_ns: int
     sha256: Optional[str] = None
+    device: int = 0
+    inode: int = 0
+
+
+@dataclass(frozen=True)
+class ScanIssue:
+    path: Path
+    stage: str
+    message: str
 
 
 @dataclass(frozen=True)
@@ -28,7 +37,7 @@ class SearchHit:
     path: Path
     line_number: Optional[int]
     excerpt: str
-    source: str  # "dateiname" oder "inhalt"
+    source: str
 
 
 @dataclass
@@ -41,6 +50,7 @@ class SearchJob:
     scanned_files: int = 0
     hits: int = 0
     errors: list[str] = field(default_factory=list)
+    error_count: int = 0
 
 
 @dataclass(frozen=True)
