@@ -295,10 +295,9 @@ class MainWindow(QMainWindow):
         columns = 2 if zoom >= 150 else 4
         if hasattr(self, "workflow_guide"):
             self.workflow_guide.setText(
-                "1. Ordner wählen → 2. Prüfen → 3. Treffer → 4. Virtuell organisieren"
+                "Ordner → Prüfen → Treffer → Sammlung"
                 if zoom >= 150
-                else "1. Ordner wählen  →  2. Suchen oder Duplikate prüfen  →  "
-                     "3. Treffer ansehen  →  4. Virtuell organisieren"
+                else "Ablauf: Ordner → Prüfen → Treffer → Sammlung"
             )
         for index, card in enumerate(self.dashboard_cards):
             self.dashboard_card_layout.removeWidget(card)
@@ -317,14 +316,21 @@ class MainWindow(QMainWindow):
         layout = QVBoxLayout(page)
         layout.setContentsMargins(2, 2, 2, 2)
         layout.setSpacing(4)
-        layout.addWidget(self._heading("Übersicht"))
 
-        self.workflow_guide = QLabel("1. Ordner wählen  →  2. Suchen oder Duplikate prüfen  →  3. Treffer ansehen  →  4. Virtuell organisieren")
+        dashboard_head = QHBoxLayout()
+        dashboard_head.addWidget(self._heading("Übersicht"))
+        dashboard_head.addStretch(1)
+        self.workflow_guide = QLabel("Ablauf: Ordner → Prüfen → Treffer → Sammlung")
         self.workflow_guide.setObjectName("workflow_guide")
         self.workflow_guide.setProperty("workflowGuide", True)
-        self.workflow_guide.setWordWrap(True)
+        self.workflow_guide.setWordWrap(False)
         self.workflow_guide.setAccessibleName("Kurzanleitung für den Arbeitsablauf")
-        layout.addWidget(self.workflow_guide)
+        self.workflow_guide.setToolTip(
+            "1. Ordner wählen · 2. Suche oder Duplikatprüfung starten · "
+            "3. Treffer ansehen · 4. Virtuell organisieren"
+        )
+        dashboard_head.addWidget(self.workflow_guide)
+        layout.addLayout(dashboard_head)
 
         cards = QGridLayout()
         self.dashboard_card_layout = cards
