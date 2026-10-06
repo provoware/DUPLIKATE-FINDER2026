@@ -155,8 +155,8 @@ class MainWindow(QMainWindow):
         cards = QGridLayout()
         cards.addWidget(self._card("Sicherheitsmodus", "🔒 Nur lesen"), 0, 0)
         cards.addWidget(self._card("Textsuche", "🟢 Bereit"), 0, 1)
-        cards.addWidget(self._card("Duplikatprüfung", "🟢 SHA-256"), 1, 0)
-        cards.addWidget(self._card("Datenbank", "🟢 Lokal · SQLite"), 1, 1)
+        cards.addWidget(self._card("Duplikatprüfung", "🟢 SHA-256"), 0, 2)
+        cards.addWidget(self._card("Datenbank", "🟢 Lokal · SQLite"), 0, 3)
         layout.addLayout(cards)
 
         feature_box = QFrame()
@@ -169,15 +169,18 @@ class MainWindow(QMainWindow):
         feature_layout.addWidget(label, 0, 0, 1, 2)
 
         flags = {row["key"]: row for row in self.database.feature_flags()}
-        for index, (key, text) in enumerate(WRITE_FEATURES.items(), start=1):
+        for index, (key, text) in enumerate(WRITE_FEATURES.items()):
             checkbox = QCheckBox(text)
             checkbox.setObjectName(f"feature_{key}")
             checkbox.setChecked(bool(flags[key]["enabled"]))
             checkbox.setEnabled(False)
             checkbox.setToolTip("Vorbereitet, aber in Version 1 absichtlich gesperrt.")
-            state = QLabel("🔒 AUS · gesperrt")
-            feature_layout.addWidget(checkbox, index, 0)
-            feature_layout.addWidget(state, index, 1)
+            state = QLabel("🔒 AUS")
+            state.setToolTip("Technisch gesperrt. Originaldateien bleiben unverändert.")
+            row = 1 + index // 2
+            column = (index % 2) * 2
+            feature_layout.addWidget(checkbox, row, column)
+            feature_layout.addWidget(state, row, column + 1)
         layout.addWidget(feature_box)
 
         quick = QGridLayout()
@@ -192,7 +195,7 @@ class MainWindow(QMainWindow):
         go_collections.clicked.connect(lambda: self.nav.setCurrentRow(self.PAGE_COLLECTIONS))
         quick.addWidget(go_search, 0, 0)
         quick.addWidget(go_duplicates, 0, 1)
-        quick.addWidget(go_collections, 1, 0, 1, 2)
+        quick.addWidget(go_collections, 0, 2)
         layout.addLayout(quick)
         layout.addStretch(1)
         return page
