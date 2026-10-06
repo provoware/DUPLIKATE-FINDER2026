@@ -2,6 +2,9 @@ name: Portable Lite und Recovery
 
 on:
   workflow_dispatch:
+  push:
+    branches:
+      - "feature/release-e2e-v0.8.0"
   pull_request:
     paths:
       - ".github/workflows/portable-variants.yml"
@@ -14,7 +17,7 @@ on:
       - "dependencies.env"
 
 permissions:
-  contents: read
+  contents: write
 
 concurrency:
   group: provoware-portable-variants-${{ github.ref }}
@@ -189,3 +192,44 @@ jobs:
             out/*-v${{ env.VERSION }}-linux-x86_64.zip
             out/*-v${{ env.VERSION }}-linux-x86_64.zip.sha256
             evidence/
+
+      - name: v0.8.0 Tag und GitHub Release veröffentlichen
+        if: github.ref_name == 'feature/release-e2e-v0.8.0'
+        env:
+          GH_TOKEN: ${{ github.token }}
+          TARGET_SHA: a5935215c540aa387d4a246b32b799af820607a8
+        run: |
+          set -euo pipefail
+          test "$VERSION" = "0.8.0"
+
+          CURRENT_MAIN="$(git ls-remote origin refs/heads/main | cut -f1)"
+          test "$CURRENT_MAIN" = "$TARGET_SHA"
+
+          TAG="v$VERSION"
+          if git ls-remote --exit-code --tags origin "refs/tags/$TAG" >/dev/null 2>&1; then
+            REMOTE_TAG="$(git ls-remote origin "refs/tags/$TAG^{}" "refs/tags/$TAG" | head -n1 | cut -f1)"
+            test "$REMOTE_TAG" = "$TARGET_SHA"
+          else
+            git config user.name "github-actions[bot]"
+            git config user.email "41898282+github-actions[bot]@users.noreply.github.com"
+            git tag "$TAG" "$TARGET_SHA"
+            git push origin "refs/tags/$TAG"
+          fi
+
+          NOTES="docs/RELEASE_NOTES_v${VERSION}.md"
+          test -f "$NOTES"
+
+          if gh release view "$TAG" >/dev/null 2>&1; then
+            gh release edit "$TAG" --title "PROVOWARE DUPLIKATE-FINDER 2026 v$VERSION" --notes-file "$NOTES" --latest
+          else
+            gh release create "$TAG" --verify-tag --title "PROVOWARE DUPLIKATE-FINDER 2026 v$VERSION" --notes-file "$NOTES" --latest
+          fi
+
+          gh release upload "$TAG" \
+            "out/$LITE_DIR-v${VERSION}-linux-x86_64.tar.gz" \
+            "out/$LITE_DIR-v${VERSION}-linux-x86_64.tar.gz.sha256" \
+            "out/$LITE_DIR-v${VERSION}-linux-x86_64.zip" \
+            "out/$LITE_DIR-v${VERSION}-linux-x86_64.zip.sha256" \
+            "out/$RECOVERY_DIR-v${VERSION}-linux-x86_64.tar.gz" \
+            "out/$RECOVERY_DIR-v${VERSION}-linux-x86_64.tar.gz.sha256" \
+            --clobber
