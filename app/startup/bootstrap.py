@@ -34,7 +34,14 @@ def _repair_gui_dependency(base_dir: Path) -> tuple[bool, str]:
     if completed.returncode != 0:
         logging.getLogger(__name__).error("PySide6-Reparatur fehlgeschlagen: %s", completed.stderr[-2000:])
         return False, "Die lokale GUI-Reparatur ist fehlgeschlagen. Details stehen im Protokoll."
-    return importlib.util.find_spec("PySide6") is not None, "PySide6 wurde aus dem lokalen Reparaturpaket wiederhergestellt."
+
+    importlib.invalidate_caches()
+    repaired = importlib.util.find_spec("PySide6") is not None
+    return repaired, (
+        "PySide6 wurde aus dem lokalen Reparaturpaket wiederhergestellt."
+        if repaired
+        else "PySide6 wurde installiert, konnte aber noch nicht geladen werden."
+    )
 
 
 def bootstrap(base_dir: Path, require_gui: bool) -> list[Check]:
