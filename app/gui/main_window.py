@@ -86,44 +86,52 @@ class MainWindow(QMainWindow):
         label.setWordWrap(True)
         return label
 
-    def _card(self, title: str, value: str) -> QFrame:
+    def _build_card(
+        self,
+        title: str,
+        value: str,
+        *,
+        object_name: str | None = None,
+        live: bool = False,
+    ) -> tuple[QFrame, QLabel]:
         frame = QFrame()
         frame.setProperty("card", True)
         layout = QVBoxLayout(frame)
         layout.setContentsMargins(12, 10, 12, 10)
         layout.setSpacing(2)
-        a = QLabel(title)
-        a.setProperty("cardTitle", True)
-        a.setStyleSheet("font-weight: 700;")
-        a.setWordWrap(True)
-        b = QLabel(value)
-        b.setProperty("cardValue", True)
-        b.setWordWrap(True)
-        font = b.font()
-        font.setBold(True)
-        font.setPointSize(font.pointSize() + 2)
-        b.setFont(font)
-        layout.addWidget(a)
-        layout.addWidget(b)
-        return frame
 
-    def _live_card(self, title: str, value: str, object_name: str) -> tuple[QFrame, QLabel]:
-        frame = QFrame()
-        frame.setProperty("card", True)
-        layout = QVBoxLayout(frame)
-        layout.setContentsMargins(12, 10, 12, 10)
-        layout.setSpacing(2)
         heading = QLabel(title)
         heading.setProperty("cardTitle", True)
         heading.setStyleSheet("font-weight:700;")
+        heading.setWordWrap(True)
+
         label = QLabel(value)
         label.setProperty("cardValue", True)
-        label.setObjectName(object_name)
         label.setWordWrap(True)
-        label.setToolTip("Wird während laufender Vorgänge automatisch aktualisiert.")
+        if object_name:
+            label.setObjectName(object_name)
+        if live:
+            label.setToolTip("Wird während laufender Vorgänge automatisch aktualisiert.")
+
+        font = label.font()
+        font.setBold(True)
+        font.setPointSize(font.pointSize() + 2)
+        label.setFont(font)
         layout.addWidget(heading)
         layout.addWidget(label)
         return frame, label
+
+    def _card(self, title: str, value: str) -> QFrame:
+        frame, _label = self._build_card(title, value)
+        return frame
+
+    def _live_card(self, title: str, value: str, object_name: str) -> tuple[QFrame, QLabel]:
+        return self._build_card(
+            title,
+            value,
+            object_name=object_name,
+            live=True,
+        )
 
     def _build_ui(self) -> None:
         central = QWidget()
