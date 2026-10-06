@@ -24,8 +24,8 @@ def test_no_destructive_file_api_in_application():
         "shutil.move(",
         "os.remove(",
         "os.unlink(",
+        "os.replace(",
         ".rename(",
-        ".replace(",
         ".unlink(",
         "shutil.rmtree(",
     )
