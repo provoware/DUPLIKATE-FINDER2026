@@ -4,7 +4,7 @@
   "project": {
     "id": "provoware-duplicate-finder-2026",
     "name": "PROVOWARE DUPLIKATE-FINDER 2026",
-    "version": "0.8.0",
+    "version": "0.9.0",
     "language": "de-DE"
   },
   "runtime": {
@@ -115,8 +115,13 @@
       "filename_filter",
       "file_kind_filter",
       "text_preview_512k_limit",
+      "docx_text_preview",
+      "odt_text_preview",
       "scaled_image_preview",
-      "qt_pdf_first_page_preview",
+      "image_metadata",
+      "qt_pdf_page_navigation",
+      "media_metadata_without_internal_player",
+      "optional_ffprobe_metadata",
       "external_open",
       "show_parent_folder",
       "copy_path",
@@ -130,12 +135,12 @@
       {
         "id": "ui_process_control",
         "name": "Bedienoberfläche / Prozesssteuerung",
-        "status": "FROZEN",
+        "status": "REOPENED",
         "since_version": "0.6.0",
         "frozen_on": "2026-10-06",
-        "reopened_from_version": "0.5.1",
+        "reopened_from_version": "0.8.0",
         "reopened_on": "2026-10-06",
-        "reopen_reason": "Ausdrücklicher Nutzerauftrag für v0.8.0: eigener Dateien-&-Vorschau-Bereich sowie unterschiedliche, kontrastreiche Akzentfarben je Hauptbereich. Re-Freeze erst nach vollständiger 800x600-/100/150/200-%-Abnahme.",
+        "reopen_reason": "Ausdrücklicher Nutzerauftrag für v0.9.0: erweiterte Dokument-/Bild-/PDF-/Medienvorschau sowie Nutzerfreundlichkeit und Laienoptimierung. Re-Freeze erst nach vollständiger 800x600-/100/150/200-%-Abnahme.",
         "scope": [
           "app/gui/**",
           "app/process_control.py",
@@ -155,17 +160,6 @@
           "targeted_tests",
           "full_800x600_100_150_200_acceptance",
           "post_validation"
-        ],
-        "refrozen_on": "2026-10-06",
-        "refrozen_version": "0.8.0",
-        "refreeze_evidence": [
-          "targeted_checks_success",
-          "quality_core_success",
-          "ui_100_success",
-          "ui_150_success",
-          "ui_200_success",
-          "autonomous_acceptance_success",
-          "portable_lite_recovery_success"
         ]
       },
       {
