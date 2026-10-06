@@ -3,6 +3,7 @@ from __future__ import annotations
 from pathlib import Path
 
 from PySide6.QtCore import Qt
+from PySide6.QtGui import QColor
 from PySide6.QtWidgets import (
     QAbstractItemView,
     QApplication,
@@ -41,6 +42,7 @@ from app.gui.design_tokens import BASE_SPACING, OUTER_MARGIN
 from app.texts import text as ui_text
 from app.error_management import record_error
 from app.formatting import format_bytes
+from app.file_browser.widget import FileBrowserWidget
 
 
 class MainWindow(QMainWindow):
@@ -49,8 +51,9 @@ class MainWindow(QMainWindow):
     PAGE_RESULTS = 2
     PAGE_DUPLICATES = 3
     PAGE_COLLECTIONS = 4
-    PAGE_JOURNAL = 5
-    PAGE_HELP = 6
+    PAGE_FILES = 5
+    PAGE_JOURNAL = 6
+    PAGE_HELP = 7
 
     def __init__(self, base_dir: Path, database: Database) -> None:
         super().__init__()
@@ -159,8 +162,11 @@ class MainWindow(QMainWindow):
         self.compact_nav.setAccessibleName("Bereich auswählen")
         self.compact_nav.setToolTip("Wähle den Programmteil, den du öffnen möchtest.")
         self.compact_nav.setMaximumWidth(210)
-        nav_items = ["Übersicht", "Textsuche", "Ergebnisse", "Duplikate", "Sammlungen", "Journal", "Hilfe"]
+        nav_items = ["Übersicht", "Textsuche", "Ergebnisse", "Duplikate", "Sammlungen", "Dateien & Vorschau", "Journal", "Hilfe"]
+        nav_colors = ["#74d9ff", "#6ee7ff", "#9ce6ff", "#ff7e9d", "#d59bff", "#ffbf69", "#74e39a", "#b8c4ff"]
         self.compact_nav.addItems(nav_items)
+        for index, color in enumerate(nav_colors):
+            self.compact_nav.setItemData(index, QColor(color), Qt.ItemDataRole.ForegroundRole)
         header.addWidget(self.compact_nav)
 
         body = QHBoxLayout()
@@ -168,6 +174,8 @@ class MainWindow(QMainWindow):
         self.nav.setObjectName("main_navigation")
         self.nav.setAccessibleName("Hauptnavigation")
         self.nav.addItems(nav_items)
+        for index, color in enumerate(nav_colors):
+            self.nav.item(index).setForeground(QColor(color))
         self.compact_nav.currentIndexChanged.connect(self.nav.setCurrentRow)
         self.nav.setCurrentRow(self.PAGE_DASHBOARD)
         self.nav.setSelectionMode(QAbstractItemView.SingleSelection)
@@ -180,6 +188,8 @@ class MainWindow(QMainWindow):
         self.pages.addWidget(self._results_page())
         self.pages.addWidget(self._duplicates_page())
         self.pages.addWidget(self._collections_page())
+        self.file_browser = FileBrowserWidget(self)
+        self.pages.addWidget(self.file_browser)
         self.pages.addWidget(self._journal_page())
         self.pages.addWidget(self._help_page())
         body.addWidget(self.pages, 1)
@@ -313,6 +323,7 @@ class MainWindow(QMainWindow):
     def _dashboard_page(self) -> QWidget:
         page = QWidget()
         page.setObjectName("page_dashboard")
+        page.setProperty("area", "dashboard")
         layout = QVBoxLayout(page)
         layout.setContentsMargins(2, 2, 2, 2)
         layout.setSpacing(4)
@@ -384,12 +395,17 @@ class MainWindow(QMainWindow):
         go_collections = QPushButton("Sammlungen")
         go_collections.setObjectName("dashboard_go_collections")
         go_collections.setProperty("primaryAction", True)
+        go_files = QPushButton("Dateien & Vorschau")
+        go_files.setObjectName("dashboard_go_files")
+        go_files.setProperty("primaryAction", True)
         go_search.clicked.connect(lambda: self.nav.setCurrentRow(self.PAGE_SEARCH))
         go_duplicates.clicked.connect(lambda: self.nav.setCurrentRow(self.PAGE_DUPLICATES))
         go_collections.clicked.connect(lambda: self.nav.setCurrentRow(self.PAGE_COLLECTIONS))
+        go_files.clicked.connect(lambda: self.nav.setCurrentRow(self.PAGE_FILES))
         quick.addWidget(go_search, 0, 0)
         quick.addWidget(go_duplicates, 0, 1)
-        quick.addWidget(go_collections, 0, 2)
+        quick.addWidget(go_collections, 1, 0)
+        quick.addWidget(go_files, 1, 1)
         layout.addLayout(quick)
         layout.addStretch(1)
         return page
@@ -408,6 +424,7 @@ class MainWindow(QMainWindow):
     def _search_page(self) -> QWidget:
         page = QWidget()
         page.setObjectName("page_search")
+        page.setProperty("area", "search")
         layout = QVBoxLayout(page)
         layout.addWidget(self._heading("Textdateien durchsuchen"))
 
@@ -478,6 +495,7 @@ class MainWindow(QMainWindow):
     def _results_page(self) -> QWidget:
         page = QWidget()
         page.setObjectName("page_results")
+        page.setProperty("area", "results")
         layout = QVBoxLayout(page)
 
         head = QHBoxLayout()
@@ -529,6 +547,7 @@ class MainWindow(QMainWindow):
     def _duplicates_page(self) -> QWidget:
         page = QWidget()
         page.setObjectName("page_duplicates")
+        page.setProperty("area", "duplicates")
         layout = QVBoxLayout(page)
 
         top = QVBoxLayout()
@@ -590,6 +609,7 @@ class MainWindow(QMainWindow):
     def _collections_page(self) -> QWidget:
         page = QWidget()
         page.setObjectName("page_collections")
+        page.setProperty("area", "collections")
         layout = QVBoxLayout(page)
         layout.addWidget(self._heading("Virtuelle Sammlungen"))
 
@@ -649,6 +669,7 @@ class MainWindow(QMainWindow):
     def _journal_page(self) -> QWidget:
         page = QWidget()
         page.setObjectName("page_journal")
+        page.setProperty("area", "journal")
         layout = QVBoxLayout(page)
         layout.addWidget(self._heading("Änderungsjournal"))
         info = QLabel(
@@ -666,6 +687,7 @@ class MainWindow(QMainWindow):
     def _help_page(self) -> QWidget:
         page = QWidget()
         page.setObjectName("page_help")
+        page.setProperty("area", "help")
         layout = QVBoxLayout(page)
         layout.addWidget(self._heading("Hilfe – drei Stufen"))
 
