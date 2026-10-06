@@ -62,7 +62,6 @@ jobs:
           fi
           cp -a "$GITHUB_WORKSPACE/.build-cache/wheels/." "$P/.provoware-dev/wheelhouse/"
           "$PY" -m pip install --disable-pip-version-check --no-index --find-links "$P/.provoware-dev/wheelhouse" "PySide6==6.11.2" "pytest>=8,<9" "setuptools>=68" "wheel>=0.45"
-          "$PY" -m pip install --disable-pip-version-check --no-index --find-links "$P/.provoware-dev/wheelhouse" --no-build-isolation --no-deps --editable "$P"
           chmod +x "$P/ENTWICKLUNG_STARTEN.sh"
       - name: Vollpaket ohne Paket-Internet pruefen
         env:
@@ -75,13 +74,20 @@ jobs:
           "$P/ENTWICKLUNG_STARTEN.sh" --nur-pruefen
           "$P/ENTWICKLUNG_STARTEN.sh" --tests
           "$P/ENTWICKLUNG_STARTEN.sh" --abnahme
-      - name: Archiv und Pruefsumme
+      - name: Reproduzierbares Archiv und Pruefsumme
         run: |
           set -euo pipefail
+          SOURCE_DATE_EPOCH="$(git log -1 --format=%ct)"
           cd out
-          tar -czf "$PACKAGE.tar.gz" "$PACKAGE"
+          tar --sort=name --mtime="@${SOURCE_DATE_EPOCH}" --owner=0 --group=0 --numeric-owner -cf - "$PACKAGE" | gzip -n > "$PACKAGE.tar.gz"
           sha256sum "$PACKAGE.tar.gz" > "$PACKAGE.tar.gz.sha256"
           sha256sum --check --strict "$PACKAGE.tar.gz.sha256"
+      - name: Build-Nachweis und SPDX-Komponentenliste
+        run: |
+          set -euo pipefail
+          P="$GITHUB_WORKSPACE/out/$PACKAGE"
+          PY="$P/.provoware-dev/runtime/bin/python3"
+          "$PY" "$P/tools/build_metadata.py"             --archive "$GITHUB_WORKSPACE/out/$PACKAGE.tar.gz"             --output-dir "$P/reports"             --commit "$GITHUB_SHA"             --project-version "0.3.0-dev"
       - name: Vollpaket bereitstellen
         uses: actions/upload-artifact@v4
         with:
@@ -92,3 +98,5 @@ jobs:
             out/PROVOWARE-DUPLIKATE-FINDER-2026-DEV-v0.2.1-linux-x86_64.tar.gz.sha256
             out/PROVOWARE-DUPLIKATE-FINDER-2026-DEV-v0.2.1-linux-x86_64/logs/ABHAENGIGKEITEN_AKTUELL.txt
             out/PROVOWARE-DUPLIKATE-FINDER-2026-DEV-v0.2.1-linux-x86_64/.provoware-dev/systemprofil.json
+            out/PROVOWARE-DUPLIKATE-FINDER-2026-DEV-v0.2.1-linux-x86_64/reports/BUILD-NACHWEIS.json
+            out/PROVOWARE-DUPLIKATE-FINDER-2026-DEV-v0.2.1-linux-x86_64/reports/SBOM.spdx.json

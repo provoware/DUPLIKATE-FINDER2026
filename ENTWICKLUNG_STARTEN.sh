@@ -168,7 +168,7 @@ install_dependencies(){
   fi
   step "Abhaengigkeiten lokal pruefen und reparieren"
   "$PY" -m pip install --disable-pip-version-check --no-index --find-links "$WHEELS" "$SETUPTOOLS_SPEC" "$WHEEL_SPEC" "PySide6==$PYSIDE6_VERSION" "$PYTEST_SPEC"
-  "$PY" -m pip install --disable-pip-version-check --no-index --find-links "$WHEELS" --no-build-isolation --no-deps --editable "$ROOT"
+  # Das Projekt selbst wird nicht installiert. PYTHONPATH zeigt beim Start direkt auf den Projektordner.
   "$PY" - <<PY
 import importlib.metadata as m
 assert m.version("PySide6") == "$PYSIDE6_VERSION"
