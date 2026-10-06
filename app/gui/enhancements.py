@@ -165,6 +165,13 @@ class UiEnhancements(QObject):
         self.autosave_info.setObjectName("autosave_info")
         self.autosave_info.setAccessibleName("Status der automatischen Sicherung")
         self.autosave_info.setToolTip("Fenster-, Zoom-, CPU- und Filtereinstellungen werden alle fünf Minuten gesichert. Markierungen und Sammlungen werden sofort in der lokalen Datenbank gespeichert.")
+        if self.store.last_load_error:
+            self.autosave_info.setText("Einstellungen zurückgesetzt")
+            backup = str(self.store.corrupt_backup) if self.store.corrupt_backup else "keine Sicherung möglich"
+            self.autosave_info.setToolTip(
+                "Die Einstellungsdatei war beschädigt. Standardwerte wurden geladen. "
+                f"Sicherung: {backup}. Fehler: {self.store.last_load_error}"
+            )
         grid.addWidget(self.autosave_info, 1, 2)
 
         layout.insertWidget(max(1, layout.count() - 1), panel)
