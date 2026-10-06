@@ -1,6 +1,7 @@
 from __future__ import annotations
 
 from pathlib import Path
+import sqlite3
 from datetime import datetime
 from math import ceil
 
@@ -426,7 +427,7 @@ class UiEnhancements(QObject):
                     try:
                         self.database.add_collection_item(int(collection_id), path)
                         self.window._refresh_collections(select_id=int(collection_id))
-                    except Exception as exc:
+                    except sqlite3.Error as exc:
                         report_ui_error(
                             self.window,
                             area="sammlungen",
