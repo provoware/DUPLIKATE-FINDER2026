@@ -1,0 +1,69 @@
+{
+  "$schema": "../schemas/agents-manifest.schema.json",
+  "schema_version": "1.0.0",
+  "single_writer": "operator",
+  "agents": [
+    {
+      "id": "analyse",
+      "mode": "read_only",
+      "trigger": [
+        "task_received",
+        "contract_change"
+      ],
+      "output": "analysis-report"
+    },
+    {
+      "id": "testplanung",
+      "mode": "read_only",
+      "trigger": [
+        "state_changed",
+        "patch_planned"
+      ],
+      "output": "test-plan"
+    },
+    {
+      "id": "sicherheit",
+      "mode": "read_only",
+      "trigger": [
+        "startup_change",
+        "filesystem_change",
+        "safety_change"
+      ],
+      "output": "safety-report"
+    },
+    {
+      "id": "operator",
+      "mode": "write",
+      "trigger": [
+        "approved_plan"
+      ],
+      "output": "patch"
+    },
+    {
+      "id": "regression",
+      "mode": "read_only",
+      "trigger": [
+        "patch_applied"
+      ],
+      "output": "regression-report"
+    },
+    {
+      "id": "fehlerlernen",
+      "mode": "read_only",
+      "trigger": [
+        "check_failed",
+        "runtime_error"
+      ],
+      "output": "error-solution-record"
+    },
+    {
+      "id": "dokumentation",
+      "mode": "read_only",
+      "trigger": [
+        "contract_change",
+        "release_candidate"
+      ],
+      "output": "documentation-report"
+    }
+  ]
+}

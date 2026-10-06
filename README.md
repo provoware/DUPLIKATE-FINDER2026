@@ -1,6 +1,6 @@
 # PROVOWARE DUPLIKATE-FINDER 2026
 
-Lokales Linux-Werkzeug für **Textsuche**, **vollständige Duplikatprüfung** und **virtuelle Organisation**. Der Sicherheitskern von Version 0.2.0 arbeitet gegenüber Originaldateien ausschließlich lesend.
+Lokales Linux-Werkzeug für **Textsuche**, **vollständige Duplikatprüfung** und **virtuelle Organisation**. Der Sicherheitskern von Version 0.3.0 arbeitet gegenüber Originaldateien ausschließlich lesend.
 
 ## Sicherheitsversprechen
 
@@ -94,7 +94,7 @@ tools/        Prüfwerkzeuge
 
 ## Projektstatus
 
-**v0.2.0 – autonome Abnahme / sicherer portabler Start / Nur-Lesen-Phase**
+**v0.3.0 – autonome Entwicklung / Klick-&-Start / Nur-Lesen-Sicherheitsstand**
 
 Physische Dateiänderungen sind noch nicht freigegeben. Dieser Bereich bleibt gesperrt, bis ein eigener Änderungsvertrag, Vorschau, Transaktionsjournal, Rückgängig-Funktion und separate Abnahmetests existieren.
 
@@ -124,3 +124,25 @@ Die Konsole verwendet nummerierte Menüs, sichere Vorauswahlen und dieselben Sch
 - farblich und textlich eindeutiger Status
 - rotierende Protokolle im Ordner logs/
 - lokaler Selbsttest im Dashboard
+
+## PROVOWARE-Autonomiestandard 0.3
+
+Neu hinzugekommen:
+
+- automatischer Standard-Arbeitsordner unter `~/PROVOWARE/DUPLIKATE-FINDER-2026`
+- Start-Checkpoints mit Ampelstatus
+- Fortschritts- und Aktivitätsanzeige
+- dreistufiges Hilfesystem
+- globale Design- und Entwicklungsstandards
+- versionierter deutscher Textkatalog
+- JSON-Manifeste und JSON-Schema-Vorlagen
+- Ein-Schreibagent-Modell
+- zustandsbasierte gezielte Prüfplanung
+- Fehlerkatalog mit Lösungspflicht
+- wiederverwendete Abhängigkeiten per Fingerabdruck
+- GitHub-Cache und Abbruch veralteter Prüfungen
+- Build-Nachweis und SPDX-Komponentenliste
+
+Für Laien: `docs/LAIENANLEITUNG.md`.
+
+Für Entwickler: `docs/ENTWICKLERHANDBUCH.md`.

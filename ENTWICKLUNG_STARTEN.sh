@@ -9,6 +9,7 @@ CACHE="$DEV/cache"
 WHEELS="$DEV/wheelhouse"
 PY="$RUNTIME/bin/python3"
 PROFILE="$DEV/systemprofil.json"
+DEPS_STAMP="$DEV/dependency-fingerprint.sha256"
 
 [[ -f "$CFG" ]] || { echo "FEHLER: dependencies.env fehlt. Repository unvollstaendig." >&2; exit 20; }
 # shellcheck disable=SC1090
@@ -22,6 +23,16 @@ else
   G=""; Y=""; R=""; C=""; N=""
 fi
 step(){ printf '%s▶%s %s\n' "$C" "$N" "$*"; }
+progress(){
+  local pct="$1"
+  local label="$2"
+  local filled=$((pct/10))
+  local bar="" i
+  for ((i=0;i<10;i++)); do
+    if (( i < filled )); then bar+="█"; else bar+="░"; fi
+  done
+  printf '[%s] %3d%% · %s\n' "$bar" "$pct" "$label"
+}
 ok(){ printf '%s✔%s %s\n' "$G" "$N" "$*"; }
 warn(){ printf '%s⚠%s %s\n' "$Y" "$N" "$*"; }
 die(){ printf '%s✖ FEHLER:%s %s\n' "$R" "$N" "$*" >&2; exit 1; }
@@ -146,23 +157,50 @@ ensure_wheels(){
   ok "Lokaler Paketvorrat vervollstaendigt."
 }
 
+dependency_fingerprint(){
+  "$PY" - "$CFG" "$ROOT/pyproject.toml" <<'PY'
+import hashlib,sys
+h=hashlib.sha256()
+for name in sys.argv[1:]:
+    with open(name,"rb") as handle: h.update(handle.read())
+print(h.hexdigest())
+PY
+}
+
+dependencies_healthy(){
+  "$PY" - "$PYSIDE6_VERSION" <<'PY' >/dev/null 2>&1
+import importlib.metadata as m, sys
+wanted=sys.argv[1]
+raise SystemExit(0 if m.version("PySide6")==wanted else 1)
+PY
+}
+
 install_dependencies(){
+  local current
+  current="$(dependency_fingerprint)"
+  if [[ -f "$DEPS_STAMP" ]] && [[ "$(cat "$DEPS_STAMP")" == "$current" ]] && dependencies_healthy; then
+    ok "Abhängigkeiten unverändert – vorhandenen geprüften Zustand wiederverwenden."
+    return
+  fi
   step "Abhaengigkeiten lokal pruefen und reparieren"
   "$PY" -m pip install --disable-pip-version-check --no-index --find-links "$WHEELS" "$SETUPTOOLS_SPEC" "$WHEEL_SPEC" "PySide6==$PYSIDE6_VERSION" "$PYTEST_SPEC"
-  "$PY" -m pip install --disable-pip-version-check --no-index --find-links "$WHEELS" --no-build-isolation --no-deps --editable "$ROOT"
+  # Das Projekt selbst wird nicht installiert. PYTHONPATH zeigt beim Start direkt auf den Projektordner.
   "$PY" - <<PY
 import importlib.metadata as m
 assert m.version("PySide6") == "$PYSIDE6_VERSION"
 print("PySide6", m.version("PySide6"))
 print("pytest", m.version("pytest"))
 PY
-  ok "Python-Abhaengigkeiten sind in Ordnung."
+  printf '%s\n' "$current" > "$DEPS_STAMP"
+  ok "Python-Abhaengigkeiten sind in Ordnung und registriert."
 }
 
 run_profile(){
   step "System, Bildschirm und Abhaengigkeiten vollautomatisch pruefen"
   "$PY" "$ROOT/tools/system_preflight.py" --root "$ROOT" --output "$PROFILE"
   "$PY" "$ROOT/tools/abhaengigkeiten_bericht.py" --profile "$PROFILE" --output-dir "$ROOT/logs"
+  "$PY" "$ROOT/tools/state_registry.py" --output "$ROOT/logs/PRUEFPLAN_AKTUELL.json"
+  "$PY" "$ROOT/tools/agent_router.py" --plan "$ROOT/logs/PRUEFPLAN_AKTUELL.json" --output "$ROOT/logs/AGENTENPLAN_AKTUELL.json"
   ok "Systemprofil gespeichert: .provoware-dev/systemprofil.json"
   ok "Lesbarer Bericht: logs/ABHAENGIGKEITEN_AKTUELL.txt"
 }
@@ -172,32 +210,44 @@ case "$MODE" in
   gui|--gui) MODE="gui" ;;
   --konsole) MODE="console" ;;
   --nur-pruefen) MODE="check" ;;
+  --schnelltest) MODE="quicktests" ;;
   --tests) MODE="tests" ;;
   --abnahme) MODE="acceptance" ;;
+  --fortschrittstest)
+    progress 5 "Fortschrittstest"
+    progress 100 "Fortschrittstest"
+    exit 0 ;;
   -h|--hilfe|--help)
     cat <<'EOF'
 PROVOWARE Entwicklungsstart
   ./ENTWICKLUNG_STARTEN.sh              automatisch vorbereiten und GUI starten
   ./ENTWICKLUNG_STARTEN.sh --konsole    Konsolenoberflaeche starten
   ./ENTWICKLUNG_STARTEN.sh --nur-pruefen alles pruefen/reparieren, dann beenden
-  ./ENTWICKLUNG_STARTEN.sh --tests      Kompilierung + Tests
-  ./ENTWICKLUNG_STARTEN.sh --abnahme    autonome 73/73-Abnahme
+  ./ENTWICKLUNG_STARTEN.sh --schnelltest gezielte Prüfungen für geänderte Bereiche
+  ./ENTWICKLUNG_STARTEN.sh --tests      vollständige Kompilierung + Tests
+  ./ENTWICKLUNG_STARTEN.sh --abnahme    vollständige autonome Abnahme
 EOF
     exit 0 ;;
   *) die "Unbekannte Option: $MODE" ;;
 esac
 
+progress 5 "Start vorbereiten"
 ensure_runtime
+progress 20 "Python bereit"
 ensure_pip
 ensure_wheels
+progress 40 "Lokaler Paketvorrat bereit"
 install_dependencies
+progress 65 "Abhängigkeiten geprüft"
 run_profile
+progress 90 "System- und Projektzustand geprüft"
 
 export PYTHONNOUSERSITE=1
 export PYTHONDONTWRITEBYTECODE=1
 export PYTHONPATH="$ROOT"
 cd "$ROOT"
 
+progress 100 "Bereit"
 printf '\n%sPROVOWARE Entwicklungsumgebung BEREIT 🟢%s\n' "$G" "$N"
 printf 'Python: %s\n' "$("$PY" --version)"
 printf 'PySide6: %s\n' "$("$PY" -c 'import PySide6; print(PySide6.__version__)')"
@@ -207,6 +257,7 @@ case "$MODE" in
   gui) exec "$PY" -m app.main ;;
   console) exec "$PY" -m app.cli ;;
   check) "$PY" -m app.startup.bootstrap ;;
-  tests) "$PY" -m compileall -q app tests tools && exec "$PY" -m pytest ;;
+  quicktests) exec "$PY" tools/targeted_checks.py ;;
+  tests) exec "$PY" tools/targeted_checks.py --full ;;
   acceptance) export QT_QPA_PLATFORM=offscreen; exec "$PY" tools/autonomous_acceptance.py --output artifacts/abnahme ;;
 esac

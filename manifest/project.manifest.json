@@ -1,0 +1,58 @@
+{
+  "$schema": "../schemas/project-manifest.schema.json",
+  "schema_version": "1.0.0",
+  "project": {
+    "id": "provoware-duplicate-finder-2026",
+    "name": "PROVOWARE DUPLIKATE-FINDER 2026",
+    "version": "0.3.0",
+    "language": "de-DE"
+  },
+  "runtime": {
+    "python": "3.12.15",
+    "gui": "PySide6 6.11.2",
+    "tkinter_allowed": false
+  },
+  "workspace": {
+    "environment_variable": "PROVOWARE_PROJECT_DIR",
+    "default_relative_to_home": "PROVOWARE/DUPLIKATE-FINDER-2026",
+    "required_directories": [
+      "data",
+      "logs",
+      "recovery",
+      "quarantine",
+      "exports",
+      "reports",
+      "checkpoints",
+      "config"
+    ]
+  },
+  "safety": {
+    "original_files": "read_only",
+    "system_python_mutation": false,
+    "sudo_at_runtime": false,
+    "follow_symlinks": false
+  },
+  "quality": {
+    "baseline_window": "800x600",
+    "zoom_percent": [
+      100,
+      150,
+      200
+    ],
+    "full_acceptance_before_merge": true,
+    "minimum_acceptance_checks": 77
+  },
+  "state": {
+    "registry": ".provoware-state/development-state.json",
+    "error_catalog": ".provoware-state/error-catalog.jsonl",
+    "checkpoint_log": ".provoware-state/checkpoints.jsonl"
+  },
+  "texts": {
+    "catalog": "resources/texts/de-DE.v1.json",
+    "manifest": "resources/texts/manifest.json"
+  },
+  "agents": {
+    "manifest": "manifest/agents.manifest.json",
+    "single_writer_role": "operator"
+  }
+}

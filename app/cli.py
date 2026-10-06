@@ -11,6 +11,7 @@ from app.models.entities import SearchJob
 from app.startup.selftest import run_selftest
 from app.storage.database import Database
 from app.validation import validate_scan_root, validate_search_request
+from app.workspace import ensure_workspace
 
 
 class ConsoleUI:
@@ -192,7 +193,7 @@ def main() -> int:
     parser = argparse.ArgumentParser()
     parser.add_argument("--selftest", action="store_true")
     args = parser.parse_args()
-    base = Path(__file__).resolve().parents[1]
+    base = ensure_workspace()
     ui = ConsoleUI(base)
     if args.selftest:
         checks = run_selftest(base, require_gui=False)

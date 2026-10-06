@@ -18,6 +18,7 @@ from PySide6.QtWidgets import (
     QMainWindow,
     QMessageBox,
     QPushButton,
+    QProgressBar,
     QSplitter,
     QStackedWidget,
     QTableWidget,
@@ -31,6 +32,9 @@ from app.models.entities import DuplicateGroup, SearchHit, SearchJob
 from app.safety.policy import WRITE_FEATURES
 from app.storage.database import Database
 from app.validation import validate_scan_root, validate_search_request
+from app.gui.design_tokens import BASE_SPACING, OUTER_MARGIN
+from app.texts import text as ui_text
+from app.error_management import record_error
 
 
 class MainWindow(QMainWindow):
@@ -89,8 +93,8 @@ class MainWindow(QMainWindow):
     def _build_ui(self) -> None:
         central = QWidget()
         root = QVBoxLayout(central)
-        root.setContentsMargins(12, 12, 12, 10)
-        root.setSpacing(10)
+        root.setContentsMargins(OUTER_MARGIN, OUTER_MARGIN, OUTER_MARGIN, 10)
+        root.setSpacing(BASE_SPACING)
 
         header = QHBoxLayout()
         title = self._heading("PROVOWARE DUPLIKATE-FINDER 2026")
@@ -137,9 +141,20 @@ class MainWindow(QMainWindow):
         self.status_label = QLabel("🟢 Bereit")
         self.status_label.setObjectName("status_label")
         self.status_label.setStyleSheet("font-weight: 800;")
+        self.activity_label = QLabel("Aktivität: bereit")
+        self.activity_label.setObjectName("activity_label")
+        self.activity_label.setToolTip("Zeigt an, woran das Programm gerade arbeitet.")
+        self.progress_bar = QProgressBar()
+        self.progress_bar.setObjectName("activity_progress")
+        self.progress_bar.setRange(0, 100)
+        self.progress_bar.setValue(100)
+        self.progress_bar.setFormat("%p %")
+        self.progress_bar.setMaximumWidth(180)
         self.counter_label = QLabel("0 Dateien geprüft · 0 Treffer")
         self.counter_label.setObjectName("counter_label")
         footer.addWidget(self.status_label)
+        footer.addWidget(self.activity_label)
+        footer.addWidget(self.progress_bar)
         footer.addStretch(1)
         footer.addWidget(self.counter_label)
         root.addLayout(footer)
@@ -229,6 +244,7 @@ class MainWindow(QMainWindow):
         self.query_edit = QLineEdit()
         self.query_edit.setObjectName("search_query")
         self.query_edit.setPlaceholderText("Suchbegriff")
+        self.query_edit.setToolTip("Gib das Wort oder den Text ein, den du finden möchtest.")
         self.names_box = QCheckBox("Dateinamen")
         self.names_box.setObjectName("search_names")
         self.names_box.setChecked(True)
@@ -238,6 +254,7 @@ class MainWindow(QMainWindow):
         self.search_button = QPushButton("🔎 SUCHEN")
         self.search_button.setObjectName("search_start")
         self.search_button.clicked.connect(self._start_search)
+        self.search_button.setToolTip("Startet eine reine Lese-Suche. Originaldateien werden nicht verändert.")
         query_grid.addWidget(self.query_edit, 0, 0, 1, 3)
         query_grid.addWidget(self.names_box, 1, 0)
         query_grid.addWidget(self.contents_box, 1, 1)
@@ -432,18 +449,31 @@ class MainWindow(QMainWindow):
         page = QWidget()
         page.setObjectName("page_help")
         layout = QVBoxLayout(page)
-        layout.addWidget(self._heading("Hilfe – drei einfache Schritte"))
-        for text in (
-            "1. 📁 Ordner wählen – das Programm durchsucht nur diesen Bereich.",
-            "2. 🔎 Text suchen oder 🟰 Duplikate prüfen.",
-            "3. 📁 Treffer markieren, kommentieren und in virtuellen Sammlungen ordnen.",
-        ):
-            label = QLabel(text)
-            label.setWordWrap(True)
-            label.setProperty("card", True)
-            layout.addWidget(label)
+        layout.addWidget(self._heading("Hilfe – drei Stufen"))
+
+        level1 = QLabel("1. Kurz erklärt: Ordner wählen → Suche oder Duplikatprüfung starten → Treffer virtuell ordnen.")
+        level1.setWordWrap(True)
+        level1.setProperty("card", True)
+        layout.addWidget(level1)
+
+        level2 = QLabel("2. Direkt am Bedienelement: Fahre mit der Maus über einen Knopf oder ein Feld. Ein Tooltip erklärt die Funktion und mögliche Folgen.")
+        level2.setWordWrap(True)
+        level2.setProperty("card", True)
+        layout.addWidget(level2)
+
+        level3 = QLabel(
+            "3. Ausführliche Hilfe:\n"
+            "• Textsuche: " + ui_text("help.search_short") + "\n"
+            "• Duplikate: " + ui_text("help.duplicates_short") + "\n"
+            "• Sammlungen: " + ui_text("help.collections_short") + "\n"
+            "Bei einem Fehler zeigt das Programm einen sicheren Abbruch, eine verständliche Meldung und den Protokollordner."
+        )
+        level3.setWordWrap(True)
+        level3.setProperty("card", True)
+        layout.addWidget(level3)
+
         safety = QLabel(
-            "🔒 Originaldateien werden in Version 1 niemals gelöscht, verschoben, umbenannt oder überschrieben."
+            "🔒 Originaldateien werden in diesem Sicherheitsstand niemals gelöscht, verschoben, umbenannt oder überschrieben."
         )
         safety.setObjectName("help_safety")
         safety.setWordWrap(True)
@@ -484,6 +514,8 @@ class MainWindow(QMainWindow):
         )
         self.search_button.setEnabled(False)
         self.status_label.setText("🟡 Textsuche läuft …")
+        self.activity_label.setText("Aktivität: Textdateien werden geprüft")
+        self.progress_bar.setRange(0, 0)
         self.counter_label.setText("Suche wird vorbereitet …")
         self.search_worker = SearchWorker(job)
         self.search_worker.completed.connect(self._search_finished)
@@ -509,14 +541,21 @@ class MainWindow(QMainWindow):
         self.results.setSortingEnabled(sorting)
         self.search_button.setEnabled(True)
         self.status_label.setText("🟢 Textsuche abgeschlossen")
+        self.activity_label.setText("Aktivität: Suche abgeschlossen")
+        self.progress_bar.setRange(0, 100)
+        self.progress_bar.setValue(100)
         self.counter_label.setText(f"{job.scanned_files} Textdateien geprüft · {len(hits)} Treffer")
         self.result_info.setText(f"{len(hits)} Treffer")
         self.nav.setCurrentRow(self.PAGE_RESULTS)
 
     def _search_failed(self, message: str) -> None:
+        entry = record_error(self.base_dir / "logs", "textsuche", message)
         self.search_button.setEnabled(True)
         self.status_label.setText("🔴 Textsuche gestoppt")
-        QMessageBox.critical(self, "Suche gestoppt", f"Die Suche wurde sicher beendet.\n\n{message}")
+        self.activity_label.setText("Aktivität: sicher gestoppt")
+        self.progress_bar.setRange(0, 100)
+        self.progress_bar.setValue(0)
+        QMessageBox.critical(self, "Suche gestoppt", f"Die Suche wurde sicher beendet.\n\n{message}\n\nLösung: {entry['solution']}")
 
     def _selected_result_path(self) -> Path | None:
         row = self.results.currentRow()
@@ -563,6 +602,8 @@ class MainWindow(QMainWindow):
             return
         self.duplicate_start.setEnabled(False)
         self.status_label.setText("🟡 Duplikatprüfung läuft …")
+        self.activity_label.setText("Aktivität: Dateien werden auf vollständige Gleichheit geprüft")
+        self.progress_bar.setRange(0, 0)
         self.duplicate_summary.setText("Dateigrößen werden gruppiert; nur Kandidaten werden vollständig gehasht.")
         self.duplicate_worker = DuplicateWorker(self.selected_root)
         self.duplicate_worker.completed.connect(self._duplicate_scan_finished)
@@ -584,6 +625,9 @@ class MainWindow(QMainWindow):
     def _duplicate_scan_failed(self, message: str) -> None:
         self.duplicate_start.setEnabled(True)
         self.status_label.setText("🔴 Duplikatprüfung gestoppt")
+        self.activity_label.setText("Aktivität: sicher gestoppt")
+        self.progress_bar.setRange(0, 100)
+        self.progress_bar.setValue(0)
         QMessageBox.critical(
             self,
             "Duplikatprüfung gestoppt",

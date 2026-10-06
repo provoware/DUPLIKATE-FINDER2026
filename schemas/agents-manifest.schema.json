@@ -1,0 +1,32 @@
+{
+  "$schema": "https://json-schema.org/draft/2020-12/schema",
+  "type": "object",
+  "required": [
+    "schema_version",
+    "single_writer",
+    "agents"
+  ],
+  "properties": {
+    "agents": {
+      "type": "array",
+      "minItems": 1,
+      "items": {
+        "type": "object",
+        "required": [
+          "id",
+          "mode",
+          "trigger",
+          "output"
+        ],
+        "properties": {
+          "mode": {
+            "enum": [
+              "read_only",
+              "write"
+            ]
+          }
+        }
+      }
+    }
+  }
+}

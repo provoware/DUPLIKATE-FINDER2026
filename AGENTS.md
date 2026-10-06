@@ -9,7 +9,7 @@ Robustes, laienfreundliches Linux-Werkzeug für Textsuche, Duplikatprüfung und 
 ## 2. Unverhandelbare Regeln
 
 1. **Kein Tkinter.** GUI ausschließlich PySide6/Qt.
-2. **Keine physischen Dateiänderungen in v0.1.x.**
+2. **Keine physischen Änderungen an Originaldateien im aktuellen Sicherheitsstand.**
 3. Keine direkten Lösch-, Verschiebe-, Umbenenn- oder Ersetz-APIs im Anwendungscode.
 4. Kritische Linux-Systembereiche bleiben gesperrt.
 5. Symlinks werden standardmäßig nicht verfolgt.
@@ -77,3 +77,14 @@ Die erste Pflichtgröße ist 800 × 600. Danach folgen weitere Größen und 150/
 Der HTML-Rasterbericht ist Teil der Abnahme.
 
 GUI und Konsole müssen dieselben Kern- und Sicherheitsregeln verwenden.
+
+## 8. Ein-Schreibagent-Vertrag
+
+Maschinenlesbar gilt `manifest/agents.manifest.json`.
+
+- Analyse, Testplanung, Sicherheit, Regression, Fehlerlernen und Dokumentation sind **nur lesend**.
+- Nur `operator` darf Dateien ändern.
+- Vor einem Patch wird der aktuelle Zustand erfasst.
+- Nach einem Patch werden gezielte Prüfungen ausgeführt.
+- Vor Merge bleibt die vollständige Regression Pflicht.
+- Jeder neue reproduzierbare Fehler erzeugt eine Lösung und einen Regressionstest-Vorschlag.

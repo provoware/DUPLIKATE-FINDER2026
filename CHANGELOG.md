@@ -12,6 +12,21 @@
 ### Geplant
 - weitere Dateiformate und spätere, separat freizugebende Schreibfunktionen
 
+## [0.3.0] – 2026-10-06
+
+### Hinzugefügt
+- PROVOWARE-Mastermanifest und globale Standards
+- JSON Schema 2020-12 für zentrale Verträge
+- triggerbasiertes Agentenmodell mit genau einem Schreibagenten
+- Zustandsregister mit SHA-256 und gezielter Prüfplanung
+- Standard-Arbeitsordner mit automatischer Erstellung
+- Start-Checkpoints mit Ampel, Fortschritt und Aktivitätsanzeige
+- dreistufiges Hilfesystem
+- versionierter deutscher Textkatalog
+- intelligente Fehlerregistrierung mit Lösung
+- reproduzierbarer Vollpaketbau, Build-Nachweis und SPDX-Bestandsliste
+- GitHub-Caching und Abbruch veralteter Läufe
+
 ## [0.2.0] – 2026-10-06
 
 ### Hinzugefügt

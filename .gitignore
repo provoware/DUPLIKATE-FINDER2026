@@ -3,6 +3,7 @@ __pycache__/
 .pytest_cache/
 .venv/
 .provoware-dev/
+.provoware-state/
 *.egg-info/
 build/
 dist/

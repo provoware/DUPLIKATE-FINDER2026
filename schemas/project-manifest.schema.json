@@ -1,0 +1,83 @@
+{
+  "$schema": "https://json-schema.org/draft/2020-12/schema",
+  "$id": "https://provoware.local/schemas/project-manifest.schema.json",
+  "type": "object",
+  "required": [
+    "schema_version",
+    "project",
+    "runtime",
+    "workspace",
+    "safety",
+    "quality",
+    "state",
+    "texts",
+    "agents"
+  ],
+  "properties": {
+    "schema_version": {
+      "type": "string"
+    },
+    "project": {
+      "type": "object",
+      "required": [
+        "id",
+        "name",
+        "version",
+        "language"
+      ]
+    },
+    "runtime": {
+      "type": "object",
+      "required": [
+        "python",
+        "gui",
+        "tkinter_allowed"
+      ]
+    },
+    "workspace": {
+      "type": "object",
+      "required": [
+        "environment_variable",
+        "default_relative_to_home",
+        "required_directories"
+      ]
+    },
+    "safety": {
+      "type": "object",
+      "required": [
+        "original_files"
+      ]
+    },
+    "quality": {
+      "type": "object",
+      "required": [
+        "baseline_window",
+        "zoom_percent",
+        "full_acceptance_before_merge"
+      ]
+    },
+    "state": {
+      "type": "object",
+      "required": [
+        "registry",
+        "error_catalog",
+        "checkpoint_log"
+      ]
+    },
+    "texts": {
+      "type": "object",
+      "required": [
+        "catalog",
+        "manifest"
+      ]
+    },
+    "agents": {
+      "type": "object",
+      "required": [
+        "manifest",
+        "single_writer_role"
+      ]
+    }
+  },
+  "additionalProperties": true
+}

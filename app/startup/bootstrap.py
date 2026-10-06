@@ -9,6 +9,7 @@ from dataclasses import asdict
 from pathlib import Path
 
 from app.startup.selftest import Check, run_selftest
+from app.workspace import ensure_workspace
 
 
 def _portable_runtime(base_dir: Path) -> bool:
@@ -55,17 +56,17 @@ def _repair_gui_dependency(base_dir: Path) -> tuple[bool, str]:
     )
 
 
-def bootstrap(base_dir: Path, require_gui: bool) -> list[Check]:
-    for name in ("data", "logs", "recovery", "quarantine"):
-        (base_dir / name).mkdir(parents=True, exist_ok=True)
+def bootstrap(base_dir: Path | None, require_gui: bool) -> list[Check]:
+    code_dir = Path(__file__).resolve().parents[2]
+    workspace = ensure_workspace(base_dir)
     repair_note = "GUI nicht erforderlich"
     repair_ok = True
     if require_gui:
-        repair_ok, repair_note = _repair_gui_dependency(base_dir)
-    checks = [Check("Lokale Reparatur", repair_ok, repair_note)]
-    checks.extend(run_selftest(base_dir, require_gui=require_gui))
+        repair_ok, repair_note = _repair_gui_dependency(code_dir)
+    checks = [Check("Projektordner", True, str(workspace)), Check("Lokale Reparatur", repair_ok, repair_note)]
+    checks.extend(run_selftest(workspace, require_gui=require_gui))
     try:
-        (base_dir / "logs" / "startup-status.json").write_text(
+        (workspace / "logs" / "startup-status.json").write_text(
             json.dumps({"modus": "gui" if require_gui else "konsole", "checks": [asdict(c) for c in checks]}, ensure_ascii=False, indent=2),
             encoding="utf-8",
         )
@@ -78,8 +79,7 @@ def main() -> int:
     parser = argparse.ArgumentParser()
     parser.add_argument("--console", action="store_true")
     args = parser.parse_args()
-    base = Path(__file__).resolve().parents[2]
-    checks = bootstrap(base, require_gui=not args.console)
+    checks = bootstrap(None, require_gui=not args.console)
     bad = [c for c in checks if not c.ok]
     for check in checks:
         print(("OK" if check.ok else "FEHLER") + " | " + check.name + " | " + check.detail)

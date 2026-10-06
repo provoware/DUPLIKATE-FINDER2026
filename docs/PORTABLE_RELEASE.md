@@ -12,10 +12,11 @@ PROVOWARE-DUPLIKATE-FINDER-2026/
 ├── app/
 ├── docs/
 ├── agents/
+├── manifest/ standards/ schemas/ resources/
 ├── data/
 ├── logs/
 ├── recovery/
-├── quarantine/
+├── quarantine/       nur im Paket für Kompatibilität; Nutzerdaten liegen im Projektordner
 ├── STARTEN.sh
 └── STARTEN.desktop
 ```
@@ -57,4 +58,4 @@ Danach werden erzeugt:
 
 ## Plattform
 
-v0.2.0 baut zunächst Linux `x86_64`. Weitere Architekturen werden erst nach eigenem Testpfad ergänzt.
+v0.3.0 baut zunächst Linux `x86_64`. Weitere Rechner derselben Architektur werden über System-/Startprüfung automatisch erkannt. Weitere Architekturen erhalten erst nach eigenem E2E-Test ein freigegebenes Paket. Weitere Architekturen werden erst nach eigenem Testpfad ergänzt.
