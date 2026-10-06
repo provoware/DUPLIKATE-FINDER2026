@@ -2,6 +2,7 @@ from __future__ import annotations
 
 from collections.abc import Callable, Iterable
 
+from app.core.hashing import FileChangedError, ensure_record_unchanged
 from app.core.scanner import FileScanner
 from app.models.entities import FileRecord, JobStatus, SearchHit, SearchJob
 from app.process_control import ProgressInfo, ProgressTracker
@@ -9,6 +10,7 @@ from app.process_control import ProgressInfo, ProgressTracker
 
 ProgressCallback = Callable[[ProgressInfo], None]
 HitCallback = Callable[[SearchHit], None]
+MAX_TEXT_READ_CHARS = 256 * 1024
 
 
 class TextSearcher:
@@ -71,25 +73,52 @@ class TextSearcher:
 
             if job.search_contents:
                 try:
+                    ensure_record_unchanged(record)
                     with path.open(
                         "r",
                         encoding="utf-8",
                         errors="replace",
                     ) as handle:
-                        for number, line in enumerate(handle, start=1):
+                        number = 1
+                        overlap = ""
+                        line_prefix = ""
+                        line_matched = False
+                        overlap_limit = max(1, len(query))
+
+                        while True:
                             self.scanner.checkpoint()
-                            if query in line.casefold():
-                                self._record_hit(
-                                    hits,
-                                    SearchHit(
-                                        path=path,
-                                        line_number=number,
-                                        excerpt=line.strip()[:300],
-                                        source="inhalt",
-                                    ),
-                                )
+                            chunk = handle.readline(MAX_TEXT_READ_CHARS)
+                            if not chunk:
+                                break
+
+                            if len(line_prefix) < 300:
+                                remaining = 300 - len(line_prefix)
+                                line_prefix += chunk[:remaining]
+
+                            if not line_matched:
+                                probe = overlap + chunk
+                                if query in probe.casefold():
+                                    self._record_hit(
+                                        hits,
+                                        SearchHit(
+                                            path=path,
+                                            line_number=number,
+                                            excerpt=line_prefix.strip()[:300],
+                                            source="inhalt",
+                                        ),
+                                    )
+                                    line_matched = True
+
+                            if chunk.endswith("\n"):
+                                number += 1
+                                overlap = ""
+                                line_prefix = ""
+                                line_matched = False
+                            else:
+                                overlap = (overlap + chunk)[-overlap_limit:]
+
                     processed_bytes += record.size
-                except OSError as exc:
+                except (OSError, FileChangedError) as exc:
                     if len(job.errors) < 100:
                         job.errors.append(str(path))
                     self.scanner.report_error(path, "Textinhalt lesen", exc)
