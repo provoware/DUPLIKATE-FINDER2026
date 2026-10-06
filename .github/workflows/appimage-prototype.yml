@@ -1,0 +1,197 @@
+name: AppImage Prototyp
+
+on:
+  push:
+    branches:
+      - "prototype/appimage-v0.8.0"
+  workflow_dispatch:
+
+permissions:
+  contents: read
+
+concurrency:
+  group: provoware-appimage-prototype-${{ github.ref }}
+  cancel-in-progress: true
+
+jobs:
+  build:
+    name: AppImage bauen · Ubuntu 22.04
+    runs-on: ubuntu-22.04
+    steps:
+      - uses: actions/checkout@v4
+
+      - uses: actions/setup-python@v5
+        with:
+          python-version: "3.12"
+
+      - name: Zentrale Versionen lesen
+        run: |
+          set -euo pipefail
+          source dependencies.env
+          VERSION="$(python3 -c 'import pathlib,tomllib; print(tomllib.loads(pathlib.Path("pyproject.toml").read_text(encoding="utf-8"))["project"]["version"])')"
+          {
+            echo "VERSION=$VERSION"
+            echo "PYTHON_ARCHIVE=$PYTHON_ARCHIVE"
+            echo "PYTHON_URL=$PYTHON_URL"
+            echo "PYTHON_SHA256=$PYTHON_SHA256"
+            echo "PYSIDE6_VERSION=$PYSIDE6_VERSION"
+          } >> "$GITHUB_ENV"
+
+      - name: Build-Grundlagen
+        run: |
+          sudo apt-get update
+          sudo apt-get install -y --no-install-recommends libegl1 libgl1 libxkbcommon0 libfontconfig1 file curl ca-certificates
+
+      - name: Portable Python laden
+        run: |
+          set -euo pipefail
+          mkdir -p .build-cache
+          curl --fail --location --retry 3 --output ".build-cache/$PYTHON_ARCHIVE" "$PYTHON_URL"
+          echo "$PYTHON_SHA256  .build-cache/$PYTHON_ARCHIVE" | sha256sum --check --strict
+
+      - name: AppDir aufbauen
+        run: |
+          set -euo pipefail
+          APPDIR="$GITHUB_WORKSPACE/build/PROVOWARE.AppDir"
+          ROOT="$APPDIR/usr/lib/provoware"
+          mkdir -p "$ROOT" "$GITHUB_WORKSPACE/dist"
+
+          tar -xzf ".build-cache/$PYTHON_ARCHIVE" -C "$ROOT"
+          mv "$ROOT/python" "$ROOT/runtime"
+          "$ROOT/runtime/bin/python3" -m pip --version >/dev/null 2>&1 || "$ROOT/runtime/bin/python3" -m ensurepip --upgrade
+          "$ROOT/runtime/bin/python3" -m pip install --disable-pip-version-check "PySide6==$PYSIDE6_VERSION"
+
+          cp -a app docs manifest resources README.md SECURITY.md CHANGELOG.md pyproject.toml dependencies.env "$ROOT/"
+
+          cp packaging/appimage/AppRun "$APPDIR/AppRun"
+          cp packaging/appimage/provoware-duplicate-finder.desktop "$APPDIR/provoware-duplicate-finder.desktop"
+          cp packaging/appimage/provoware-duplicate-finder.svg "$APPDIR/provoware-duplicate-finder.svg"
+          ln -s provoware-duplicate-finder.svg "$APPDIR/.DirIcon"
+          chmod +x "$APPDIR/AppRun"
+
+          test -x "$ROOT/runtime/bin/python3"
+          test -f "$APPDIR/provoware-duplicate-finder.desktop"
+          test -f "$APPDIR/provoware-duplicate-finder.svg"
+
+      - name: Aktuelles appimagetool laden
+        run: |
+          set -euo pipefail
+          curl --fail --location --retry 3 \
+            --output appimagetool-x86_64.AppImage \
+            https://github.com/AppImage/appimagetool/releases/download/continuous/appimagetool-x86_64.AppImage
+          chmod +x appimagetool-x86_64.AppImage
+          sha256sum appimagetool-x86_64.AppImage | tee dist/appimagetool.sha256
+
+      - name: AppImage erzeugen
+        env:
+          ARCH: x86_64
+        run: |
+          set -euo pipefail
+          OUTPUT="$GITHUB_WORKSPACE/dist/PROVOWARE-DUPLIKATE-FINDER-2026-v${VERSION}-x86_64.AppImage"
+          ./appimagetool-x86_64.AppImage --appimage-extract-and-run \
+            "$GITHUB_WORKSPACE/build/PROVOWARE.AppDir" "$OUTPUT"
+          chmod +x "$OUTPUT"
+          file "$OUTPUT"
+          sha256sum "$OUTPUT" | tee "$OUTPUT.sha256"
+          du -h "$OUTPUT" | tee dist/APPIMAGE-GROESSE.txt
+
+      - name: AppImage-Struktur prüfen
+        run: |
+          set -euo pipefail
+          IMAGE="$GITHUB_WORKSPACE/dist/PROVOWARE-DUPLIKATE-FINDER-2026-v${VERSION}-x86_64.AppImage"
+          mkdir -p extracted
+          cd extracted
+          "$IMAGE" --appimage-extract >/dev/null
+          test -x squashfs-root/AppRun
+          test -f squashfs-root/provoware-duplicate-finder.desktop
+          test -f squashfs-root/provoware-duplicate-finder.svg
+          test -x squashfs-root/usr/lib/provoware/runtime/bin/python3
+          test -f squashfs-root/usr/lib/provoware/app/main.py
+
+      - name: Prototyp bereitstellen
+        uses: actions/upload-artifact@v4
+        with:
+          name: PROVOWARE-AppImage-Prototyp-v${{ env.VERSION }}
+          compression-level: 0
+          path: |
+            dist/PROVOWARE-DUPLIKATE-FINDER-2026-v${{ env.VERSION }}-x86_64.AppImage
+            dist/PROVOWARE-DUPLIKATE-FINDER-2026-v${{ env.VERSION }}-x86_64.AppImage.sha256
+            dist/APPIMAGE-GROESSE.txt
+            dist/appimagetool.sha256
+
+  test:
+    name: AppImage testen · Ubuntu ${{ matrix.ubuntu }}
+    needs: build
+    strategy:
+      fail-fast: false
+      matrix:
+        ubuntu: ["22.04", "24.04"]
+    runs-on: ubuntu-${{ matrix.ubuntu }}
+    steps:
+      - uses: actions/download-artifact@v4
+        with:
+          name: PROVOWARE-AppImage-Prototyp-v0.8.0
+          path: dist
+
+      - name: Qt-Systemgrundlagen
+        run: |
+          sudo apt-get update
+          sudo apt-get install -y --no-install-recommends libegl1 libgl1 libxkbcommon0 libfontconfig1
+          sudo apt-get install -y --no-install-recommends libfuse2 || sudo apt-get install -y --no-install-recommends libfuse2t64 || true
+
+      - name: Prüfsumme kontrollieren
+        run: |
+          set -euo pipefail
+          cd dist
+          sha256sum --check --strict PROVOWARE-DUPLIKATE-FINDER-2026-v0.8.0-x86_64.AppImage.sha256
+
+      - name: USB-Pfad simulieren und GUI starten
+        env:
+          QT_QPA_PLATFORM: offscreen
+          PROVOWARE_SMOKE_TEST: "1"
+          PROVOWARE_PORTABLE_DATA: "1"
+        run: |
+          set -euo pipefail
+          USBROOT="$RUNNER_TEMP/PROVOWARE USB TEST"
+          mkdir -p "$USBROOT"
+          cp dist/PROVOWARE-DUPLIKATE-FINDER-2026-v0.8.0-x86_64.AppImage "$USBROOT/"
+          IMAGE="$USBROOT/PROVOWARE-DUPLIKATE-FINDER-2026-v0.8.0-x86_64.AppImage"
+          chmod +x "$IMAGE"
+
+          if "$IMAGE"; then
+            echo "Direktstart über FUSE: OK"
+          else
+            echo "Direktstart nicht verfügbar – prüfe offiziellen Extraktions-Fallback."
+            "$IMAGE" --appimage-extract-and-run
+          fi
+
+          test -d "$USBROOT/PROVOWARE-DATEN"
+          test -f "$USBROOT/PROVOWARE-DATEN/logs/provoware.log"
+          grep -q "Oberfläche bereit" "$USBROOT/PROVOWARE-DATEN/logs/provoware.log"
+
+      - name: Nur-Lesen-Selbsttest aus extrahiertem AppImage
+        run: |
+          set -euo pipefail
+          IMAGE="$RUNNER_TEMP/PROVOWARE USB TEST/PROVOWARE-DUPLIKATE-FINDER-2026-v0.8.0-x86_64.AppImage"
+          WORK="$RUNNER_TEMP/appimage-extracted"
+          mkdir -p "$WORK"
+          cd "$WORK"
+          "$IMAGE" --appimage-extract >/dev/null
+          ROOT="$WORK/squashfs-root/usr/lib/provoware"
+          export PYTHONPATH="$ROOT"
+          export PROVOWARE_PROJECT_DIR="$RUNNER_TEMP/appimage-selftest"
+          "$ROOT/runtime/bin/python3" -m app.cli --selftest
+
+      - name: Testergebnis
+        run: |
+          {
+            echo "Ubuntu: ${{ matrix.ubuntu }}"
+            echo "AppImage: Start aus simuliertem USB-Pfad erfolgreich"
+            echo "Portable Daten: neben AppImage erfolgreich"
+            echo "Nur-Lesen-Selbsttest: erfolgreich"
+          } | tee "APPIMAGE-TEST-${{ matrix.ubuntu }}.txt"
+
+      - uses: actions/upload-artifact@v4
+        with:
+          name: AppImage-Test-Ubuntu-${{ matrix.ubuntu }}
+          path: APPIMAGE-TEST-${{ matrix.ubuntu }}.txt
