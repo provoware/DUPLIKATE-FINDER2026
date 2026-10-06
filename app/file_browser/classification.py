@@ -12,6 +12,7 @@ TEXT_EXTENSIONS = frozenset({
 IMAGE_EXTENSIONS = frozenset({
     ".png", ".jpg", ".jpeg", ".webp", ".bmp", ".gif", ".tif", ".tiff",
 })
+DOCUMENT_EXTENSIONS = frozenset({".docx", ".odt"})
 PDF_EXTENSIONS = frozenset({".pdf"})
 VIDEO_EXTENSIONS = frozenset({
     ".mp4", ".mkv", ".webm", ".avi", ".mov", ".m4v", ".mpeg", ".mpg",
@@ -31,6 +32,7 @@ KINDS = {
     "directory": FileKind("directory", "Ordner"),
     "text": FileKind("text", "Text"),
     "image": FileKind("image", "Bild"),
+    "document": FileKind("document", "Dokument"),
     "pdf": FileKind("pdf", "PDF"),
     "video": FileKind("video", "Video"),
     "audio": FileKind("audio", "Audio"),
@@ -46,6 +48,8 @@ def classify_path(path: Path, *, is_dir: bool | None = None) -> FileKind:
         return KINDS["text"]
     if suffix in IMAGE_EXTENSIONS:
         return KINDS["image"]
+    if suffix in DOCUMENT_EXTENSIONS:
+        return KINDS["document"]
     if suffix in PDF_EXTENSIONS:
         return KINDS["pdf"]
     if suffix in VIDEO_EXTENSIONS:
@@ -60,6 +64,7 @@ def known_extensions() -> frozenset[str]:
         TEXT_EXTENSIONS,
         IMAGE_EXTENSIONS,
         PDF_EXTENSIONS,
+        DOCUMENT_EXTENSIONS,
         VIDEO_EXTENSIONS,
         AUDIO_EXTENSIONS,
     )

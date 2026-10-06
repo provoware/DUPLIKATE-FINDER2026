@@ -4,7 +4,7 @@
   "project": {
     "id": "provoware-duplicate-finder-2026",
     "name": "PROVOWARE DUPLIKATE-FINDER 2026",
-    "version": "0.8.0",
+    "version": "0.9.0",
     "language": "de-DE"
   },
   "runtime": {
@@ -122,7 +122,24 @@
       "copy_path",
       "virtual_marking",
       "virtual_collections",
-      "safe_runtime_media_mounts"
+      "safe_runtime_media_mounts",
+      "text_encoding_and_statistics",
+      "json_pretty_preview",
+      "image_dimensions_and_megapixels",
+      "pdf_multi_page_navigation",
+      "wav_duration_channels_rate_bit_depth",
+      "media_metadata_limit_explanation",
+      "beginner_tooltips"
+    ],
+    "appimage_prototype": [
+      "isolated_ci_build",
+      "ubuntu_22_04_build",
+      "ubuntu_22_04_smoke_test",
+      "ubuntu_24_04_smoke_test",
+      "usb_path_with_spaces_test",
+      "sha256",
+      "size_limit_900_mib",
+      "not_part_of_stable_release"
     ]
   },
   "governance": {
@@ -135,7 +152,7 @@
         "frozen_on": "2026-10-06",
         "reopened_from_version": "0.5.1",
         "reopened_on": "2026-10-06",
-        "reopen_reason": "Ausdrücklicher Nutzerauftrag für v0.8.0: eigener Dateien-&-Vorschau-Bereich sowie unterschiedliche, kontrastreiche Akzentfarben je Hauptbereich. Re-Freeze erst nach vollständiger 800x600-/100/150/200-%-Abnahme.",
+        "reopen_reason": "Ausdrücklicher Nutzerauftrag für v0.9.0: Laienoptimierung, erweiterte Datei-/Dokumentvorschau, PDF-Seitennavigation und bessere Metadaten.",
         "scope": [
           "app/gui/**",
           "app/process_control.py",
@@ -156,8 +173,10 @@
           "full_800x600_100_150_200_acceptance",
           "post_validation"
         ],
+        "latest_reopened_from_version": "0.8.0",
+        "latest_reopened_on": "2026-10-06",
         "refrozen_on": "2026-10-06",
-        "refrozen_version": "0.8.0",
+        "refrozen_version": "0.9.0",
         "refreeze_evidence": [
           "targeted_checks_success",
           "quality_core_success",
@@ -165,7 +184,11 @@
           "ui_150_success",
           "ui_200_success",
           "autonomous_acceptance_success",
-          "portable_lite_recovery_success"
+          "portable_lite_recovery_success",
+          "appimage_build_success",
+          "appimage_ubuntu_22_04_success",
+          "appimage_ubuntu_24_04_success",
+          "appimage_usb_path_success"
         ]
       },
       {

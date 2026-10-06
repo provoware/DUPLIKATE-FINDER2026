@@ -115,3 +115,33 @@ Die beste aktuelle Balance aus Funktionsumfang, Stabilität und Paketgröße ist
 - AppImage später als zusätzliche Ein-Datei-Distribution testen.
 
 Damit bleibt v0.8.0 schlank, verständlich und robust, ohne Multimedia- oder Paketkomplexität unnötig in den stabilen Funktionsblock zu ziehen.
+
+
+## v0.9.0 – umgesetzter AppImage-Prototyp
+
+Der Prototyp besitzt jetzt einen eigenen GitHub-Actions-Workflow und bleibt vollständig vom stabilen Lite-/Recovery-Veröffentlichungsweg getrennt.
+
+Automatisch geprüft werden:
+
+- Bau auf Ubuntu 22.04,
+- SHA-256-Prüfsumme,
+- Größenobergrenze 900 MiB,
+- GUI-Start im Offscreen-Test,
+- Start aus einem simulierten USB-Pfad mit Leerzeichen,
+- Laufzeittest auf Ubuntu 22.04,
+- Laufzeittest auf Ubuntu 24.04.
+
+Das erzeugte AppImage wird ausschließlich als Workflow-Artefakt bereitgestellt. Eine automatische Veröffentlichung an GitHub Releases ist absichtlich nicht aktiviert.
+
+
+### Messergebnis des v0.9.0-Prototyps
+
+- AppImage-Größe: ca. **263 MB**
+- Build-System: Ubuntu 22.04
+- Starttest Ubuntu 22.04: **grün**
+- Starttest Ubuntu 24.04: **grün**
+- SHA-256-Prüfung: **grün**
+- simulierter USB-Pfad mit Leerzeichen: **grün**
+- stabile automatische Veröffentlichung: **weiterhin deaktiviert**
+
+Damit ist die technische Machbarkeit bestätigt. Vor einer Aufnahme in einen offiziellen Release bleibt eine bewusste Produktentscheidung erforderlich.

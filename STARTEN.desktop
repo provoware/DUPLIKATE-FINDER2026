@@ -1,7 +1,7 @@
 [Desktop Entry]
 Type=Application
 Name=PROVOWARE DUPLIKATE-FINDER 2026
-Comment=Textsuche und sichere Duplikatprüfung
+Comment=Textsuche, Duplikatprüfung und sichere Dateivorschau
 Exec=sh -c 'cd "$(dirname "%k")" && exec ./STARTEN.sh'
 Icon=system-search
 Terminal=false

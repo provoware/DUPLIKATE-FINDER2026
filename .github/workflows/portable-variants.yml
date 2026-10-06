@@ -2,6 +2,9 @@ name: Portable Lite und Recovery
 
 on:
   workflow_dispatch:
+  push:
+    branches: [main]
+    paths: ["docs/RELEASE_NOTES_v*.md"]
   pull_request:
     paths:
       - ".github/workflows/portable-variants.yml"
@@ -14,14 +17,45 @@ on:
       - "dependencies.env"
 
 permissions:
-  contents: read
+  contents: write
 
 concurrency:
   group: provoware-portable-variants-${{ github.ref }}
   cancel-in-progress: true
 
 jobs:
+  release_checks:
+    name: Vollständige Prüfung vor Paketbau
+    runs-on: ubuntu-24.04
+    env:
+      QT_QPA_PLATFORM: offscreen
+    steps:
+      - uses: actions/checkout@v4
+      - uses: actions/setup-python@v5
+        with:
+          python-version: "3.12"
+      - name: Prüfumgebung
+        run: |
+          sudo apt-get update
+          sudo apt-get install -y --no-install-recommends libegl1 libgl1 libxkbcommon0 libfontconfig1
+          python -m pip install -e ".[test]"
+      - name: Kern, Sicherheit und Oberfläche
+        run: |
+          set -euo pipefail
+          python tools/validate_manifests.py
+          python -m compileall -q app tests tools
+          python -m pytest
+          python tools/autonomous_acceptance.py --output artifacts/abnahme
+          for ZOOM in 100 150 200; do
+            python tools/ui_scale_check.py --zoom "$ZOOM" --output "artifacts/ui-$ZOOM.png"
+          done
+      - uses: actions/upload-artifact@v4
+        if: always()
+        with:
+          name: release-pruefberichte
+          path: artifacts/
   build:
+    needs: release_checks
     name: Lite / Recovery · Linux x86_64
     runs-on: ubuntu-24.04
     steps:
@@ -189,3 +223,37 @@ jobs:
             out/*-v${{ env.VERSION }}-linux-x86_64.zip
             out/*-v${{ env.VERSION }}-linux-x86_64.zip.sha256
             evidence/
+
+      - name: Nachweise für alle drei Downloadpakete
+        run: |
+          set -euo pipefail
+          R="$GITHUB_WORKSPACE/out/$RECOVERY_DIR"
+          for ARCHIVE in out/*.tar.gz out/*.zip; do
+            NAME="$(basename "$ARCHIVE")"
+            "$R/runtime/bin/python3" tools/build_metadata.py --archive "$ARCHIVE" --output-dir "evidence/build-$NAME" --commit "$GITHUB_SHA" --project-version "$VERSION"
+          done
+          (cd out && sha256sum --check --strict ./*.sha256)
+          tar -czf "out/PRUEFNACHWEISE-v${VERSION}.tar.gz" -C evidence .
+          (cd out && sha256sum "PRUEFNACHWEISE-v${VERSION}.tar.gz" > "PRUEFNACHWEISE-v${VERSION}.tar.gz.sha256")
+      - name: Nachweispaket sichern
+        uses: actions/upload-artifact@v4
+        with:
+          name: release-nachweise-v${{ env.VERSION }}
+          path: |
+            out/PRUEFNACHWEISE-*
+      - name: Geprüften Stand veröffentlichen
+        if: github.ref == 'refs/heads/main' && github.event_name != 'pull_request'
+        env:
+          GH_TOKEN: ${{ github.token }}
+        run: |
+          set -euo pipefail
+          TAG="v$VERSION"
+          NOTES="docs/RELEASE_NOTES_$TAG.md"
+          test -f "$NOTES"
+          # Bereits veröffentlichte Versionen bleiben unverändert.
+          if gh release view "$TAG" >/dev/null 2>&1; then
+            echo "Version $TAG existiert bereits. Keine Dateien überschrieben."
+            exit 0
+          fi
+          gh release create "$TAG" --target "$GITHUB_SHA" --draft --title "PROVOWARE DUPLIKATE-FINDER 2026 $TAG" --notes-file "$NOTES" out/*.tar.gz out/*.zip out/*.sha256
+          gh release edit "$TAG" --draft=false --latest

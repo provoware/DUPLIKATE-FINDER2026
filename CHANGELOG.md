@@ -2,6 +2,36 @@
 
 ## [Unveröffentlicht]
 
+## [0.9.0] – 2026-10-06
+
+### Veröffentlichung und Robustheit
+- Lite/Recovery-Veröffentlichung einschließlich Prüfsummen und Buildnachweisen automatisiert
+- große Textdateien bereits beim Einlesen begrenzt
+- defekte WAV-Dateien, tiefe JSON-Strukturen und Windows-Textkodierung abgesichert
+- DOCX-/ODT-Textvorschau aus dem vorbereiteten Änderungsstand übernommen und begrenzt
+
+### Vorschau und Metadaten
+- Textvorschau um Zeichencodierung sowie Zeilen-, Wort- und Zeichenzahl erweitert
+- JSON-Dateien bei gültigem Inhalt eingerückt dargestellt
+- Bildvorschau um Format, Pixelmaße, Megapixel und Seitenverhältnis ergänzt
+- mehrseitige PDFs mit Vor-/Zurück-Navigation
+- WAV-Metadaten ohne Zusatzbibliothek: Dauer, Kanäle, Abtastrate und Bit-Tiefe
+- klare Erklärung, wenn weitergehende Audio-/Video-Metadaten ohne Medienbibliothek nicht zuverlässig verfügbar sind
+
+### Nutzerfreundlichkeit
+- kurze Dateibrowser-Aktionen mit laiengerechten Tooltips und Hilfebeschreibungen
+- verständlicher Dateiname-Filter mit Beispiel
+- Tabellenhilfe: einmal klicken für Vorschau, Doppelklick auf Ordner zum Öffnen
+- README um Fakten, Paketgrößen, direkte URLs und 3-Schritte-Einstieg erweitert
+- Laienanleitung um Datei-/PDF-Vorschau und AppImage-Erklärung ergänzt
+
+### AppImage-Prototyp
+- isolierter GitHub-Actions-Bau auf Ubuntu 22.04
+- SHA-256- und Größenprüfung
+- Starttests auf Ubuntu 22.04 und Ubuntu 24.04
+- simulierter USB-Pfad mit Leerzeichen
+- keine automatische Aufnahme in stabile Releases vor vollständiger Freigabe
+
 ### Geplant
 - weitere Dateiformate und spätere, separat freizugebende Schreibfunktionen
 

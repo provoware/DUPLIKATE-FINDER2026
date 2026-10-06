@@ -15,6 +15,53 @@ Lokales Linux-Werkzeug für **Textsuche**, **vollständige Duplikatprüfung** un
 
 Die später vorgesehenen Dateiaktionen **Verschieben**, **Umbenennen**, **Quarantäne** und **Löschen** sind im Dashboard sichtbar, aber doppelt gesperrt: Oberfläche deaktiviert + Datenbank-Schalter `enabled=0`, `locked=1`.
 
+## Fakten & Zahlen
+
+| Bereich | Stand |
+| --- | --- |
+| Version dieses Quellstands | **v0.9.0** |
+| Aktuelle veröffentlichte Version | [Downloadseite](https://github.com/provoware/DUPLIKATE-FINDER2026/releases/latest) |
+| Zielsystem | Linux x86_64 |
+| Portable Python | **3.12.15** |
+| Oberfläche | PySide6 / Qt **6.11.2** |
+| Lokale Datenbank | SQLite |
+| Cloud-Zwang | **Nein** |
+| Originaldateien verändern | **Nein – Nur-Lesen-Sicherheitsmodell** |
+| Kleinste verpflichtende UI-Abnahme | **800 × 600** |
+| Zusätzlich geprüfte Vergrößerungen | **100 %, 150 %, 200 %** |
+| Maximale Textvorschau pro Datei | **512 KiB** |
+| Lite v0.8.0 entpackt | **733,0 MiB** |
+| Recovery v0.8.0 entpackt | **985,7 MiB** |
+| Lite-Ersparnis gegenüber Recovery | **252,7 MiB / 25,64 %** |
+| Lite v0.8.0 tar.gz | **287.249.251 Bytes (~273,9 MiB)** |
+| Lite v0.8.0 ZIP | **324.362.803 Bytes (~309,3 MiB)** |
+| Recovery v0.8.0 tar.gz | **544.618.282 Bytes (~519,4 MiB)** |
+| Lite v0.9.0 entpackt (CI) | **733,0 MiB** |
+| Recovery v0.9.0 entpackt (CI) | **985,8 MiB** |
+| AppImage-Prototyp v0.9.0 | **ca. 263 MB** |
+
+Die mit v0.8.0 bezeichneten Werte gehören zum vorherigen Release; die v0.9.0-Werte sind gerundete Messwerte der automatischen Paketprüfung. Exakte Größen und Prüfsummen des veröffentlichten Pakets stehen auf der Downloadseite und im Nachweispaket. AppImage bleibt ein getrennt getesteter Prototyp.
+
+## Für Einsteiger: in drei Schritten
+
+1. **Ordner wählen** – zum Beispiel Dokumente, Downloads oder einen eingehängten USB-Stick.
+2. **Datei anklicken** – Text, Bild oder PDF wird direkt angezeigt; Audio/Video zeigt technische Informationen und kann mit dem Linux-Standardprogramm geöffnet werden.
+3. **Nur virtuell organisieren** – Markierungen, Notizen und Sammlungen verändern die Originaldatei nicht.
+
+Kurze Knöpfe wie **Hoch**, **Neu laden**, **Öffnen**, **Ordner** und **Markieren** besitzen zusätzliche Hilfetexte. Einmaliges Anklicken zeigt die Vorschau; ein Doppelklick auf einen Ordner öffnet diesen Ordner innerhalb der Dateiansicht.
+
+## Wichtige Links
+
+- Repository: https://github.com/provoware/DUPLIKATE-FINDER2026
+- Aktueller veröffentlichter Release: https://github.com/provoware/DUPLIKATE-FINDER2026/releases/latest
+- Versionshinweise v0.9.0: https://github.com/provoware/DUPLIKATE-FINDER2026/blob/main/docs/RELEASE_NOTES_v0.9.0.md
+- Alle Releases: https://github.com/provoware/DUPLIKATE-FINDER2026/releases
+- Fehler melden / Verbesserung vorschlagen: https://github.com/provoware/DUPLIKATE-FINDER2026/issues
+- Sicherheitsinformationen: https://github.com/provoware/DUPLIKATE-FINDER2026/blob/main/SECURITY.md
+- Änderungsprotokoll: https://github.com/provoware/DUPLIKATE-FINDER2026/blob/main/CHANGELOG.md
+- Mitentwickeln: https://github.com/provoware/DUPLIKATE-FINDER2026/blob/main/CONTRIBUTING.md
+- Lizenzhinweis: https://github.com/provoware/DUPLIKATE-FINDER2026/blob/main/LICENSE-NOTICE.md
+
 ## Aktueller Funktionsumfang
 
 ### Textsuche
@@ -39,10 +86,11 @@ Treffer können markiert, kommentiert und Sammlungen zugeordnet werden. Die Orig
 Der neue Nur-Lesen-Bereich zeigt normale Ordner und eingehängte externe Datenträger über das Qt-Dateisystemmodell an.
 
 - Filter nach Dateiname und Dateigruppe
-- Textvorschau bis 512 KiB
-- skalierte Bildvorschau
-- PDF-Erstseitenvorschau über QtPdf
-- Metadaten für Audio und Video ohne zusätzlichen internen Player
+- Textvorschau bis 512 KiB mit erkannter Zeichencodierung sowie Zeilen-, Wort- und Zeichenzahl
+- lesbarer eingerückte JSON-Vorschau
+- skalierte Bildvorschau mit Format, Pixelmaßen, Megapixeln und Seitenverhältnis
+- PDF-Vorschau über QtPdf mit Vor-/Zurück-Navigation durch mehrere Seiten
+- bessere Audio-/Video-Metadaten ohne zusätzlichen internen Player; WAV zusätzlich mit Dauer, Kanälen, Abtastrate und Bit-Tiefe
 - Extern öffnen, Ordner anzeigen und Pfad kopieren
 - virtuelle Markierung und Zuordnung zu Sammlungen
 - symbolische Verknüpfungen werden nicht automatisch geöffnet
@@ -56,6 +104,21 @@ Die grafische Oberfläche verwendet ausschließlich **PySide6/Qt**. Tkinter ist 
 Die Abnahme beginnt verbindlich bei **800 × 600**. Danach folgen größere Bildschirmprofile sowie **150 % und 200 %**. Zusätzlich entsteht ein HTML-Raster mit Prüfbildern aller Hauptseiten.
 
 Die Prüfung wird automatisiert in GitHub Actions ausgeführt und erzeugt zusätzlich Prüfbilder.
+
+## AppImage-Prototyp
+
+v0.9.0 untersucht zusätzlich ein **AppImage als getrennten Prototyp**. Der stabile Lite-/Recovery-Weg wird dadurch nicht ersetzt.
+
+Der eigene CI-Test baut das AppImage auf Ubuntu 22.04 und prüft anschließend automatisch:
+
+- SHA-256-Prüfsumme,
+- Größenobergrenze von 900 MiB,
+- echten Programmstart,
+- Start aus einem simulierten USB-Pfad mit Leerzeichen,
+- Ubuntu 22.04,
+- Ubuntu 24.04.
+
+Der v0.9.0-Prototyp wurde mit rund **263 MB** gebaut und startet in der automatischen Prüfung auf Ubuntu **22.04 und 24.04**, einschließlich eines simulierten USB-Pfads mit Leerzeichen. Er bleibt trotzdem zunächst ein Prüfartefakt und wird nicht automatisch als stabiler Release veröffentlicht.
 
 ## Portabler Start
 
@@ -117,7 +180,7 @@ tools/        Prüfwerkzeuge
 
 ## Projektstatus
 
-**v0.8.0 – Datei-/Medienbrowser · Text/Bild/PDF-Vorschau · Nur-Lesen-Dateihilfen**
+**v0.9.0 – erweiterte Vorschau · PDF-Seitennavigation · Metadaten · Laienoptimierung · AppImage-Prototyp**
 
 Physische Dateiänderungen sind noch nicht freigegeben. Dieser Bereich bleibt gesperrt, bis ein eigener Änderungsvertrag, Vorschau, Transaktionsjournal, Rückgängig-Funktion und separate Abnahmetests existieren.
 
@@ -175,3 +238,11 @@ Neu hinzugekommen:
 Für Laien: `docs/LAIENANLEITUNG.md`.
 
 Für Entwickler: `docs/ENTWICKLERHANDBUCH.md`.
+
+### Dokumentvorschau in v0.9.0
+
+DOCX und ODT werden als Textvorschau unterstützt (maximal 100.000 Zeichen,
+interner XML-Text maximal 4 MiB). Makros werden nicht ausgeführt.
+Die Textvorschau liest höchstens 512 KiB ein.
+Die Veröffentlichung liefert Lite als tar.gz/ZIP, Recovery als tar.gz und
+SHA-256-Prüfsummen sowie ein gesondertes Paket mit Prüfnachweisen.

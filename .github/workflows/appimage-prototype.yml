@@ -1,0 +1,178 @@
+name: AppImage Prototyp
+
+on:
+  workflow_dispatch:
+  push:
+    branches: ["feature/v0.9.0-preview-appimage-usability"]
+    paths:
+      - ".github/workflows/appimage-prototype.yml"
+      - "app/**"
+      - "resources/**"
+      - "manifest/**"
+      - "pyproject.toml"
+      - "dependencies.env"
+  pull_request:
+    paths:
+      - ".github/workflows/appimage-prototype.yml"
+      - "app/**"
+      - "resources/**"
+      - "manifest/**"
+      - "pyproject.toml"
+      - "dependencies.env"
+
+permissions:
+  contents: read
+
+concurrency:
+  group: provoware-appimage-${{ github.ref }}
+  cancel-in-progress: true
+
+jobs:
+  build:
+    name: AppImage bauen · Ubuntu 22.04
+    runs-on: ubuntu-22.04
+    steps:
+      - uses: actions/checkout@v4
+      - uses: actions/setup-python@v5
+        with:
+          python-version: "3.12"
+      - name: Laufzeitvorgaben lesen
+        run: |
+          set -euo pipefail
+          source dependencies.env
+          VERSION="$(python3 -c 'import pathlib,tomllib; print(tomllib.loads(pathlib.Path("pyproject.toml").read_text(encoding="utf-8"))["project"]["version"])')"
+          {
+            echo "VERSION=$VERSION"
+            echo "PYTHON_ARCHIVE=$PYTHON_ARCHIVE"
+            echo "PYTHON_URL=$PYTHON_URL"
+            echo "PYTHON_SHA256=$PYTHON_SHA256"
+            echo "PYSIDE6_VERSION=$PYSIDE6_VERSION"
+          } >> "$GITHUB_ENV"
+
+      - name: Systemgrundlagen
+        run: |
+          sudo apt-get update
+          sudo apt-get install -y --no-install-recommends libegl1 libgl1 libxkbcommon0 libfontconfig1 curl file
+
+      - name: Portable Python laden
+        run: |
+          set -euo pipefail
+          curl --fail --location --retry 3 --output python-runtime.tar.gz "$PYTHON_URL"
+          echo "$PYTHON_SHA256  python-runtime.tar.gz" | sha256sum --check --strict
+
+      - name: AppDir aufbauen
+        run: |
+          set -euo pipefail
+          APPDIR="$GITHUB_WORKSPACE/AppDir"
+          APPROOT="$APPDIR/usr/app"
+          mkdir -p "$APPROOT" "$APPDIR/usr/bin"
+          tar -xzf python-runtime.tar.gz -C "$APPROOT"
+          mv "$APPROOT/python" "$APPROOT/runtime"
+          "$APPROOT/runtime/bin/python3" -m pip --version >/dev/null 2>&1 || "$APPROOT/runtime/bin/python3" -m ensurepip --upgrade
+          "$APPROOT/runtime/bin/python3" -m pip install --disable-pip-version-check "PySide6==$PYSIDE6_VERSION"
+          cp -a app resources manifest docs README.md SECURITY.md CHANGELOG.md pyproject.toml dependencies.env "$APPROOT/"
+          mkdir -p "$APPROOT/data" "$APPROOT/logs" "$APPROOT/recovery" "$APPROOT/quarantine"
+          cat > "$APPDIR/AppRun" <<'SH'
+          #!/usr/bin/env sh
+          set -eu
+          HERE="$(CDPATH= cd -- "$(dirname -- "$0")" && pwd)"
+          ROOT="$HERE/usr/app"
+          export PYTHONNOUSERSITE=1
+          export PYTHONDONTWRITEBYTECODE=1
+          export PYTHONPATH="$ROOT"
+          "$ROOT/runtime/bin/python3" -m app.startup.bootstrap
+          exec "$ROOT/runtime/bin/python3" -m app.main
+          SH
+          chmod +x "$APPDIR/AppRun"
+          cat > "$APPDIR/provoware-duplicate-finder.desktop" <<'DESKTOP'
+          [Desktop Entry]
+          Type=Application
+          Name=PROVOWARE DUPLIKATE-FINDER 2026
+          Comment=Sichere Textsuche, Duplikatprüfung und Dateivorschau
+          Exec=AppRun
+          Icon=provoware-duplicate-finder
+          Terminal=false
+          Categories=Utility;
+          DESKTOP
+          cat > "$APPDIR/provoware-duplicate-finder.svg" <<'SVG'
+          <svg xmlns="http://www.w3.org/2000/svg" width="256" height="256" viewBox="0 0 256 256">
+            <rect width="256" height="256" rx="44" fill="#071018"/>
+            <circle cx="104" cy="106" r="58" fill="none" stroke="#54e6e9" stroke-width="18"/>
+            <path d="M145 148 L211 214" stroke="#ffb35c" stroke-width="22" stroke-linecap="round"/>
+            <path d="M67 78 H141 M67 106 H128 M67 134 H116" stroke="#ffffff" stroke-width="10" stroke-linecap="round"/>
+          </svg>
+          SVG
+
+      - name: appimagetool laden und AppImage bauen
+        env:
+          APPIMAGE_EXTRACT_AND_RUN: "1"
+        run: |
+          set -euo pipefail
+          curl --fail --location --retry 3 --output appimagetool.AppImage https://github.com/AppImage/AppImageKit/releases/download/continuous/appimagetool-x86_64.AppImage
+          chmod +x appimagetool.AppImage
+          ARCH=x86_64 ./appimagetool.AppImage AppDir "PROVOWARE-DUPLIKATE-FINDER-2026-v${VERSION}-x86_64.AppImage"
+          sha256sum "PROVOWARE-DUPLIKATE-FINDER-2026-v${VERSION}-x86_64.AppImage" > "PROVOWARE-DUPLIKATE-FINDER-2026-v${VERSION}-x86_64.AppImage.sha256"
+          ls -lh *.AppImage *.sha256
+          file "PROVOWARE-DUPLIKATE-FINDER-2026-v${VERSION}-x86_64.AppImage"
+
+      - name: Build-System Starttest
+        env:
+          APPIMAGE_EXTRACT_AND_RUN: "1"
+          QT_QPA_PLATFORM: offscreen
+          PROVOWARE_SMOKE_TEST: "1"
+          PROVOWARE_PROJECT_DIR: ${{ github.workspace }}/workspace-appimage-build
+        run: |
+          set -euo pipefail
+          "./PROVOWARE-DUPLIKATE-FINDER-2026-v${VERSION}-x86_64.AppImage"
+          grep -q "Oberfläche bereit" "$PROVOWARE_PROJECT_DIR/logs/provoware.log"
+
+      - uses: actions/upload-artifact@v4
+        with:
+          name: appimage-prototype
+          compression-level: 0
+          path: |
+            PROVOWARE-DUPLIKATE-FINDER-2026-v*-x86_64.AppImage
+            PROVOWARE-DUPLIKATE-FINDER-2026-v*-x86_64.AppImage.sha256
+
+  test:
+    name: AppImage testen · ${{ matrix.os }}
+    needs: build
+    strategy:
+      fail-fast: false
+      matrix:
+        os: [ubuntu-22.04, ubuntu-24.04]
+    runs-on: ${{ matrix.os }}
+    steps:
+      - uses: actions/download-artifact@v4
+        with:
+          name: appimage-prototype
+          path: artifact
+      - name: Testgrundlagen
+        run: |
+          sudo apt-get update
+          sudo apt-get install -y --no-install-recommends libegl1 libgl1 libxkbcommon0 libfontconfig1
+      - name: Prüfsumme und Größe
+        run: |
+          set -euo pipefail
+          cd artifact
+          sha256sum --check --strict *.sha256
+          SIZE="$(stat -c %s *.AppImage)"
+          echo "AppImage-Größe: $SIZE Bytes"
+          test "$SIZE" -lt 943718400
+      - name: USB-Pfad mit Leerzeichen simulieren
+        env:
+          APPIMAGE_EXTRACT_AND_RUN: "1"
+          QT_QPA_PLATFORM: offscreen
+          PROVOWARE_SMOKE_TEST: "1"
+          PROVOWARE_PROJECT_DIR: ${{ runner.temp }}/provoware-usb-workspace
+        run: |
+          set -euo pipefail
+          USB="${{ runner.temp }}/USB STICK/PROVOWARE"
+          mkdir -p "$USB"
+          cp artifact/*.AppImage "$USB/"
+          chmod +x "$USB"/*.AppImage
+          "$USB"/*.AppImage
+          grep -q "Oberfläche bereit" "$PROVOWARE_PROJECT_DIR/logs/provoware.log"
+          echo "OK | Start vom simulierten USB-Pfad mit Leerzeichen"
+      - name: Nachweis
+        run: echo "OK | AppImage-Prototyp auf ${{ matrix.os }} gestartet"
