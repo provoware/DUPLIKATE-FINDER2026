@@ -14,8 +14,8 @@ EXCLUDED_PARTS = {
 EXCLUDED_ROOT_DIRS = {"data", "logs", "recovery", "quarantine"}
 AREA_RULES = (
     ("startup", ("STARTEN", "ENTWICKLUNG_STARTEN.sh", "dependencies.env", "app/startup/", "app/main.py", "app/workspace.py")),
-    ("gui", ("app/gui/", "resources/texts/", "standards/")),
-    ("core", ("app/core/", "app/models/", "app/storage/", "app/safety/", "app/validation.py")),
+    ("gui", ("app/gui/", "app/file_browser/widget.py", "resources/texts/", "standards/")),
+    ("core", ("app/core/", "app/file_browser/classification.py", "app/file_browser/preview.py", "app/models/", "app/storage/", "app/safety/", "app/validation.py")),
     ("tests", ("tests/", "tools/autonomous_acceptance.py", "tools/ui_scale_check.py")),
     ("automation", (".github/workflows/", "agents/", "manifest/agents")),
     ("manifests", ("manifest/", "schemas/", "config/", "templates/")),
