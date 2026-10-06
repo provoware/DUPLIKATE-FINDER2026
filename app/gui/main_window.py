@@ -210,6 +210,7 @@ class MainWindow(QMainWindow):
         self.process_status_row = status_row
         self.status_label = QLabel("OK · Bereit")
         self.status_label.setObjectName("status_label")
+        self.status_label.setProperty("statusLevel", "ok")
         self.status_label.setAccessibleName("Vorgangsstatus")
         self.status_label.setStyleSheet("font-weight: 800;")
         self.activity_label = QLabel("Aktivität: bereit")
