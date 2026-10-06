@@ -28,6 +28,7 @@ def find_duplicate_groups(
     pause_provider=(lambda:scanner.control.paused_seconds) if scanner and scanner.control else None
     tracker=ProgressTracker(len(candidates),"Duplikatkandidaten vollständig prüfen",pause_provider)
     checked=0
+    processed_bytes=0
     groups:list[DuplicateGroup]=[]
 
     if progress and not candidates:
@@ -42,11 +43,16 @@ def find_duplicate_groups(
                 scanner._checkpoint()
             try:
                 by_hash[sha256_file(record.path)].append(record.path)
+                processed_bytes+=record.size
             except (OSError,PermissionError):
                 pass
             checked+=1
             if progress:
-                progress(tracker.update(checked,f"Prüfsumme {checked} von {len(candidates)}"))
+                progress(tracker.update(
+                    checked,
+                    f"Prüfsumme {checked} von {len(candidates)}",
+                    processed_bytes=processed_bytes,
+                ))
 
         for digest,paths in by_hash.items():
             if len(paths)>1:
@@ -63,5 +69,5 @@ def scan_duplicate_groups(
     active_scanner=scanner or FileScanner()
     records=list(active_scanner.iter_files(root))
     if progress:
-        progress(ProgressInfo("Nach Dateigröße vorsortieren",0,0,0.0,None))
+        progress(ProgressInfo("Nach Dateigröße vorsortieren",0,0,0.0,None,0))
     return len(records),find_duplicate_groups(records,scanner=active_scanner,progress=progress)
