@@ -6,6 +6,7 @@ from typing import Any
 from PySide6.QtWidgets import QMessageBox
 
 from app.gui.error_feedback import report_ui_error
+from app.gui.status_feedback import set_status
 
 
 class ResultController:
@@ -67,8 +68,10 @@ class ResultController:
             )
             return
         self.window.results_model.set_marked(path, marked)
-        self.window.status_label.setText(
-            "OK · Virtuelle Markierung gespeichert"
+        set_status(
+            self.window.status_label,
+            "OK · Virtuelle Markierung gespeichert",
+            "ok",
         )
 
     def add_selected_to_collection(self) -> None:
@@ -107,6 +110,8 @@ class ResultController:
                 error=exc,
             )
             return
-        self.window.status_label.setText(
-            "OK · Treffer virtuell zur Sammlung hinzugefügt"
+        set_status(
+            self.window.status_label,
+            "OK · Treffer virtuell zur Sammlung hinzugefügt",
+            "ok",
         )
