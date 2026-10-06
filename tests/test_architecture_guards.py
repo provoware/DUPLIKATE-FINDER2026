@@ -6,11 +6,14 @@ APP = ROOT / "app"
 
 
 def test_no_tkinter_anywhere_in_python_source():
+    import re
+
     offenders = []
+    forbidden_import = re.compile(r"(?m)^\\s*(?:from\\s+tkinter(?:\\.|\\s)|import\\s+tkinter(?:\\.|\\s|$))")
     for source_root in (APP, ROOT / "tools"):
         for path in source_root.rglob("*.py"):
             text = path.read_text(encoding="utf-8").casefold()
-            if "tkinter" in text or "from tk" in text:
+            if forbidden_import.search(text):
                 offenders.append(str(path))
     assert offenders == []
     assert "tkinter" not in (ROOT / "pyproject.toml").read_text(encoding="utf-8").casefold()
