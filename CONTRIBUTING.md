@@ -1,6 +1,6 @@
 # Mitwirkung
 
-Dieses Repository ist primär ein privates PROVOWARE-Projekt. Änderungen sollen trotzdem wie in einem kleinen professionellen Softwareprojekt behandelt werden.
+Dieses Repository ist öffentlich sichtbar, wird aber zentral durch PROVOWARE gepflegt. Änderungen werden wie in einem kleinen professionellen Softwareprojekt behandelt.
 
 1. eigenen Zweig verwenden,
 2. kleine, thematisch klare Änderungen,
