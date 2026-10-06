@@ -1,39 +1,40 @@
 # Entwicklung
 
-## Lokale Einrichtung
-
-```bash
-python3 -m venv .venv
-.venv/bin/python -m pip install -e ".[test]"
-.venv/bin/python -m pytest
-```
-
-Danach:
+## Ein-Klick-Start
 
 ```bash
 ./ENTWICKLUNG_STARTEN.sh
 ```
 
-## Arbeitsregel
+Der Starter erkennt und repariert die lokale Entwicklungsumgebung selbst.
 
-Änderungen erfolgen auf einem eigenen Zweig und über einen Änderungsantrag. `main` ist der freigegebene Stand.
+Er verwendet Python 3.12.15 aus dem Vollpaket oder lädt beim nackten GitHub-Quellcode genau diese geprüfte Laufzeit in `.provoware-dev/`. Das System-Python bleibt unverändert.
 
-## Pflicht vor Zusammenführung
+## Weitere Modi
 
-- Tests grün
-- Python-Kompilierung grün
-- Oberflächenprüfungen 100/150/200 % grün
-- Sicherheitsvertrag unverletzt
-- Dokumentation bei Vertragsänderungen aktualisiert
+```bash
+./ENTWICKLUNG_STARTEN.sh --konsole
+./ENTWICKLUNG_STARTEN.sh --nur-pruefen
+./ENTWICKLUNG_STARTEN.sh --tests
+./ENTWICKLUNG_STARTEN.sh --abnahme
+```
+
+## Automatisches Profil
+
+Jeder Lauf erfasst Betriebssystem, Kernel, Architektur, CPU, RAM, SWAP, freien Speicher, Anzeigeart, Schreibrechte, Paketversionen, Qt und vorhandene Hilfsprogramme.
+
+Ergebnisse:
+
+- `.provoware-dev/systemprofil.json`
+- `logs/ABHAENGIGKEITEN_AKTUELL.txt`
+- `logs/ABHAENGIGKEITEN_AKTUELL.json`
+
+## Kein Tk/Tkinter
+
+Die GUI verwendet ausschließlich PySide6/Qt. Tkinter ist durch Architekturtests verboten.
 
 ## Keine Systemänderungen
 
-Entwicklungsabhängigkeiten gehören in `.venv`. Release-Abhängigkeiten gehören in `runtime/`. Das Hauptsystem wird nicht verändert.
+Kein sudo, keine Änderung des System-Python und keine systemweite pip-Installation.
 
-## Autonome Gesamt-Abnahme
-
-Vor einer Freigabe zusätzlich ausführen:
-
-    QT_QPA_PLATFORM=offscreen python tools/autonomous_acceptance.py --output artifacts/abnahme
-
-Der erzeugte HTML-Bericht ist Teil der Regressionsevidenz. Neue Funktionen müssen bestehende Testdateiverträge und UI-Profile bestehen.
+Siehe `docs/ABHAENGIGKEITEN.md`.

@@ -5,13 +5,15 @@ ROOT = Path(__file__).resolve().parents[1]
 APP = ROOT / "app"
 
 
-def test_no_tkinter_in_application_source():
+def test_no_tkinter_anywhere_in_python_source():
     offenders = []
-    for path in APP.rglob("*.py"):
-        text = path.read_text(encoding="utf-8").casefold()
-        if "tkinter" in text or "from tk" in text:
-            offenders.append(str(path))
+    for source_root in (APP, ROOT / "tools"):
+        for path in source_root.rglob("*.py"):
+            text = path.read_text(encoding="utf-8").casefold()
+            if "tkinter" in text or "from tk" in text:
+                offenders.append(str(path))
     assert offenders == []
+    assert "tkinter" not in (ROOT / "pyproject.toml").read_text(encoding="utf-8").casefold()
 
 
 def test_no_destructive_file_api_in_application():
@@ -64,3 +66,18 @@ def test_console_entrypoint_exists_and_reuses_core():
     assert "TextSearcher" in source
     assert "scan_duplicate_groups" in source
     assert "validate_scan_root" in source
+
+def test_development_start_is_self_bootstrapping():
+    source = (ROOT / "ENTWICKLUNG_STARTEN.sh").read_text(encoding="utf-8")
+    assert ".provoware-dev" in source
+    assert "PYTHON_VERSION" in source
+    assert "python3 -m venv" not in source
+    assert "sudo " not in source
+    assert "PySide6" in source
+
+def test_dependency_contract_is_documented():
+    assert (ROOT / "dependencies.env").is_file()
+    assert (ROOT / "docs" / "ABHAENGIGKEITEN.md").is_file()
+    text = (ROOT / "dependencies.env").read_text(encoding="utf-8")
+    assert 'PYTHON_VERSION="3.12.15"' in text
+    assert 'PYSIDE6_VERSION="6.11.2"' in text
