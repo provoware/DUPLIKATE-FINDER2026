@@ -26,7 +26,12 @@ def find_duplicate_groups(
 
     candidates=[record for same_size in by_size.values() if len(same_size)>1 for record in same_size]
     pause_provider=(lambda:scanner.control.paused_seconds) if scanner and scanner.control else None
-    tracker=ProgressTracker(len(candidates),"Duplikatkandidaten vollständig prüfen",pause_provider)
+    tracker=ProgressTracker(
+        len(candidates),
+        "Duplikatkandidaten vollständig prüfen",
+        pause_provider,
+        total_bytes=sum(record.size for record in candidates),
+    )
     checked=0
     processed_bytes=0
     groups:list[DuplicateGroup]=[]
