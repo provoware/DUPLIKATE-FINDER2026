@@ -17,7 +17,6 @@ from PySide6.QtWidgets import (
     QLabel,
     QLineEdit,
     QListWidget,
-    QListWidgetItem,
     QMainWindow,
     QMessageBox,
     QPushButton,
@@ -29,7 +28,9 @@ from PySide6.QtWidgets import (
     QWidget,
 )
 
+from app.gui.collection_controller import CollectionController
 from app.gui.duplicate_controller import DuplicateController
+from app.gui.navigation import NAVIGATION, navigation_titles
 from app.gui.process_controller import ProcessUiController
 from app.gui.search_controller import SearchController
 from app.gui.table_models import CollectionItemsModel, DuplicateMembersModel, SearchResultsModel
@@ -68,6 +69,7 @@ class MainWindow(QMainWindow):
         self.process_controller = ProcessUiController(self)
         self.search_controller = SearchController(self)
         self.duplicate_controller = DuplicateController(self)
+        self.collection_controller = CollectionController(self)
 
         self.setWindowTitle("PROVOWARE DUPLIKATE-FINDER 2026 – Nur-Lesen-Modus")
         app = QApplication.instance()
@@ -75,7 +77,7 @@ class MainWindow(QMainWindow):
         self.resize(1280, 800)
         self.setMinimumSize(760, 520)
         self._build_ui()
-        self._refresh_collections()
+        self.collection_controller.refresh()
         self.duplicate_controller.refresh_view_from_database()
 
     def _heading(self, text: str) -> QLabel:
@@ -161,11 +163,14 @@ class MainWindow(QMainWindow):
         self.compact_nav.setAccessibleName("Bereich auswählen")
         self.compact_nav.setToolTip("Wähle den Programmteil, den du öffnen möchtest.")
         self.compact_nav.setMaximumWidth(210)
-        nav_items = ["Übersicht", "Textsuche", "Ergebnisse", "Duplikate", "Sammlungen", "Dateien & Vorschau", "Journal", "Hilfe"]
-        nav_colors = ["#74d9ff", "#6ee7ff", "#9ce6ff", "#ff7e9d", "#d59bff", "#ffbf69", "#74e39a", "#b8c4ff"]
+        nav_items = navigation_titles()
         self.compact_nav.addItems(nav_items)
-        for index, color in enumerate(nav_colors):
-            self.compact_nav.setItemData(index, QColor(color), Qt.ItemDataRole.ForegroundRole)
+        for index, item in enumerate(NAVIGATION):
+            self.compact_nav.setItemData(
+                index,
+                QColor(item.color),
+                Qt.ItemDataRole.ForegroundRole,
+            )
         header.addWidget(self.compact_nav)
 
         body = QHBoxLayout()
@@ -173,8 +178,8 @@ class MainWindow(QMainWindow):
         self.nav.setObjectName("main_navigation")
         self.nav.setAccessibleName("Hauptnavigation")
         self.nav.addItems(nav_items)
-        for index, color in enumerate(nav_colors):
-            self.nav.item(index).setForeground(QColor(color))
+        for index, item in enumerate(NAVIGATION):
+            self.nav.item(index).setForeground(QColor(item.color))
         self.compact_nav.currentIndexChanged.connect(self.nav.setCurrentRow)
         self.nav.setCurrentRow(self.PAGE_DASHBOARD)
         self.nav.setSelectionMode(QAbstractItemView.SingleSelection)
@@ -610,18 +615,18 @@ class MainWindow(QMainWindow):
         page.setObjectName("page_collections")
         page.setProperty("area", "collections")
         layout = QVBoxLayout(page)
-        layout.addWidget(self._heading("Virtuelle Sammlungen"))
+        layout.addWidget(self._heading(ui_text("collections.heading", "Virtuelle Sammlungen")))
 
         create = QGridLayout()
         self.collection_name = QLineEdit()
         self.collection_name.setObjectName("collection_name")
-        self.collection_name.setPlaceholderText("Name der neuen Sammlung")
+        self.collection_name.setPlaceholderText(ui_text("collections.name_placeholder", "Name der neuen Sammlung"))
         self.collection_note = QLineEdit()
         self.collection_note.setObjectName("collection_note")
-        self.collection_note.setPlaceholderText("Optionale Beschreibung")
-        create_button = QPushButton("Sammlung anlegen")
+        self.collection_note.setPlaceholderText(ui_text("collections.note_placeholder", "Optionale Beschreibung"))
+        create_button = QPushButton(ui_text("collections.create_button", "Sammlung anlegen"))
         create_button.setObjectName("collection_create")
-        create_button.clicked.connect(self._create_collection)
+        create_button.clicked.connect(self.collection_controller.create)
         create.addWidget(self.collection_name, 0, 0)
         create.addWidget(self.collection_note, 0, 1)
         create.addWidget(create_button, 1, 0, 1, 2)
@@ -630,12 +635,12 @@ class MainWindow(QMainWindow):
         splitter = QSplitter(Qt.Horizontal)
         self.collection_list = QListWidget()
         self.collection_list.setObjectName("collection_list")
-        self.collection_list.currentRowChanged.connect(self._show_collection)
+        self.collection_list.currentRowChanged.connect(self.collection_controller.show)
         splitter.addWidget(self.collection_list)
 
         right = QWidget()
         right_layout = QVBoxLayout(right)
-        self.collection_summary = QLabel("Noch keine Sammlung ausgewählt.")
+        self.collection_summary = QLabel(ui_text("collections.none_selected", "Noch keine Sammlung ausgewählt."))
         self.collection_summary.setObjectName("collection_summary")
         self.collection_summary.setWordWrap(True)
         right_layout.addWidget(self.collection_summary)
@@ -649,16 +654,16 @@ class MainWindow(QMainWindow):
         self.collection_items_table.setSelectionMode(QAbstractItemView.SingleSelection)
         self.collection_items_table.setEditTriggers(QAbstractItemView.NoEditTriggers)
         right_layout.addWidget(self.collection_items_table, 1)
-        remove = QPushButton("Nur aus Sammlung entfernen")
+        remove = QPushButton(ui_text("collections.remove_button", "Nur aus Sammlung entfernen"))
         remove.setObjectName("collection_remove")
-        remove.clicked.connect(self._remove_selected_collection_item)
+        remove.clicked.connect(self.collection_controller.remove_selected_item)
         right_layout.addWidget(remove)
         splitter.addWidget(right)
         splitter.setStretchFactor(0, 1)
         splitter.setStretchFactor(1, 3)
         layout.addWidget(splitter, 1)
 
-        safe = QLabel("Sammlungen sind rein virtuell. Die Dateien bleiben an ihrem Originalort.")
+        safe = QLabel(ui_text("collections.safety_note", "Sammlungen sind rein virtuell. Die Dateien bleiben an ihrem Originalort."))
         safe.setObjectName("collection_safety_note")
         safe.setWordWrap(True)
         safe.setProperty("card", True)
@@ -796,78 +801,10 @@ class MainWindow(QMainWindow):
             QMessageBox.information(self, "Keine Sammlung", "Bitte zuerst eine Sammlung anlegen.")
             return
         self.database.add_collection_item(int(collection_id), path, self.result_note.text())
-        self._show_collection(self.collection_list.currentRow())
+        self.collection_controller.show(self.collection_list.currentRow())
         self.status_label.setText("OK · Treffer virtuell zur Sammlung hinzugefügt")
 
-    def _create_collection(self) -> None:
-        name = self.collection_name.text().strip()
-        note = self.collection_note.text().strip()
-        try:
-            collection_id = self.database.create_collection(name, note)
-        except ValueError as exc:
-            QMessageBox.information(self, "Name fehlt", str(exc))
-            return
-        except Exception as exc:
-            QMessageBox.information(self, "Sammlung nicht angelegt", f"{exc}")
-            return
-        self.collection_name.clear()
-        self.collection_note.clear()
-        self._refresh_collections(select_id=collection_id)
-        self.status_label.setText("OK · Virtuelle Sammlung angelegt")
-
     def _refresh_collections(self, select_id: int | None = None) -> None:
-        collections = self.database.collections()
-        self.collection_list.clear()
-        self.result_collection.clear()
-        target_row = -1
-        for row, collection in enumerate(collections):
-            item = QListWidgetItem(collection.name)
-            item.setData(Qt.UserRole, collection.id)
-            item.setToolTip(collection.note)
-            self.collection_list.addItem(item)
-            self.result_collection.addItem(collection.name, collection.id)
-            if collection.id == select_id:
-                target_row = row
-        if collections:
-            self.collection_list.setCurrentRow(target_row if target_row >= 0 else 0)
-        else:
-            self.collection_summary.setText("Noch keine Sammlung angelegt.")
-            self.collection_items_model.set_collection(None)
-
-    def _current_collection_id(self) -> int | None:
-        item = self.collection_list.currentItem()
-        if item is None:
-            return None
-        value = item.data(Qt.UserRole)
-        return int(value) if value is not None else None
-
-    def _show_collection(self, _row: int) -> None:
-        collection_id = self._current_collection_id()
-        if collection_id is None:
-            self.collection_items_model.set_collection(None)
-            return
-        collection = next(
-            (c for c in self.database.collections() if c.id == collection_id),
-            None,
-        )
-        if collection is None:
-            self.collection_items_model.set_collection(None)
-            return
-        count = self.database.collection_item_count(collection_id)
-        suffix = f" · {collection.note}" if collection.note else ""
-        self.collection_summary.setText(
-            f"{collection.name} · {count} Einträge{suffix}"
-        )
-        self.collection_items_model.set_collection(collection_id)
-
-    def _remove_selected_collection_item(self) -> None:
-        collection_id = self._current_collection_id()
-        index=self.collection_items_table.currentIndex()
-        path=self.collection_items_model.path_at(index.row()) if index.isValid() else None
-        if collection_id is None or path is None:
-            QMessageBox.information(self, "Keine Auswahl", "Bitte einen Sammlungseintrag auswählen.")
-            return
-        self.database.remove_collection_item(collection_id,path)
-        self._show_collection(self.collection_list.currentRow())
-        self.status_label.setText("OK · Eintrag nur aus der virtuellen Sammlung entfernt")
+        """Kompatibilitätsbrücke für Erweiterungen mit bestehendem Refresh-Vertrag."""
+        self.collection_controller.refresh(select_id=select_id)
 
