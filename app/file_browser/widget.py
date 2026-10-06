@@ -68,6 +68,7 @@ class FileBrowserWidget(QWidget):
         self.setProperty("area", "files")
         self._root: Path | None = None
         self._current_path: Path | None = None
+        self._pdf_page = 0
 
         self.model = QFileSystemModel(self)
         self.model.setFilter(QDir.Filter.AllEntries | QDir.Filter.NoDotAndDotDot)
@@ -182,6 +183,26 @@ class FileBrowserWidget(QWidget):
         self.preview_details.setTextInteractionFlags(Qt.TextInteractionFlag.TextSelectableByMouse)
         preview_layout.addWidget(self.preview_details)
 
+        self.pdf_nav = QWidget()
+        self.pdf_nav.setObjectName("file_preview_pdf_nav")
+        pdf_nav_layout = QHBoxLayout(self.pdf_nav)
+        pdf_nav_layout.setContentsMargins(0, 0, 0, 0)
+        pdf_nav_layout.setSpacing(4)
+        self.pdf_prev = QPushButton("← Vorherige Seite")
+        self.pdf_prev.setObjectName("file_preview_pdf_prev")
+        self.pdf_prev.clicked.connect(self.previous_pdf_page)
+        self.pdf_page_label = QLabel("Seite 1 von 1")
+        self.pdf_page_label.setObjectName("file_preview_pdf_page")
+        self.pdf_page_label.setAlignment(Qt.AlignmentFlag.AlignCenter)
+        self.pdf_next = QPushButton("Nächste Seite →")
+        self.pdf_next.setObjectName("file_preview_pdf_next")
+        self.pdf_next.clicked.connect(self.next_pdf_page)
+        pdf_nav_layout.addWidget(self.pdf_prev)
+        pdf_nav_layout.addWidget(self.pdf_page_label, 1)
+        pdf_nav_layout.addWidget(self.pdf_next)
+        self.pdf_nav.setVisible(False)
+        preview_layout.addWidget(self.pdf_nav)
+
         actions = QGridLayout()
         self.open_button = QPushButton("Öffnen")
         self.open_button.setObjectName("file_browser_open")
@@ -289,6 +310,8 @@ class FileBrowserWidget(QWidget):
             self.show_preview(path)
 
     def show_preview(self, path: Path) -> None:
+        if self._current_path != path:
+            self._pdf_page = 0
         self._current_path = path
         exists = path.exists()
         is_link = path.is_symlink()
@@ -313,9 +336,15 @@ class FileBrowserWidget(QWidget):
             self.preview_details.setText(f"Pfad: {path}")
             return
 
-        data = build_preview(path)
+        data = build_preview(path, pdf_page=self._pdf_page)
         self.preview_title.setText(data.title)
         self.preview_details.setText(data.details)
+        self.pdf_nav.setVisible(data.kind == "pdf" and data.page_count > 1)
+        if data.kind == "pdf":
+            self._pdf_page = data.page_index
+            self.pdf_page_label.setText(f"Seite {data.page_index + 1} von {max(1, data.page_count)}")
+            self.pdf_prev.setEnabled(data.page_index > 0)
+            self.pdf_next.setEnabled(data.page_index + 1 < data.page_count)
         state = self.database.virtual_item(path)
         self.mark_button.setText("Markierung entfernen" if state.marked else "Markieren")
 
@@ -347,12 +376,27 @@ class FileBrowserWidget(QWidget):
         self.preview_text.clear()
         self.preview_text.setVisible(False)
         self.preview_details.setText("Metadaten erscheinen hier.")
+        self.pdf_nav.setVisible(False)
+        self._pdf_page = 0
         self.open_button.setEnabled(False)
         self.show_button.setEnabled(False)
         self.copy_button.setEnabled(False)
         self.mark_button.setEnabled(False)
         self.collection_button.setEnabled(False)
         self.mark_button.setText("Markieren")
+
+    def previous_pdf_page(self) -> None:
+        if self._current_path is None or self._current_path.suffix.casefold() != ".pdf":
+            return
+        if self._pdf_page > 0:
+            self._pdf_page -= 1
+            self.show_preview(self._current_path)
+
+    def next_pdf_page(self) -> None:
+        if self._current_path is None or self._current_path.suffix.casefold() != ".pdf":
+            return
+        self._pdf_page += 1
+        self.show_preview(self._current_path)
 
     def open_current(self) -> None:
         if self._current_path and self._current_path.exists():
