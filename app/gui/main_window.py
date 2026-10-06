@@ -9,6 +9,7 @@ from PySide6.QtWidgets import (
     QComboBox,
     QFileDialog,
     QFrame,
+    QDialog,
     QGridLayout,
     QHBoxLayout,
     QLabel,
@@ -28,6 +29,8 @@ from PySide6.QtWidgets import (
 )
 
 from app.gui.workers import DuplicateWorker, SearchWorker
+from app.core.scanner import ScanOptions
+from app.process_control import ProgressInfo
 from app.models.entities import DuplicateGroup, SearchHit, SearchJob
 from app.safety.policy import WRITE_FEATURES
 from app.storage.database import Database
@@ -55,6 +58,8 @@ class MainWindow(QMainWindow):
         self.duplicate_worker: DuplicateWorker | None = None
         self.last_hits: list[SearchHit] = []
         self.duplicate_groups_cache: list[DuplicateGroup] = []
+        self.scan_options = ScanOptions()
+        self._process_paused = False
 
         self.setWindowTitle("PROVOWARE DUPLIKATE-FINDER 2026 – Nur-Lesen-Modus")
         self.resize(1280, 800)
@@ -149,12 +154,31 @@ class MainWindow(QMainWindow):
         self.progress_bar.setRange(0, 100)
         self.progress_bar.setValue(100)
         self.progress_bar.setFormat("%p %")
-        self.progress_bar.setMaximumWidth(180)
+        self.progress_bar.setMinimumWidth(180)
+        self.progress_bar.setMaximumWidth(240)
+        self.step_label = QLabel("Schritt: bereit")
+        self.step_label.setObjectName("step_label")
+        self.step_label.setToolTip("Aktueller Arbeitsschritt.")
+        self.eta_label = QLabel("Restzeit: –")
+        self.eta_label.setObjectName("eta_label")
+        self.eta_label.setToolTip("Grobe Schätzung auf Basis der bisherigen Geschwindigkeit.")
+        self.pause_button = QPushButton("⏸ Pause")
+        self.pause_button.setObjectName("process_pause")
+        self.pause_button.setEnabled(False)
+        self.pause_button.clicked.connect(self._toggle_pause)
+        self.cancel_button = QPushButton("⏹ Abbrechen")
+        self.cancel_button.setObjectName("process_cancel")
+        self.cancel_button.setEnabled(False)
+        self.cancel_button.clicked.connect(self._cancel_active_process)
         self.counter_label = QLabel("0 Dateien geprüft · 0 Treffer")
         self.counter_label.setObjectName("counter_label")
         footer.addWidget(self.status_label)
         footer.addWidget(self.activity_label)
         footer.addWidget(self.progress_bar)
+        footer.addWidget(self.step_label)
+        footer.addWidget(self.eta_label)
+        footer.addWidget(self.pause_button)
+        footer.addWidget(self.cancel_button)
         footer.addStretch(1)
         footer.addWidget(self.counter_label)
         root.addLayout(footer)
@@ -260,6 +284,27 @@ class MainWindow(QMainWindow):
         query_grid.addWidget(self.contents_box, 1, 1)
         query_grid.addWidget(self.search_button, 1, 2)
         layout.addLayout(query_grid)
+
+        filters = QFrame()
+        filters.setProperty("section", True)
+        filter_layout = QGridLayout(filters)
+        filter_title = QLabel("Ausschlüsse")
+        filter_title.setStyleSheet("font-weight:800;")
+        self.exclude_python_box = QCheckBox("Python-/Entwicklungsordner automatisch auslassen")
+        self.exclude_python_box.setObjectName("exclude_python_dirs")
+        self.exclude_python_box.setChecked(True)
+        self.exclude_python_box.setToolTip("Lässt z. B. .venv, __pycache__, build, dist, .git und Laufzeitordner aus.")
+        self.excluded_types_label = QLabel("Dateitypen: keine zusätzlichen Ausschlüsse")
+        self.excluded_types_label.setObjectName("excluded_types_label")
+        self.excluded_types_label.setWordWrap(True)
+        self.excluded_types_button = QPushButton("⚙ Dateitypen auswählen")
+        self.excluded_types_button.setObjectName("excluded_types_button")
+        self.excluded_types_button.clicked.connect(self._choose_excluded_types)
+        filter_layout.addWidget(filter_title, 0, 0, 1, 2)
+        filter_layout.addWidget(self.exclude_python_box, 1, 0, 1, 2)
+        filter_layout.addWidget(self.excluded_types_label, 2, 0)
+        filter_layout.addWidget(self.excluded_types_button, 2, 1)
+        layout.addWidget(filters)
 
         info = QLabel(
             "ℹ️ Die Textsuche liest nur unterstützte Textformate. Symbolische Verknüpfungen "
@@ -517,7 +562,12 @@ class MainWindow(QMainWindow):
         self.activity_label.setText("Aktivität: Textdateien werden geprüft")
         self.progress_bar.setRange(0, 0)
         self.counter_label.setText("Suche wird vorbereitet …")
-        self.search_worker = SearchWorker(job)
+        self.scan_options = ScanOptions(
+            exclude_python_project_dirs=self.exclude_python_box.isChecked(),
+            excluded_extensions=self.scan_options.excluded_extensions,
+        )
+        self.search_worker = SearchWorker(job, self.scan_options)
+        self._connect_worker_controls(self.search_worker)
         self.search_worker.completed.connect(self._search_finished)
         self.search_worker.failed.connect(self._search_failed)
         self.search_worker.start()
@@ -540,6 +590,7 @@ class MainWindow(QMainWindow):
             self.results.setItem(row, 4, QTableWidgetItem(hit.excerpt))
         self.results.setSortingEnabled(sorting)
         self.search_button.setEnabled(True)
+        self._set_process_idle()
         self.status_label.setText("🟢 Textsuche abgeschlossen")
         self.activity_label.setText("Aktivität: Suche abgeschlossen")
         self.progress_bar.setRange(0, 100)
@@ -551,11 +602,111 @@ class MainWindow(QMainWindow):
     def _search_failed(self, message: str) -> None:
         entry = record_error(self.base_dir / "logs", "textsuche", message)
         self.search_button.setEnabled(True)
+        self._set_process_idle()
         self.status_label.setText("🔴 Textsuche gestoppt")
         self.activity_label.setText("Aktivität: sicher gestoppt")
         self.progress_bar.setRange(0, 100)
         self.progress_bar.setValue(0)
         QMessageBox.critical(self, "Suche gestoppt", f"Die Suche wurde sicher beendet.\n\n{message}\n\nLösung: {entry['solution']}")
+
+    def _connect_worker_controls(self, worker) -> None:
+        self._process_paused = False
+        self.pause_button.setText("⏸ Pause")
+        self.pause_button.setEnabled(True)
+        self.cancel_button.setEnabled(True)
+        worker.progress.connect(self._on_process_progress)
+        worker.paused_changed.connect(self._on_pause_changed)
+        worker.cancelled.connect(self._process_cancelled)
+
+    def _active_worker(self):
+        for worker in (self.search_worker, self.duplicate_worker):
+            if worker is not None and worker.isRunning():
+                return worker
+        return None
+
+    def _toggle_pause(self) -> None:
+        worker = self._active_worker()
+        if worker is None:
+            return
+        if self._process_paused:
+            worker.resume()
+        else:
+            worker.pause()
+
+    def _on_pause_changed(self, paused: bool) -> None:
+        self._process_paused = paused
+        if paused:
+            self.pause_button.setText("▶ Fortsetzen")
+            self.status_label.setText("🟡 Pausiert")
+            self.activity_label.setText("Aktivität: pausiert – sicherer Zwischenstand")
+        else:
+            self.pause_button.setText("⏸ Pause")
+            self.status_label.setText("🟡 Vorgang läuft …")
+            self.activity_label.setText("Aktivität: Verarbeitung fortgesetzt")
+
+    def _cancel_active_process(self) -> None:
+        worker = self._active_worker()
+        if worker is None:
+            return
+        self.cancel_button.setEnabled(False)
+        self.pause_button.setEnabled(False)
+        self.status_label.setText("🟡 Abbruch wird sicher abgeschlossen …")
+        self.activity_label.setText("Aktivität: aktueller Dateischritt wird beendet")
+        worker.cancel()
+
+    def _process_cancelled(self, message: str) -> None:
+        self.search_button.setEnabled(True)
+        self.duplicate_start.setEnabled(True)
+        self._set_process_idle()
+        self.status_label.setText("🟡 Vorgang abgebrochen")
+        self.activity_label.setText("Aktivität: sauber beendet")
+        self.step_label.setText("Schritt: abgebrochen")
+        self.eta_label.setText("Restzeit: –")
+        self.progress_bar.setRange(0, 100)
+        self.progress_bar.setValue(0)
+        self.counter_label.setText(message)
+
+    def _on_process_progress(self, info: ProgressInfo) -> None:
+        self.progress_bar.setRange(0, 100)
+        self.progress_bar.setValue(info.percent)
+        self.step_label.setText(f"Schritt: {info.step}")
+        self.eta_label.setText("Restzeit: " + self._format_eta(info.eta_seconds))
+        if info.total > 0:
+            self.counter_label.setText(f"{info.current} von {info.total} verarbeitet")
+
+    def _set_process_idle(self) -> None:
+        self.pause_button.setEnabled(False)
+        self.cancel_button.setEnabled(False)
+        self.pause_button.setText("⏸ Pause")
+        self._process_paused = False
+
+    @staticmethod
+    def _format_eta(seconds: float | None) -> str:
+        if seconds is None:
+            return "wird ermittelt"
+        value=max(0,int(round(seconds)))
+        if value < 60:
+            return f"ca. {value} s"
+        minutes, sec=divmod(value,60)
+        if minutes < 60:
+            return f"ca. {minutes} min {sec:02d} s"
+        hours, minutes=divmod(minutes,60)
+        return f"ca. {hours} h {minutes:02d} min"
+
+    def _choose_excluded_types(self) -> None:
+        from app.gui.exclusion_dialog import ExclusionDialog
+        dialog=ExclusionDialog(self.scan_options.excluded_extensions, self)
+        if dialog.exec() != QDialog.DialogCode.Accepted:
+            return
+        selected=dialog.selected_extensions()
+        self.scan_options=ScanOptions(
+            exclude_python_project_dirs=self.exclude_python_box.isChecked(),
+            excluded_extensions=frozenset(selected),
+        )
+        if selected:
+            self.excluded_types_label.setText("Dateitypen ausgelassen: " + ", ".join(sorted(selected)))
+        else:
+            self.excluded_types_label.setText("Dateitypen: keine zusätzlichen Ausschlüsse")
 
     def _selected_result_path(self) -> Path | None:
         row = self.results.currentRow()
@@ -605,7 +756,12 @@ class MainWindow(QMainWindow):
         self.activity_label.setText("Aktivität: Dateien werden auf vollständige Gleichheit geprüft")
         self.progress_bar.setRange(0, 0)
         self.duplicate_summary.setText("Dateigrößen werden gruppiert; nur Kandidaten werden vollständig gehasht.")
-        self.duplicate_worker = DuplicateWorker(self.selected_root)
+        self.scan_options = ScanOptions(
+            exclude_python_project_dirs=self.exclude_python_box.isChecked(),
+            excluded_extensions=self.scan_options.excluded_extensions,
+        )
+        self.duplicate_worker = DuplicateWorker(self.selected_root, self.scan_options)
+        self._connect_worker_controls(self.duplicate_worker)
         self.duplicate_worker.completed.connect(self._duplicate_scan_finished)
         self.duplicate_worker.failed.connect(self._duplicate_scan_failed)
         self.duplicate_worker.start()
@@ -624,6 +780,7 @@ class MainWindow(QMainWindow):
 
     def _duplicate_scan_failed(self, message: str) -> None:
         self.duplicate_start.setEnabled(True)
+        self._set_process_idle()
         self.status_label.setText("🔴 Duplikatprüfung gestoppt")
         self.activity_label.setText("Aktivität: sicher gestoppt")
         self.progress_bar.setRange(0, 100)
