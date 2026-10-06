@@ -1,6 +1,7 @@
 from __future__ import annotations
 
 from pathlib import Path
+import sqlite3
 from typing import Any
 
 from PySide6.QtWidgets import QMessageBox
@@ -29,7 +30,7 @@ class ResultController:
             return
         try:
             state = self.window.database.virtual_item(path)
-        except Exception as exc:
+        except sqlite3.Error as exc:
             report_ui_error(
                 self.window,
                 area="ergebnisstatus",
@@ -58,7 +59,7 @@ class ResultController:
                 marked,
                 self.window.result_note.text(),
             )
-        except Exception as exc:
+        except sqlite3.Error as exc:
             report_ui_error(
                 self.window,
                 area="ergebnisstatus",
@@ -101,7 +102,7 @@ class ResultController:
             self.window.collection_controller.show(
                 self.window.collection_list.currentRow()
             )
-        except Exception as exc:
+        except sqlite3.Error as exc:
             report_ui_error(
                 self.window,
                 area="sammlungszuordnung",
