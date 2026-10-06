@@ -404,8 +404,8 @@ class MainWindow(QMainWindow):
         go_files.clicked.connect(lambda: self.nav.setCurrentRow(self.PAGE_FILES))
         quick.addWidget(go_search, 0, 0)
         quick.addWidget(go_duplicates, 0, 1)
-        quick.addWidget(go_collections, 1, 0)
-        quick.addWidget(go_files, 1, 1)
+        quick.addWidget(go_collections, 0, 2)
+        quick.addWidget(go_files, 0, 3)
         layout.addLayout(quick)
         layout.addStretch(1)
         return page
