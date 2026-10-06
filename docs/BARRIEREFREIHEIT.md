@@ -43,3 +43,16 @@ Die Oberfläche bietet zusätzlich:
 - moderne kontrastreiche Fokusrahmen und Statusflächen.
 
 Das autonome Abnahmewerkzeug erzeugt zu jeder Hauptseite ein Prüfbild und fasst alle Bilder in einem HTML-Raster zusammen.
+
+
+## Kontrast- und Listenstandard 0.4
+
+- dunkler Hauptuntergrund mit heller Schrift,
+- cyanfarbene Aktions- und Fokusrahmen,
+- Warn-/Abbruchfarben zusätzlich immer mit Text,
+- Tabellenkopf deutlich vom Inhalt getrennt,
+- wechselnde Zeilenhintergründe,
+- Mindestzeilenhöhe 34 px,
+- Prozessstatus mit Text, Fortschrittsbalken und Restzeitanzeige,
+- Pause und Abbruch als direkt sichtbare Tasten,
+- keine kritische Prozesssteuerung nur über Farbe.

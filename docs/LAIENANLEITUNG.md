@@ -51,3 +51,55 @@ Fehlt er, wird er automatisch erstellt. Dort liegen nur PROVOWARE-Arbeitsdaten, 
 Die Anwendung stoppt den betroffenen Vorgang sicher und zeigt eine Lösung an. Zusätzlich wird der Fehler mit Zeitstempel und Fingerabdruck protokolliert.
 
 Originaldateien bleiben im aktuellen Sicherheitsstand unverändert.
+
+
+## Laufende Prüfung steuern
+
+Während einer Suche oder Duplikatprüfung zeigt der untere Prozessbereich:
+
+- den aktuellen Schritt,
+- den Fortschritt,
+- die ungefähr verbleibende Zeit,
+- **Pause**,
+- **Fortsetzen**,
+- **Abbrechen**.
+
+Der Abbruch geschieht kontrolliert. Es wird kein Hintergrundprozess gewaltsam beendet.
+
+## Prüfoptionen
+
+Über **⚙ Prüfoptionen** kannst du ohne Befehle festlegen:
+
+- typische Entwicklungs-/Python-Arbeitsordner auslassen,
+- versteckte Ordner auslassen,
+- bestimmte Dateitypen auslassen.
+
+Die Standardoption zum Auslassen technischer Projektordner ist eingeschaltet.
+
+## CPU-Kerne begrenzen
+
+Im Dashboard kannst du auswählen, wie viele CPU-Kerne die Duplikatprüfung gleichzeitig für SHA-256-Vergleiche verwenden darf.
+
+Weniger Kerne = ruhigerer Rechner.  
+Mehr Kerne = häufig schnellere Prüfung.
+
+Die automatische Einstellung verwendet ungefähr die Hälfte der erkannten Kerne.
+
+## Autospeichern
+
+Alle fünf Minuten entsteht automatisch:
+
+`recovery/autosave-state.json`
+
+Darin liegen nur PROVOWARE-Einstellungen und virtuelle Daten. Originaldateien werden nicht hineinkopiert und nicht verändert.
+
+## Export und Import
+
+Im Dashboard:
+
+- **📤 Zustand exportieren**
+- **📥 Zustand importieren**
+
+Damit kannst du Einstellungen, Markierungen, Notizen und virtuelle Sammlungen sichern oder übertragen.
+
+Vor einem Import wird die Datei geprüft und du musst die Übernahme bestätigen.

@@ -12,6 +12,24 @@
 ### Geplant
 - weitere Dateiformate und spätere, separat freizugebende Schreibfunktionen
 
+## [0.4.0] – 2026-10-06
+
+### Hinzugefügt
+- sichere Pause-, Fortsetzen- und Abbruchsteuerung für Hintergrundprüfungen
+- Fortschrittsanzeige mit aktuellem Schritt und ungefährer Restzeit
+- CPU-Kernbegrenzung für parallele SHA-256-Duplikatprüfung
+- Filter für Entwicklungs-/Python-Arbeitsordner, versteckte Ordner und Dateitypen
+- fünfminütige Autospeicherung als PROVOWARE-Wiederherstellungsstand
+- sicherer Export/Import von Einstellungen und virtueller Organisation
+- Pfadkopie und Öffnen des Trefferordners
+- Textkatalog 1.1.0 mit manifestgesteuerter Auswahl
+- zusätzliche autonome Regressionstests für Filter, Abbruch, Einstellungen und Zustandsübertragung
+
+### Geändert
+- dunkle Hochkontrast-Oberfläche mit Neon-Rahmen für Aktionstasten
+- Listen und Tabellen mit klareren Kopfzeilen, Zeilenabständen und Bereichstrennung
+- autonome Mindestabdeckung von 77 auf 82 Prüfungen erhöht
+
 ## [0.3.0] – 2026-10-06
 
 ### Hinzugefügt

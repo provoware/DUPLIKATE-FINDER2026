@@ -4,7 +4,7 @@
   "project": {
     "id": "provoware-duplicate-finder-2026",
     "name": "PROVOWARE DUPLIKATE-FINDER 2026",
-    "version": "0.3.0",
+    "version": "0.4.0",
     "language": "de-DE"
   },
   "runtime": {
@@ -54,5 +54,28 @@
   "agents": {
     "manifest": "manifest/agents.manifest.json",
     "single_writer_role": "operator"
+  },
+  "capabilities": {
+    "process_control": [
+      "pause",
+      "resume",
+      "safe_cancel",
+      "progress",
+      "estimated_remaining_time"
+    ],
+    "scan_filters": [
+      "python_project_directories",
+      "hidden_directories",
+      "file_extensions"
+    ],
+    "resource_limits": [
+      "duplicate_hash_cpu_cores"
+    ],
+    "persistence": [
+      "autosave_5_minutes",
+      "state_export",
+      "state_import",
+      "recovery_snapshot"
+    ]
   }
 }

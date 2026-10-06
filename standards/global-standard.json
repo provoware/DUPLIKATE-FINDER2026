@@ -1,6 +1,6 @@
 {
   "$schema": "../schemas/global-standard.schema.json",
-  "standard_version": "1.0.0",
+  "standard_version": "1.1.0",
   "language": {
     "locale": "de-DE",
     "plain_language": true,
@@ -16,7 +16,23 @@
       "height": 600
     },
     "status_requires_text": true,
-    "help_levels": 3
+    "help_levels": 3,
+    "palette": {
+      "background": "#07111f",
+      "panel": "#0f2034",
+      "text": "#f1f7fb",
+      "accent": "#00cfe8",
+      "accent_focus": "#7cfff4",
+      "success": "#33e39a",
+      "warning": "#ffd54a",
+      "danger": "#ff4f79"
+    },
+    "tables": {
+      "alternating_rows": true,
+      "sortable": true,
+      "minimum_row_height_px": 34,
+      "high_contrast_headers": true
+    }
   },
   "development": {
     "single_writer": true,
@@ -38,5 +54,27 @@
     "timestamps": true,
     "structured_json_for_state": true,
     "human_readable_summary": true
+  },
+  "process": {
+    "cooperative_pause": true,
+    "cooperative_cancel": true,
+    "show_current_step": true,
+    "show_progress": true,
+    "show_estimated_remaining_time": true,
+    "force_termination": false
+  },
+  "scan": {
+    "exclude_python_project_dirs_by_default": true,
+    "exclude_hidden_dirs_by_default": false,
+    "file_type_exclusions_user_selectable": true
+  },
+  "resources": {
+    "cpu_core_limit_user_selectable": true,
+    "default_cpu_mode": "half_detected_cores"
+  },
+  "persistence": {
+    "autosave_minutes": 5,
+    "autosave_target": "recovery/autosave-state.json",
+    "export_import_scope": "provoware_settings_and_virtual_state_only"
   }
 }

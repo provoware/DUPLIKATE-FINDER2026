@@ -70,3 +70,38 @@ Jeder neue Fehler braucht eine konkrete Lösung. Reproduzierbare Fehler sollen e
 ## Sicherheit
 
 Tk/Tkinter ist verboten. Originaldateien bleiben read-only. System-Python und Linux-Paketbestand werden zur Laufzeit nicht verändert.
+
+
+## Prozesssteuerung 0.4
+
+`app/core/control.py` enthält die gemeinsame kooperative Prozesssteuerung.
+
+Regel:
+- Pause nur an sicheren Prüfpunkten,
+- Abbruch über ein Abbruchsignal,
+- kein `terminate()` und kein gewaltsames Beenden eines QThread,
+- Hashing prüft den Zustand blockweise,
+- Textsuche prüft den Zustand datei-/zeilenweise,
+- Restzeit ist eine Durchsatzschätzung.
+
+`app/core/scanner.ScanOptions` ist die einzige Quelle für Scanfilter.
+
+Die CPU-Begrenzung beeinflusst ausschließlich parallele SHA-256-Prüfungen.
+
+## Persistenz 0.4
+
+`app/settings.py` verwaltet versionierte Bedien-/Filtereinstellungen.
+
+Alle fünf Minuten wird zusätzlich ein vollständiger PROVOWARE-Wiederherstellungsstand nach:
+
+`recovery/autosave-state.json`
+
+geschrieben.
+
+Export/Import darf nur PROVOWARE-Zustände verändern. Originaldateien sind ausdrücklich außerhalb dieses Vertrags.
+
+## Oberfläche 0.4
+
+Der zentrale Stil liegt in `app/gui/theme.py`; globale Zielwerte zusätzlich in `standards/global-standard.json`.
+
+Neue Aktionstasten verwenden denselben Neon-Rahmen. Warn- und Abbruchtasten besitzen eigene Eigenschaften statt lokale Einzel-Styles.

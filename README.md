@@ -1,6 +1,6 @@
 # PROVOWARE DUPLIKATE-FINDER 2026
 
-Lokales Linux-Werkzeug für **Textsuche**, **vollständige Duplikatprüfung** und **virtuelle Organisation**. Der Sicherheitskern von Version 0.3.0 arbeitet gegenüber Originaldateien ausschließlich lesend.
+Lokales Linux-Werkzeug für **Textsuche**, **vollständige Duplikatprüfung** und **virtuelle Organisation**. Der Sicherheitskern von Version 0.4.0 arbeitet gegenüber Originaldateien ausschließlich lesend.
 
 ## Sicherheitsversprechen
 
@@ -94,7 +94,7 @@ tools/        Prüfwerkzeuge
 
 ## Projektstatus
 
-**v0.3.0 – autonome Entwicklung / Klick-&-Start / Nur-Lesen-Sicherheitsstand**
+**v0.4.0 – Prozesssteuerung / Filter / Autosave / kontrastreiche Oberfläche / Nur-Lesen-Sicherheitsstand**
 
 Physische Dateiänderungen sind noch nicht freigegeben. Dieser Bereich bleibt gesperrt, bis ein eigener Änderungsvertrag, Vorschau, Transaktionsjournal, Rückgängig-Funktion und separate Abnahmetests existieren.
 
@@ -146,3 +146,21 @@ Neu hinzugekommen:
 Für Laien: `docs/LAIENANLEITUNG.md`.
 
 Für Entwickler: `docs/ENTWICKLERHANDBUCH.md`.
+
+
+## Bedien- und Prozesskomfort 0.4
+
+- laufende Suche und Duplikatprüfung sicher pausieren, fortsetzen und abbrechen
+- aktueller Arbeitsschritt, Fortschritt und ungefähr verbleibende Zeit
+- CPU-Kernbegrenzung für parallele SHA-256-Prüfungen
+- typische Entwicklungs-/Python-Arbeitsordner standardmäßig auslassen
+- versteckte Ordner optional auslassen
+- Dateitypen über Auswahldialog ausklammern
+- dunkle, kontrastreiche Oberfläche mit Neon-Rahmen an Aktionstasten
+- klarere Tabellen, wechselnde Zeilenhintergründe und deutlichere Bereichsgrenzen
+- sicherer PROVOWARE-Zustandsexport und -import
+- Autospeicherung alle fünf Minuten nach `recovery/autosave-state.json`
+- Pfad kopieren und Trefferordner öffnen
+- deutsche Textkatalog-Version 1.1.0
+
+Export, Import und Autospeicherung betreffen nur PROVOWARE-Einstellungen, Markierungen, Notizen und virtuelle Sammlungen. Originaldateien werden nicht verändert.
