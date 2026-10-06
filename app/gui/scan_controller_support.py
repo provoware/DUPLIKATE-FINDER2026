@@ -7,6 +7,7 @@ from PySide6.QtWidgets import QMessageBox
 from app.core.scanner import ScanOptions
 from app.error_management import record_error
 from app.validation import ValidationResult
+from app.gui.status_feedback import set_status
 
 
 def show_validation_error(window: Any, validation: ValidationResult) -> bool:
@@ -26,7 +27,7 @@ def current_scan_options(window: Any) -> ScanOptions:
 
 
 def prepare_process_start(window: Any, status_text: str) -> None:
-    window.status_label.setText(status_text)
+    set_status(window.status_label, status_text, "neutral")
     window.activity_label.setText("Aktivität: Dateiliste wird vorbereitet")
     window.step_label.setText("Schritt: Dateien inventarisieren")
     window.eta_label.setText("Restzeit: wird ermittelt")
@@ -46,7 +47,7 @@ def fail_process(
     entry = record_error(window.base_dir / "logs", area, message)
     button.setEnabled(True)
     window._set_process_idle()
-    window.status_label.setText(status_text)
+    set_status(window.status_label, status_text, "error")
     window.activity_label.setText("Aktivität: sicher gestoppt")
     window.progress_bar.setRange(0, 100)
     window.progress_bar.setValue(0)
