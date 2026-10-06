@@ -99,8 +99,10 @@ class ProgressTracker:
         total:int,
         step:str,
         paused_seconds:Callable[[],float]|None=None,
+        total_bytes:int=0,
     )->None:
         self.total=max(0,total)
+        self.total_bytes=max(0,int(total_bytes))
         self.step=step
         self.started=time.monotonic()
         self._paused_seconds=paused_seconds or (lambda:0.0)
@@ -109,7 +111,14 @@ class ProgressTracker:
         elapsed=max(0.0,time.monotonic()-self.started-self._paused_seconds())
         active_step=step or self.step
         eta=None
-        if current>0 and self.total>current:
+        if (
+            processed_bytes>0
+            and self.total_bytes>processed_bytes
+            and elapsed>0
+        ):
+            bytes_per_second=processed_bytes/elapsed
+            eta=max(0.0,(self.total_bytes-processed_bytes)/bytes_per_second)
+        elif current>0 and self.total>current:
             eta=max(0.0,(elapsed/current)*(self.total-current))
         elif self.total and current>=self.total:
             eta=0.0
