@@ -154,6 +154,18 @@
       "sha256",
       "size_limit_900_mib",
       "not_part_of_stable_release"
+    ],
+    "testlab": [
+      "sandbox_marker_guard",
+      "profile_mini",
+      "profile_normal",
+      "profile_chaos",
+      "profile_duplicates",
+      "automatic_expectations",
+      "explicit_performance_profile",
+      "file_change_disturbance",
+      "cancel_disturbance",
+      "pause_resume_disturbance"
     ]
   },
   "governance": {
