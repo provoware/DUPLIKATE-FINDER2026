@@ -203,6 +203,26 @@
           "appimage_ubuntu_22_04_success",
           "appimage_ubuntu_24_04_success",
           "appimage_usb_path_success"
+        ],
+        "latest_maintenance_reopened_on": "2026-10-07",
+        "latest_maintenance_reopen_reason": "Ausdrücklicher Nutzerauftrag: gezieltes Wartbarkeits-Refactoring nach Nutzenprüfung; keine kosmetische Zerlegung.",
+        "latest_maintenance_refrozen_on": "2026-10-07",
+        "latest_maintenance_refreeze_evidence": [
+          "quality_core_success",
+          "ui_100_success",
+          "ui_150_success",
+          "ui_200_success",
+          "autonomous_acceptance_success",
+          "portable_lite_recovery_success",
+          "appimage_build_success",
+          "appimage_ubuntu_22_04_success",
+          "appimage_ubuntu_24_04_success",
+          "appimage_usb_path_success"
+        ],
+        "latest_maintenance_scope": [
+          "app/gui/enhancements.py",
+          "app/gui/resource_dashboard_controller.py",
+          "app/gui/state_portability_controller.py"
         ]
       },
       {
@@ -234,6 +254,27 @@
           "targeted_tests",
           "full_acceptance",
           "post_validation"
+        ],
+        "latest_maintenance_reopened_on": "2026-10-07",
+        "latest_maintenance_reopen_reason": "Ausdrücklicher Nutzerauftrag: gezieltes Wartbarkeits-Refactoring nach Nutzenprüfung; keine kosmetische Zerlegung.",
+        "latest_maintenance_refrozen_on": "2026-10-07",
+        "latest_maintenance_refreeze_evidence": [
+          "quality_core_success",
+          "ui_100_success",
+          "ui_150_success",
+          "ui_200_success",
+          "autonomous_acceptance_success",
+          "portable_lite_recovery_success",
+          "appimage_build_success",
+          "appimage_ubuntu_22_04_success",
+          "appimage_ubuntu_24_04_success",
+          "appimage_usb_path_success"
+        ],
+        "latest_maintenance_scope": [
+          "app/gui/table_models.py",
+          "app/gui/workers.py",
+          "app/core/search_pipeline.py",
+          "app/cli.py"
         ]
       },
       {
