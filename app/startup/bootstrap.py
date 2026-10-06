@@ -39,7 +39,7 @@ def _repair_gui_dependency(base_dir: Path) -> tuple[bool, str]:
         return False, "Lokales Reparaturpaket (wheelhouse) fehlt."
     command = [
         sys.executable, "-m", "pip", "install",
-        "--disable-pip-version-check", "--no-index",
+        "--disable-pip-version-check", "--force-reinstall", "--no-index",
         "--find-links", str(wheelhouse), "PySide6>=6.8,<7",
     ]
     completed = subprocess.run(command, capture_output=True, text=True, timeout=180)
