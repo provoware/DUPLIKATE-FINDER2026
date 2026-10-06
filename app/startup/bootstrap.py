@@ -1,7 +1,6 @@
 from __future__ import annotations
 
 import argparse
-import importlib.util
 import json
 import logging
 import subprocess
@@ -17,8 +16,21 @@ def _portable_runtime(base_dir: Path) -> bool:
     return Path(sys.executable).resolve(strict=False) == expected
 
 
+def _gui_import_works() -> bool:
+    try:
+        completed = subprocess.run(
+            [sys.executable, "-c", "from PySide6.QtWidgets import QApplication"],
+            capture_output=True,
+            text=True,
+            timeout=30,
+        )
+    except (OSError, subprocess.SubprocessError):
+        return False
+    return completed.returncode == 0
+
+
 def _repair_gui_dependency(base_dir: Path) -> tuple[bool, str]:
-    if importlib.util.find_spec("PySide6") is not None:
+    if _gui_import_works():
         return True, "PySide6 bereits vorhanden"
     if not _portable_runtime(base_dir):
         return False, "PySide6 fehlt. Entwicklungsumgebungen werden absichtlich nicht automatisch verändert."
@@ -27,14 +39,20 @@ def _repair_gui_dependency(base_dir: Path) -> tuple[bool, str]:
         return False, "Lokales Reparaturpaket (wheelhouse) fehlt."
     command = [
         sys.executable, "-m", "pip", "install",
-        "--disable-pip-version-check", "--no-index",
+        "--disable-pip-version-check", "--force-reinstall", "--no-index",
         "--find-links", str(wheelhouse), "PySide6>=6.8,<7",
     ]
     completed = subprocess.run(command, capture_output=True, text=True, timeout=180)
     if completed.returncode != 0:
         logging.getLogger(__name__).error("PySide6-Reparatur fehlgeschlagen: %s", completed.stderr[-2000:])
         return False, "Die lokale GUI-Reparatur ist fehlgeschlagen. Details stehen im Protokoll."
-    return importlib.util.find_spec("PySide6") is not None, "PySide6 wurde aus dem lokalen Reparaturpaket wiederhergestellt."
+
+    repaired = _gui_import_works()
+    return repaired, (
+        "PySide6 wurde aus dem lokalen Reparaturpaket wiederhergestellt."
+        if repaired
+        else "PySide6 wurde installiert, konnte aber noch nicht geladen werden."
+    )
 
 
 def bootstrap(base_dir: Path, require_gui: bool) -> list[Check]:

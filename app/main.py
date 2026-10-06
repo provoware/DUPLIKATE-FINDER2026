@@ -1,9 +1,11 @@
 from __future__ import annotations
 
 import logging
+import os
 import sys
 from pathlib import Path
 
+from PySide6.QtCore import QTimer
 from PySide6.QtWidgets import QApplication, QMessageBox
 
 from app.gui.enhancements import UiEnhancements
@@ -51,7 +53,16 @@ def main() -> int:
     window._ui_enhancements = UiEnhancements(window, base, database)
     window.show()
     logger.info("Oberfläche bereit")
-    return app.exec()
+
+    if os.environ.get("PROVOWARE_SMOKE_TEST") == "1":
+        logger.info("Interner GUI-Starttest aktiv")
+        QTimer.singleShot(500, app.quit)
+
+    exit_code = app.exec()
+    window._ui_enhancements.dispose()
+    window.close()
+    logger.info("Oberfläche sauber beendet")
+    return exit_code
 
 
 if __name__ == "__main__":
