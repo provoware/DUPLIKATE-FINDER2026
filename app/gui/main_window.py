@@ -202,8 +202,8 @@ class MainWindow(QMainWindow):
         cards = QGridLayout()
         cards.addWidget(self._card("Sicherheitsmodus", "🔒 Nur lesen"), 0, 0)
         cards.addWidget(self._card("Textsuche", "🟢 Bereit"), 0, 1)
-        cards.addWidget(self._card("Duplikatprüfung", "🟢 SHA-256"), 1, 0)
-        cards.addWidget(self._card("Datenbank", "🟢 Lokal · SQLite"), 1, 1)
+        cards.addWidget(self._card("Duplikatprüfung", "🟢 SHA-256"), 0, 2)
+        cards.addWidget(self._card("Datenbank", "🟢 Lokal · SQLite"), 0, 3)
         layout.addLayout(cards)
 
         feature_box = QFrame()

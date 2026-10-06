@@ -45,6 +45,10 @@ def apply_accessible_theme(app:QApplication,zoom:int|None=None)->int:
             font-weight:800;
             min-height:40px;
         }
+        QPushButton[compact="true"] {
+            min-height:30px;
+            padding:5px 10px;
+        }
         QPushButton:hover {
             background:#123849;
             border-color:#62f3ff;

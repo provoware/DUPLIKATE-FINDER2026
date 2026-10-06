@@ -4,7 +4,7 @@ from pathlib import Path
 
 from PySide6.QtCore import QEvent, QMimeData, QObject, QPoint, QTimer, Qt, QUrl
 from PySide6.QtGui import QDesktopServices, QDrag
-from PySide6.QtWidgets import QApplication, QComboBox, QFileDialog, QFrame, QGridLayout, QHeaderView, QLabel, QMessageBox, QPushButton, QTableWidget
+from PySide6.QtWidgets import QApplication, QComboBox, QDialog, QFileDialog, QFrame, QGridLayout, QHeaderView, QLabel, QMessageBox, QPushButton, QTableWidget, QVBoxLayout
 
 from app.gui.theme import ZOOM_STEPS, apply_accessible_theme
 from app.startup.selftest import run_selftest
@@ -83,7 +83,7 @@ class UiEnhancements(QObject):
         layout = page.layout()
         panel = QFrame()
         panel.setObjectName("diagnostic_dashboard")
-        panel.setProperty("card", True)
+        panel.setProperty("section", True)
         grid = QGridLayout(panel)
         grid.setContentsMargins(6, 4, 6, 4)
         grid.setHorizontalSpacing(8)
@@ -99,61 +99,83 @@ class UiEnhancements(QObject):
         self.zoom_combo = QComboBox()
         self.zoom_combo.setObjectName("zoom_selector")
         for value in ZOOM_STEPS:
-            self.zoom_combo.addItem(f"{value} %", value)
-        self.zoom_combo.setCurrentText("100 %")
+            self.zoom_combo.addItem(f"Zoom {value} %", value)
+        self.zoom_combo.setCurrentText("Zoom 100 %")
         self.zoom_combo.currentIndexChanged.connect(self._zoom_from_combo)
         self.zoom_combo.setToolTip("Schrift-/Seitenzoom. Alternativ: Strg + Mausrad.")
         grid.addWidget(self.zoom_combo, 0, 1)
 
         self.size_combo = QComboBox()
         self.size_combo.setObjectName("size_selector")
-        self.size_combo.addItem("Auto-Größe", None)
+        self.size_combo.addItem("Fenster: Auto", None)
         for width, height in ((800, 600), (1024, 768), (1280, 800)):
-            self.size_combo.addItem(f"{width}×{height}", (width, height))
+            self.size_combo.addItem(f"Fenster {width}×{height}", (width, height))
         self.size_combo.currentIndexChanged.connect(self._size_from_combo)
         self.size_combo.setToolTip("Fenstergröße ohne Zahleneingabe auswählen.")
         grid.addWidget(self.size_combo, 0, 2)
 
-        self.selftest_button = QPushButton("🩺 Selbsttest")
-        self.selftest_button.setObjectName("dashboard_selftest")
-        self.selftest_button.clicked.connect(self._show_selftest)
-        grid.addWidget(self.selftest_button, 1, 0, 1, 2)
-
-        logs_button = QPushButton("📂 Protokolle")
-        logs_button.setObjectName("dashboard_logs")
-        logs_button.setToolTip(str(self.base_dir / "logs"))
-        logs_button.clicked.connect(lambda: QDesktopServices.openUrl(QUrl.fromLocalFile(str(self.base_dir / "logs"))))
-        grid.addWidget(logs_button, 1, 2)
-
-        cpu_label=QLabel("CPU-Kerne:")
-        cpu_label.setToolTip("Begrenzt nur PROVOWARE, nicht den ganzen Rechner.")
         self.cpu_combo=QComboBox()
         self.cpu_combo.setObjectName("cpu_limiter")
-        self.cpu_combo.addItem(f"Automatisch · alle {self.cpu_limiter.available}", 0)
+        self.cpu_combo.addItem(f"CPU: Auto · {self.cpu_limiter.available}", 0)
         for cores in range(1, self.cpu_limiter.available + 1):
-            self.cpu_combo.addItem(f"{cores} Kern" + ("" if cores == 1 else "e"), cores)
+            self.cpu_combo.addItem(f"CPU: {cores} Kern" + ("" if cores == 1 else "e"), cores)
         self.cpu_combo.currentIndexChanged.connect(self._cpu_changed)
-        self.cpu_combo.setToolTip("Weniger Kerne lassen mehr Rechenleistung für andere Programme frei.")
-        grid.addWidget(cpu_label, 2, 0)
-        grid.addWidget(self.cpu_combo, 2, 1, 1, 2)
+        self.cpu_combo.setToolTip("Begrenzt nur PROVOWARE. Weniger Kerne lassen mehr Rechenleistung für andere Programme frei.")
+        grid.addWidget(self.cpu_combo, 0, 3)
+
+        tools_button=QPushButton("🧰 Werkzeuge & Sicherung")
+        tools_button.setObjectName("dashboard_tools")
+        tools_button.setProperty("compact", True)
+        tools_button.setToolTip("Selbsttest, Protokolle, Export und Import öffnen.")
+        tools_button.clicked.connect(self._open_tools_dialog)
+        grid.addWidget(tools_button, 1, 0, 1, 2)
+
+        autosave=QLabel("💾 Autosave 5 min · virtuelle Änderungen sofort")
+        autosave.setObjectName("autosave_info")
+        autosave.setToolTip("Fenster-, Zoom-, CPU- und Filtereinstellungen werden alle fünf Minuten gesichert.")
+        grid.addWidget(autosave, 1, 2, 1, 2)
+
+        layout.insertWidget(max(1, layout.count() - 1), panel)
+
+    def _open_tools_dialog(self) -> None:
+        dialog=QDialog(self.window)
+        dialog.setWindowTitle("Werkzeuge & Sicherung")
+        dialog.setMinimumWidth(440)
+        layout=QVBoxLayout(dialog)
+        info=QLabel(
+            "Diagnose und Sicherung betreffen nur PROVOWARE. "
+            "Originaldateien werden weder verändert noch in den Export kopiert."
+        )
+        info.setWordWrap(True)
+        layout.addWidget(info)
+
+        selftest=QPushButton("🩺 Selbsttest ausführen")
+        selftest.setObjectName("tools_selftest")
+        selftest.clicked.connect(self._show_selftest)
+        layout.addWidget(selftest)
+
+        logs=QPushButton("📂 Protokollordner öffnen")
+        logs.setObjectName("tools_logs")
+        logs.clicked.connect(lambda: QDesktopServices.openUrl(QUrl.fromLocalFile(str(self.base_dir / "logs"))))
+        layout.addWidget(logs)
 
         export_button=QPushButton("⬆ Zustand exportieren")
         export_button.setObjectName("dashboard_export")
-        export_button.setToolTip("Exportiert Einstellungen, Markierungen und virtuelle Sammlungen als JSON. Originaldateien werden nicht kopiert.")
+        export_button.setToolTip("Exportiert Einstellungen, Markierungen und virtuelle Sammlungen als JSON.")
         export_button.clicked.connect(self._export_state)
+        layout.addWidget(export_button)
+
         import_button=QPushButton("⬇ Zustand importieren")
         import_button.setObjectName("dashboard_import")
-        import_button.setToolTip("Importiert nur PROVOWARE-Einstellungen und virtuelle Organisation nach Vorprüfung.")
+        import_button.setToolTip("Prüft und importiert nur PROVOWARE-Einstellungen und virtuelle Organisation.")
         import_button.clicked.connect(self._import_state)
-        grid.addWidget(export_button, 3, 0, 1, 2)
-        grid.addWidget(import_button, 3, 2)
+        layout.addWidget(import_button)
 
-        autosave=QLabel("💾 Autosave: alle 5 Minuten · virtuelle Änderungen werden zusätzlich sofort gespeichert")
-        autosave.setObjectName("autosave_info")
-        autosave.setWordWrap(True)
-        grid.addWidget(autosave, 4, 0, 1, 3)
-
-        layout.insertWidget(max(1, layout.count() - 1), panel)
+        close=QPushButton("Schließen")
+        close.setProperty("compact", True)
+        close.clicked.connect(dialog.accept)
+        layout.addWidget(close)
+        dialog.exec()
 
     def _apply_loaded_settings(self) -> None:
         zoom=int(self.settings.get("zoom_percent",100))
