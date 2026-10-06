@@ -170,8 +170,12 @@ class UiEnhancements(QObject):
         ram=self.window._human_size(snapshot.process_ram_bytes)
         swap_used=self.window._human_size(snapshot.swap_used_bytes)
         swap_total=self.window._human_size(snapshot.swap_total_bytes)
+        swap_percent=(
+            snapshot.swap_used_bytes/snapshot.swap_total_bytes*100
+            if snapshot.swap_total_bytes>0 else 0.0
+        )
         self.window.dashboard_resource_value.setText(
-            f"CPU {snapshot.process_cpu_percent:.0f} % · RAM {ram} · SWAP {swap_used}/{swap_total}"
+            f"CPU {snapshot.process_cpu_percent:.0f}% · RAM {ram} · SWAP {swap_percent:.0f}%"
         )
         sys_used=self.window._human_size(snapshot.system_ram_used_bytes)
         sys_total=self.window._human_size(snapshot.system_ram_total_bytes)
