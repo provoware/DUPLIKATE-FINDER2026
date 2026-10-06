@@ -125,34 +125,34 @@ class UiEnhancements(QObject):
             self.size_combo.addItem(f"Fenster {width}×{height}", (width, height))
         self.size_combo.currentIndexChanged.connect(self._size_from_combo)
         self.size_combo.setToolTip("Fenstergröße ohne Zahleneingabe auswählen.")
-        grid.addWidget(self.size_combo, 0, 2)
+        grid.addWidget(self.size_combo, 1, 0)
 
         self.cpu_combo=QComboBox()
         self.cpu_combo.setObjectName("cpu_limiter")
         available=self.cpu_limiter.available
-        self.cpu_combo.addItem(f"CPU: alle · {available} Kerne", 0)
+        self.cpu_combo.addItem(f"CPU: 100 % · {available}", 0)
         choices=[]
         for percent in (25,50,75):
             cores=max(1,min(available,ceil(available*percent/100)))
             if cores not in [value for _label,value in choices]:
-                choices.append((f"CPU: {percent} % · {cores} Kern(e)",cores))
+                choices.append((f"CPU: {percent} % · {cores}",cores))
         for label,cores in choices:
             self.cpu_combo.addItem(label,cores)
         self.cpu_combo.currentIndexChanged.connect(self._cpu_changed)
         self.cpu_combo.setToolTip("Begrenzt nur PROVOWARE. Weniger Kerne lassen mehr Rechenleistung für andere Programme frei.")
-        grid.addWidget(self.cpu_combo, 1, 0)
+        grid.addWidget(self.cpu_combo, 1, 1)
 
         tools_button=QPushButton("🧰 Werkzeuge")
         tools_button.setObjectName("dashboard_tools")
         tools_button.setProperty("compact", True)
         tools_button.setToolTip("Selbsttest, Protokolle, Export und Import öffnen.")
         tools_button.clicked.connect(self._open_tools_dialog)
-        grid.addWidget(tools_button, 1, 1)
+        grid.addWidget(tools_button, 2, 0)
 
-        self.autosave_info=QLabel("💾 Autosave: alle 5 min · virtuelle Daten sofort")
+        self.autosave_info=QLabel("💾 Auto: ≤ 5 min")
         self.autosave_info.setObjectName("autosave_info")
         self.autosave_info.setToolTip("Fenster-, Zoom-, CPU- und Filtereinstellungen werden alle fünf Minuten gesichert. Markierungen und Sammlungen werden sofort in der lokalen Datenbank gespeichert.")
-        grid.addWidget(self.autosave_info, 1, 2)
+        grid.addWidget(self.autosave_info, 2, 1)
 
         layout.insertWidget(max(1, layout.count() - 1), panel)
 
@@ -242,7 +242,7 @@ class UiEnhancements(QObject):
         self.store.save(self.settings)
         stamp=datetime.now().strftime("%H:%M")
         if hasattr(self,"autosave_info"):
-            self.autosave_info.setText(f"💾 Autosave: {stamp} · nächste Sicherung ≤ 5 min")
+            self.autosave_info.setText(f"💾 Gesichert {stamp}")
         if self.window._active_worker() is None:
             self.window.status_label.setText("🟢 Einstellungen automatisch gesichert")
 
