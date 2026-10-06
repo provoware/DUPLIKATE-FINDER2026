@@ -302,6 +302,13 @@ class MainWindow(QMainWindow):
         layout.setSpacing(4)
         layout.addWidget(self._heading("Übersicht"))
 
+        guide = QLabel("1. Ordner wählen  →  2. Suchen oder Duplikate prüfen  →  3. Treffer ansehen  →  4. Virtuell organisieren")
+        guide.setObjectName("workflow_guide")
+        guide.setProperty("workflowGuide", True)
+        guide.setWordWrap(True)
+        guide.setAccessibleName("Kurzanleitung für den Arbeitsablauf")
+        layout.addWidget(guide)
+
         cards = QGridLayout()
         self.dashboard_card_layout = cards
         self.dashboard_cards = [self._card("Sicherheitsmodus", "Nur lesen")]
