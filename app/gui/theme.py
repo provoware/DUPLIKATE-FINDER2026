@@ -25,10 +25,10 @@ def apply_accessible_theme(app:QApplication,zoom:int|None=None)->int:
     point_size=max(9,round(11*active_zoom/100))
     app.setFont(QFont("Sans Serif",point_size))
     app.setStyleSheet("""
-        QWidget { color:#f7fbff; background:#0b1118; }
+        QWidget { color:#f7fbff; background:#091018; }
         QLabel { background:transparent; }
         QCheckBox, QRadioButton { background:transparent; }
-        QMainWindow, QDialog { background:#070d12; }
+        QMainWindow, QDialog { background:#050a0f; }
 
         /* Bereichsfarben: gleiche dunkle Basis, klar getrennte Akzente. */
         QWidget[area="dashboard"] { border-top:3px solid #54e6e9; }
@@ -41,21 +41,21 @@ def apply_accessible_theme(app:QApplication,zoom:int|None=None)->int:
         QWidget[area="help"] { border-top:3px solid #aab5ff; }
 
         QFrame[card="true"] {
-            background:#152633;
-            border:1px solid #4f7890;
+            background:#132630;
+            border:1px solid #5c8396;
             border-radius:10px;
             padding:4px;
         }
         QFrame[section="true"] {
-            background:#102630;
-            border:1px solid #4b7e92;
+            background:#0f252f;
+            border:1px solid #58869a;
             border-left:5px solid #54e6e9;
             border-radius:9px;
             padding:8px;
         }
         QLabel[infoBox="true"] {
-            background:#102936;
-            border:1px solid #2f728c;
+            background:#0e2834;
+            border:1px solid #4c8197;
             border-radius:7px;
             padding:8px;
         }
@@ -72,9 +72,9 @@ def apply_accessible_theme(app:QApplication,zoom:int|None=None)->int:
         QLabel[cardValue="true"] { color:#ffffff; font-weight:800; }
 
         QPushButton {
-            background:#18303d;
+            background:#18323f;
             color:#ffffff;
-            border:1px solid #6a94aa;
+            border:1px solid #79a5b8;
             border-radius:7px;
             padding:8px 12px;
             font-weight:800;
@@ -95,11 +95,17 @@ def apply_accessible_theme(app:QApplication,zoom:int|None=None)->int:
         QPushButton:disabled { color:#c0cbd3; background:#1b252d; border-color:#53616c; }
         QPushButton#process_cancel { border:2px solid #ff6688; background:#381827; }
         QPushButton#process_pause { border:2px solid #f5cf58; background:#332b14; color:#fff2bd; }
+        QPushButton#process_cancel:disabled,
+        QPushButton#process_pause:disabled {
+            background:#151d23;
+            color:#82919a;
+            border:1px solid #4a5962;
+        }
 
         QLineEdit, QComboBox, QSpinBox {
-            background:#07131b;
+            background:#07151d;
             color:#ffffff;
-            border:1px solid #6e98ac;
+            border:1px solid #7aa5b7;
             border-radius:6px;
             padding:7px 9px;
             min-height:30px;
@@ -107,13 +113,13 @@ def apply_accessible_theme(app:QApplication,zoom:int|None=None)->int:
         QLineEdit:focus, QComboBox:focus, QSpinBox:focus { border:2px solid #45d8df; }
 
         QListWidget, QTableView, QTableWidget {
-            background:#07131b;
-            alternate-background-color:#102834;
+            background:#07151d;
+            alternate-background-color:#102b36;
             color:#f7fcff;
-            border:1px solid #6b93a8;
+            border:1px solid #719caf;
             border-radius:8px;
-            gridline-color:#294352;
-            selection-background-color:#08758f;
+            gridline-color:#355160;
+            selection-background-color:#0a7187;
             selection-color:#ffffff;
         }
         QListWidget::item, QTableWidget::item {
@@ -130,23 +136,24 @@ def apply_accessible_theme(app:QApplication,zoom:int|None=None)->int:
             border-left:3px solid #61f3ff;
         }
         QListWidget#main_navigation {
-            background:#081821;
-            border:1px solid #416f84;
+            background:#071821;
+            border:1px solid #568499;
             padding:4px;
         }
         QListWidget#main_navigation::item { margin:3px 3px; padding:10px 9px; border-radius:6px; font-weight:800; }
-        QListWidget#main_navigation::item:selected { background:#0a6074; border:2px solid #61f3f5; color:#ffffff; }
-        QListWidget#main_navigation::item:hover { background:#173b49; }
-        QTableView::item { padding:6px; border-bottom:1px solid #263b49; }
-        QTableView::item:selected { background:#075f75; color:#ffffff; }
+        QListWidget#main_navigation::item:selected { background:#0b6f84; border:2px solid #6ff7f7; color:#ffffff; }
+        QListWidget#main_navigation::item:hover { background:#173f4d; }
+        QTableView::item { padding:6px; border-bottom:1px solid #304956; }
+        QTableView::item:hover { background:#143744; color:#ffffff; }
+        QTableView::item:selected { background:#0a7187; color:#ffffff; }
 
         QHeaderView::section {
-            background:#183545;
+            background:#193b4b;
             color:#ffffff;
             padding:9px;
             font-weight:900;
             border:0;
-            border-right:1px solid #3d6277;
+            border-right:1px solid #4b7185;
             border-bottom:2px solid #45d8df;
         }
 
@@ -159,7 +166,7 @@ def apply_accessible_theme(app:QApplication,zoom:int|None=None)->int:
             text-align:center;
             font-weight:900;
         }
-        QProgressBar::chunk { background:#19d6df; border-radius:6px; }
+        QProgressBar::chunk { background:#20d3dc; border-radius:6px; }
 
         QCheckBox { spacing:8px; }
         QCheckBox::indicator { width:22px; height:22px; }
@@ -176,8 +183,20 @@ def apply_accessible_theme(app:QApplication,zoom:int|None=None)->int:
             padding:8px;
             font-weight:900;
         }
+        QLabel#status_label {
+            background:#0d2b23;
+            color:#eafff2;
+            border:1px solid #4ddd9c;
+            border-radius:6px;
+            padding:5px 9px;
+            font-weight:900;
+        }
         QLabel#step_label, QLabel#eta_label, QLabel#activity_label {
-            color:#c9dce8;
+            color:#dbe8ef;
+        }
+        QLabel#counter_label {
+            color:#f4fbff;
+            font-weight:800;
         }
 
         QLabel#file_browser_title { color:#ffd09a; }
