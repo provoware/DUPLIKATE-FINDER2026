@@ -26,7 +26,14 @@ def record_identity(record: FileRecord) -> tuple[int, int, int, int]:
 
 
 def ensure_record_unchanged(record: FileRecord) -> None:
-    if _identity(record.path) != record_identity(record):
+    current = _identity(record.path)
+    expected = record_identity(record)
+    stable = current[0] == expected[0] and current[1] == expected[1]
+    if record.device:
+        stable = stable and current[2] == expected[2]
+    if record.inode:
+        stable = stable and current[3] == expected[3]
+    if not stable:
         raise FileChangedError(
             f"Datei wurde während der Prüfung verändert: {record.path}"
         )
