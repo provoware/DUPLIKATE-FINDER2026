@@ -1,4 +1,7 @@
+import os
 from pathlib import Path
+
+os.environ.setdefault("QT_QPA_PLATFORM", "offscreen")
 
 from app.gui.design_tokens import THEME_COLORS
 
