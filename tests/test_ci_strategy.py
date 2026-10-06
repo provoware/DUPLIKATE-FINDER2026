@@ -25,3 +25,15 @@ def test_full_ci_is_reserved_for_main_and_pull_requests():
     assert 'branches: [main]' in ci
     assert 'branches: [main]' in acceptance
     assert (ROOT/".github/workflows/targeted.yml").is_file()
+
+
+def test_release_workflows_derive_version_from_pyproject():
+    root=Path(__file__).resolve().parents[1]
+    for rel in (
+        ".github/workflows/development-full-bundle.yml",
+        ".github/workflows/portable-release.yml",
+    ):
+        text=(root/rel).read_text(encoding="utf-8")
+        assert "tomllib" in text
+        assert "pyproject.toml" in text
+        assert "v0.3.0" not in text

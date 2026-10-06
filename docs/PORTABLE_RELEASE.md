@@ -46,7 +46,7 @@ Danach folgt die End-to-End-Abnahme des **wirklich erzeugten Archivs**:
 5. PySide6 im entpackten Paket absichtlich entfernen.
 6. Internetzugriff für pip deaktivieren und `STARTEN.sh` erneut ausführen.
 7. prüfen, dass PySide6 ausschließlich aus dem mitgelieferten `wheelhouse/` repariert wurde.
-8. die autonome 73/73-Abnahme direkt mit der entpackten portablen Laufzeit ausführen.
+8. die vollständige autonome Abnahme direkt mit der entpackten portablen Laufzeit ausführen; die Mindestzahl wird aus dem Projektmanifest gelesen.
 9. HTML-Prüfraster, JSON-Bericht, Startprotokolle und Paket-Prüfsumme als Evidenz sichern.
 
 Erst danach gilt der portable Stand als abgenommen.
@@ -58,4 +58,9 @@ Danach werden erzeugt:
 
 ## Plattform
 
-v0.3.0 baut zunächst Linux `x86_64`. Weitere Rechner derselben Architektur werden über System-/Startprüfung automatisch erkannt. Weitere Architekturen erhalten erst nach eigenem E2E-Test ein freigegebenes Paket. Weitere Architekturen werden erst nach eigenem Testpfad ergänzt.
+Die jeweils in `pyproject.toml` registrierte Projektversion baut zunächst Linux `x86_64`. Weitere Rechner derselben Architektur werden über System-/Startprüfung automatisch erkannt. Weitere Architekturen erhalten erst nach eigenem E2E-Test ein freigegebenes Paket. Weitere Architekturen werden erst nach eigenem Testpfad ergänzt.
+
+
+## Versionsquelle
+
+Paketname, Build-Nachweis und E2E-Artefakt lesen die Version automatisch aus `pyproject.toml`. Eine zweite fest eingetragene Paketversion ist verboten, damit Release-Metadaten nicht vom Programmstand abweichen.
