@@ -1,0 +1,41 @@
+{
+  "$schema": "https://json-schema.org/draft/2020-12/schema",
+  "title": "PROVOWARE virtueller Zustand",
+  "type": "object",
+  "required": [
+    "format",
+    "version",
+    "settings",
+    "virtual_state"
+  ],
+  "properties": {
+    "format": {
+      "const": "PROVOWARE-DUPLIKATE-FINDER-STATE"
+    },
+    "version": {
+      "type": "string"
+    },
+    "settings": {
+      "type": "object"
+    },
+    "virtual_state": {
+      "type": "object",
+      "required": [
+        "collections",
+        "collection_items",
+        "virtual_items"
+      ],
+      "properties": {
+        "collections": {
+          "type": "array"
+        },
+        "collection_items": {
+          "type": "array"
+        },
+        "virtual_items": {
+          "type": "array"
+        }
+      }
+    }
+  }
+}

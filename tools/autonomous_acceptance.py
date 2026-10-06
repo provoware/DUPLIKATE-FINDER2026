@@ -35,10 +35,10 @@ PROFILES = (
 )
 
 CRITICAL_BY_PAGE = {
-    0: ["safety_banner", "locked_write_features", "dashboard_go_search", "dashboard_go_duplicates", "dashboard_go_collections", "diagnostic_dashboard"],
-    1: ["search_root", "search_choose_root", "search_query", "search_names", "search_contents", "search_start", "search_info"],
+    0: ["safety_banner", "locked_write_features", "dashboard_go_search", "dashboard_go_duplicates", "dashboard_go_collections", "diagnostic_dashboard", "cpu_limiter", "dashboard_tools", "autosave_info", "process_pause", "process_cancel"],
+    1: ["search_root", "search_choose_root", "search_query", "search_names", "search_contents", "search_start", "exclude_python_dirs", "excluded_types_button", "search_info"],
     2: ["results_table", "result_mark", "result_note", "result_save_meta", "result_collection", "result_add_collection"],
-    3: ["duplicate_start", "duplicate_root", "duplicate_group_list", "duplicate_members", "duplicate_safety_note"],
+    3: ["duplicate_start", "duplicate_root", "duplicate_filter_info", "duplicate_group_list", "duplicate_members", "duplicate_safety_note"],
     4: ["collection_name", "collection_note", "collection_create", "collection_list", "collection_items", "collection_remove", "collection_safety_note"],
     5: ["journal_info"], 6: ["help_safety"],
 }
@@ -128,6 +128,22 @@ def ui_checks(output: Path) -> tuple[list[Result], list[dict]]:
             window.show()
             app.processEvents()
             hint = window.minimumSizeHint()
+            if zoom == 200 or (width == 800 and height == 600):
+                largest = sorted(
+                    (
+                        (widget.minimumSizeHint().width(), widget.minimumSizeHint().height(),
+                         widget.objectName() or "-", type(widget).__name__)
+                        for widget in window.findChildren(QWidget)
+                        if widget.isVisible()
+                    ),
+                    reverse=True,
+                )[:12]
+                print(f"UI-DIAG | {label} | Fensterbedarf {hint.width()}x{hint.height()}")
+                for min_w, min_h, name, kind in largest:
+                    print(f"UI-DIAG | {label} | {min_w}x{min_h} | {kind} | {name}")
+                for page_index in range(window.pages.count()):
+                    page_hint=window.pages.widget(page_index).minimumSizeHint()
+                    print(f"UI-DIAG | {label} | Seite {page_index} | {page_hint.width()}x{page_hint.height()}")
             results.append(Result("Oberfläche", f"{label} Mindestlayout", hint.width() <= width and hint.height() <= height, f"Bedarf {hint.width()}x{hint.height()} bei Fenster {width}x{height}"))
             for page_index in range(window.pages.count()):
                 window.nav.setCurrentRow(page_index)

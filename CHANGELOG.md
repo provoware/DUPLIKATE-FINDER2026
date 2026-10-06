@@ -12,6 +12,24 @@
 ### Geplant
 - weitere Dateiformate und spätere, separat freizugebende Schreibfunktionen
 
+## [0.3.1] – 2026-10-06
+
+### Hinzugefügt
+- kooperative Pause/Fortsetzen-/Abbruchsteuerung für Suche und Duplikatprüfung
+- Prozentfortschritt, aktueller Schritt und grobe Restzeitschätzung
+- Ausschluss von Python-/Entwicklungsordnern und auswählbaren Dateitypen
+- CPU-Kernbegrenzer nur für den PROVOWARE-Prozess
+- Autosave der Einstellungen alle fünf Minuten
+- sicherer JSON-Import/-Export für Einstellungen und virtuelle Organisation
+- Nachvalidierung beim Import
+- verbessertes Listenbild mit Sortierung, alternierenden Zeilen und klaren Kopfzeilen
+- dunkles Hochkontrast-Design mit Neon-Aktionsrändern
+- farblich deutlicher getrennte Bereiche und verbesserte Tooltips
+- zweizeiliger Prozessstatus für kleine Fenster
+
+### Behoben
+- beschädigte Style-Zeile im bisherigen Qt-Farbschema entfernt
+
 ## [0.3.0] – 2026-10-06
 
 ### Hinzugefügt
