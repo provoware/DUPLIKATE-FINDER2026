@@ -28,6 +28,11 @@ def validate_import_payload(payload:object)->dict:
         raise ValueError("Die Importdatei enthält kein gültiges PROVOWARE-Objekt.")
     if payload.get("format")!="PROVOWARE-DUPLIKATE-FINDER-STATE":
         raise ValueError("Die Datei ist kein unterstützter PROVOWARE-Export.")
+    if payload.get("version")!=FORMAT_VERSION:
+        raise ValueError(f"Nicht unterstützte Exportversion: {payload.get('version')!r}. Erwartet wird {FORMAT_VERSION}.")
+    settings=payload.get("settings",{})
+    if not isinstance(settings,dict):
+        raise ValueError("Der Einstellungsbereich ist ungültig.")
     state=payload.get("virtual_state")
     if not isinstance(state,dict):
         raise ValueError("Der virtuelle Datenbereich fehlt.")
