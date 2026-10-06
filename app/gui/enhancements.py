@@ -6,16 +6,15 @@ from math import ceil
 
 from PySide6.QtCore import QEvent, QMimeData, QObject, QPoint, QTimer, Qt, QUrl
 from PySide6.QtGui import QDesktopServices, QDrag
-from PySide6.QtWidgets import QApplication, QComboBox, QDialog, QFileDialog, QFrame, QGridLayout, QHeaderView, QLabel, QMessageBox, QPushButton, QTableView, QVBoxLayout
+from PySide6.QtWidgets import QApplication, QComboBox, QDialog, QFrame, QGridLayout, QHeaderView, QLabel, QMessageBox, QPushButton, QTableView, QVBoxLayout
 
 from app.gui.theme import ZOOM_STEPS, apply_accessible_theme
 from app.startup.selftest import run_selftest
 from app.core.scanner import ScanOptions
 from app.cpu_limit import CpuLimiter
 from app.settings_store import SettingsStore
-from app.state_portability import export_state, import_state
-from app.resource_monitor import ResourceMonitor
-from app.formatting import format_bytes
+from app.gui.resource_dashboard_controller import ResourceDashboardController
+from app.gui.state_portability_controller import StatePortabilityController
 
 MIME_PATH = "application/x-provoware-path"
 
@@ -30,8 +29,17 @@ class UiEnhancements(QObject):
         self.store = SettingsStore(base_dir / "config" / "benutzer-einstellungen.json")
         self.settings = self.store.load()
         self.cpu_limiter = CpuLimiter()
-        self.resource_monitor = ResourceMonitor()
         self.zoom = int(self.settings.get("zoom_percent", 100))
+        self.resource_controller = ResourceDashboardController(self.window)
+        self.portability_controller = StatePortabilityController(
+            self.window,
+            self.base_dir,
+            self.database,
+            self.store,
+            self.settings,
+            self._collect_settings,
+            self._apply_loaded_settings,
+        )
         self._configure_sorting()
         self._configure_drag_drop()
         self._add_dashboard_tools()
@@ -48,9 +56,9 @@ class UiEnhancements(QObject):
         self.autosave_timer.timeout.connect(self._autosave)
         self.autosave_timer.start(300_000)
         self.resource_timer = QTimer(self)
-        self.resource_timer.timeout.connect(self._refresh_resources)
+        self.resource_timer.timeout.connect(self.resource_controller.refresh)
         self.resource_timer.start(1_000)
-        self._refresh_resources()
+        self.resource_controller.refresh()
         self._refresh_status_style()
 
     def _configure_sorting(self) -> None:
@@ -177,27 +185,6 @@ class UiEnhancements(QObject):
 
         layout.insertWidget(max(1, layout.count() - 1), panel)
 
-    def _refresh_resources(self) -> None:
-        snapshot=self.resource_monitor.sample()
-        ram=format_bytes(snapshot.process_ram_bytes)
-        swap_used=format_bytes(snapshot.swap_used_bytes)
-        swap_total=format_bytes(snapshot.swap_total_bytes)
-        swap_percent=(
-            snapshot.swap_used_bytes/snapshot.swap_total_bytes*100
-            if snapshot.swap_total_bytes>0 else 0.0
-        )
-        self.window.dashboard_resource_value.setText(
-            f"CPU {snapshot.process_cpu_percent:.0f}% · RAM {ram} · SWAP {swap_percent:.0f}%"
-        )
-        sys_used=format_bytes(snapshot.system_ram_used_bytes)
-        sys_total=format_bytes(snapshot.system_ram_total_bytes)
-        self.window.dashboard_resource_value.setToolTip(
-            f"PROVOWARE CPU: {snapshot.process_cpu_percent:.1f} %\n"
-            f"PROVOWARE RAM: {ram}\n"
-            f"System-RAM: {sys_used} von {sys_total}\n"
-            f"SWAP (Auslagerung): {swap_used} von {swap_total}"
-        )
-
     def _open_tools_dialog(self) -> None:
         dialog=QDialog(self.window)
         dialog.setWindowTitle("Werkzeuge & Sicherung")
@@ -223,13 +210,13 @@ class UiEnhancements(QObject):
         export_button=QPushButton("Zustand exportieren")
         export_button.setObjectName("dashboard_export")
         export_button.setToolTip("Exportiert Einstellungen, Markierungen und virtuelle Sammlungen als JSON.")
-        export_button.clicked.connect(self._export_state)
+        export_button.clicked.connect(self.portability_controller.export)
         layout.addWidget(export_button)
 
         import_button=QPushButton("Zustand importieren")
         import_button.setObjectName("dashboard_import")
         import_button.setToolTip("Prüft und importiert nur PROVOWARE-Einstellungen und virtuelle Organisation.")
-        import_button.clicked.connect(self._import_state)
+        import_button.clicked.connect(self.portability_controller.import_state)
         layout.addWidget(import_button)
 
         close=QPushButton("Schließen")
@@ -295,58 +282,6 @@ class UiEnhancements(QObject):
         self.store.save(self._collect_settings())
         label="alle verfügbaren" if requested == 0 else str(active)
         self.window.status_label.setText(f"OK · CPU-Begrenzung: {label} Kern(e) für PROVOWARE")
-
-    def _export_state(self) -> None:
-        default=self.base_dir/"exports"/"PROVOWARE-Zustand.json"
-        path,_=QFileDialog.getSaveFileName(
-            self.window,"PROVOWARE-Zustand exportieren",str(default),"JSON-Datei (*.json)"
-        )
-        if not path:
-            return
-        target=Path(path)
-        try:
-            payload=export_state(self.database,target,self._collect_settings())
-        except Exception as exc:
-            QMessageBox.critical(self.window,"Export fehlgeschlagen",f"Der Export wurde sicher gestoppt.\n\n{exc}")
-            return
-        self.window.status_label.setText("OK · Export geprüft und gespeichert")
-        QMessageBox.information(
-            self.window,"Export abgeschlossen",
-            f"Virtuelle Organisation und Einstellungen wurden exportiert.\n\n{target}\n\nOriginaldateien wurden nicht kopiert."
-        )
-
-    def _import_state(self) -> None:
-        path,_=QFileDialog.getOpenFileName(
-            self.window,"PROVOWARE-Zustand importieren",str(self.base_dir/"exports"),"JSON-Datei (*.json)"
-        )
-        if not path:
-            return
-        answer=QMessageBox.question(
-            self.window,"Import vorprüfen und übernehmen",
-            "Importiert werden nur Einstellungen, Markierungen und virtuelle Sammlungen. "
-            "Originaldateien werden nicht verändert.\n\nFortfahren?"
-        )
-        if answer != QMessageBox.StandardButton.Yes:
-            return
-        backup=self.base_dir/"recovery"/f"PROVOWARE-vor-Import-{datetime.now().strftime('%Y%m%d-%H%M%S')}.json"
-        try:
-            export_state(self.database,backup,self._collect_settings())
-            payload=import_state(self.database,Path(path))
-        except Exception as exc:
-            QMessageBox.critical(self.window,"Import abgelehnt",f"Die Datei wurde nicht übernommen.\n\n{exc}")
-            return
-        imported_settings=payload.get("settings")
-        if isinstance(imported_settings,dict):
-            self.settings.update(imported_settings)
-            self.store.save(self.settings)
-            self._apply_loaded_settings()
-        self.window._refresh_collections()
-        self.window.status_label.setText("OK · Import vor- und nachgeprüft")
-        QMessageBox.information(
-            self.window,
-            "Import abgeschlossen",
-            f"Der virtuelle Zustand wurde sicher übernommen.\n\nVorheriger Zustand gesichert unter:\n{backup}",
-        )
 
     def _adapt_to_screen(self) -> None:
         screen = self.window.screen() or QApplication.primaryScreen()
