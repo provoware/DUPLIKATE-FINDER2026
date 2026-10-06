@@ -17,13 +17,14 @@ from app.gui.enhancements import UiEnhancements  # noqa: E402
 
 
 CRITICAL_BY_PAGE = {
-    0: ["safety_banner", "locked_write_features", "dashboard_go_search", "dashboard_go_duplicates", "dashboard_go_collections"],
+    0: ["safety_banner", "locked_write_features", "dashboard_go_search", "dashboard_go_duplicates", "dashboard_go_collections", "dashboard_go_files"],
     1: ["search_root", "search_choose_root", "search_query", "search_names", "search_contents", "search_start", "search_info"],
     2: ["results_table", "result_mark", "result_note", "result_save_meta", "result_collection", "result_add_collection"],
     3: ["duplicate_start", "duplicate_root", "duplicate_group_list", "duplicate_members", "duplicate_safety_note"],
     4: ["collection_name", "collection_note", "collection_create", "collection_list", "collection_items", "collection_remove", "collection_safety_note"],
-    5: ["journal_info"],
-    6: ["help_safety"],
+    5: ["file_browser_root", "file_browser_choose", "file_browser_query", "file_browser_kind", "file_browser_table", "file_preview_title", "file_preview_image", "file_browser_safety"],
+    6: ["journal_info"],
+    7: ["help_safety"],
 }
 
 

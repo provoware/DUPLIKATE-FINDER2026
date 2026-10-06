@@ -1,5 +1,7 @@
 # Planung v0.8.0 – Datei- und Medienübersicht
 
+**Umsetzung gestartet:** 2026-10-06 · ausschließlich Nur-Lesen-Funktionen.
+
 ## Ziel
 
 Ein eigener Nur-Lesen-Bereich soll Dateien übersichtlich nach Typ erfassen, filtern und direkt vorschauen, ohne den Dateimanager des Systems zu ersetzen und ohne Originaldateien zu verändern.
@@ -124,3 +126,11 @@ Jeder Vorschauadapter muss fehlschlagen dürfen, ohne den restlichen Browser zu 
 3. PDF-Vorschau
 4. Video-/Audio-Metadaten und externe Wiedergabe
 5. erst danach prüfen, ob interne Multimedia-Wiedergabe den zusätzlichen Paketumfang rechtfertigt
+
+## Umsetzungsstand
+
+- Stufe 1 umgesetzt: allgemeine Dateiansicht, Filter, Navigation, externe Öffnung und virtuelle Organisation.
+- Stufe 2 umgesetzt: Text- und Bildvorschau.
+- Stufe 3 umgesetzt: PDF-Erstseitenvorschau über QtPdf ohne neue Fremdbibliothek.
+- Audio/Video bleiben bis nach vollständiger v0.8.0-Abnahme bei Metadaten + externem Standardprogramm.
+- AppImage wird erst nach grüner v0.8.0-Abnahme separat bewertet.

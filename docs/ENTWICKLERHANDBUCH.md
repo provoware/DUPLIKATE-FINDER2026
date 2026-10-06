@@ -94,3 +94,14 @@ Der Ressourcenmonitor liest unter Linux `/proc` direkt und benötigt keine zusä
 Fortschrittsdaten umfassen Dateien pro Sekunde und verarbeitete Datenmenge. Wenn eine bekannte Gesamtdatenmenge vorhanden ist, wird die Restzeit bevorzugt nach Bytes statt nur nach Dateianzahl geschätzt.
 
 Diese Regeln gehören zum Bedien-/Prozessbereich und dürfen nach dessen Freeze nur mit eigener Regression und ausdrücklicher Entsperrung verändert werden.
+
+
+## Datei- und Medienbrowser ab v0.8.0
+
+Der Datei-Browser liegt absichtlich unter `app/file_browser/` und darf nicht wieder vollständig in `MainWindow` eingebaut werden.
+
+- `classification.py`: Dateitypen und Erweiterungsgruppen
+- `preview.py`: begrenzte Nur-Lesen-Vorschau
+- `widget.py`: Qt-Dateisystemansicht und sichere Benutzeraktionen
+
+Neue Vorschauarten sollen zuerst vorhandene Qt-Funktionen verwenden. Neue schwere Bibliotheken sind nur zulässig, wenn Paketgröße, Portable Lite/Recovery und Offline-Abnahme ausdrücklich neu bewertet werden.

@@ -40,6 +40,8 @@ def test_snapshot_is_stable_for_same_tree():
 def test_area_classification():
     assert "startup" in area_for("app/startup/bootstrap.py")
     assert "gui" in area_for("app/gui/theme.py")
+    assert "gui" in area_for("app/file_browser/widget.py")
+    assert "core" in area_for("app/file_browser/classification.py")
 
 
 def test_text_catalog_manifest_matches_catalog_version():
