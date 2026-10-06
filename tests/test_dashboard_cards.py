@@ -18,5 +18,6 @@ def test_dashboard_cards_use_clear_four_column_layout():
     assert 'self.dashboard_cards.extend((process_card, resource_card' in dashboard
     assert 'checkbox.setText(f"{text} · gesperrt")' in dashboard
     responsive=source[source.index("def _update_dashboard_card_layout"):source.index("def resizeEvent")]
-    assert 'columns = 2 if int(self.property("uiZoom") or 100) >= 150 else 4' in responsive
+    assert 'zoom = int(self.property("uiZoom") or 100)' in responsive
+    assert 'columns = 2 if zoom >= 150 else 4' in responsive
     assert 'self.dashboard_card_layout.addWidget(card, index // columns, index % columns)' in responsive
