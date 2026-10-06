@@ -29,18 +29,16 @@ from PySide6.QtWidgets import (
     QWidget,
 )
 
-from app.gui.workers import DuplicateWorker, SearchWorker
+from app.gui.duplicate_controller import DuplicateController
 from app.gui.process_controller import ProcessUiController
+from app.gui.search_controller import SearchController
 from app.gui.table_models import CollectionItemsModel, DuplicateMembersModel, SearchResultsModel
 from app.core.scanner import ScanOptions
-from app.models.entities import DuplicateGroup, SearchHit, SearchJob
 from app.safety.policy import WRITE_FEATURES
 from app.storage.database import Database
-from app.validation import validate_scan_root, validate_search_request
+from app.validation import validate_scan_root
 from app.gui.design_tokens import BASE_SPACING, OUTER_MARGIN
 from app.texts import text as ui_text
-from app.error_management import record_error
-from app.formatting import format_bytes
 from app.file_browser.widget import FileBrowserWidget
 
 
@@ -59,8 +57,8 @@ class MainWindow(QMainWindow):
         self.base_dir = base_dir
         self.database = database
         self.selected_root: Path | None = None
-        self.search_worker: SearchWorker | None = None
-        self.duplicate_worker: DuplicateWorker | None = None
+        self.search_worker = None
+        self.duplicate_worker = None
         self.last_search_job_id: int | None = None
         self.duplicate_groups_cache: list[tuple[int, str, int, int]] = []
         self.results_model = SearchResultsModel(database, self)
@@ -68,6 +66,8 @@ class MainWindow(QMainWindow):
         self.collection_items_model = CollectionItemsModel(database, self)
         self.scan_options = ScanOptions()
         self.process_controller = ProcessUiController(self)
+        self.search_controller = SearchController(self)
+        self.duplicate_controller = DuplicateController(self)
 
         self.setWindowTitle("PROVOWARE DUPLIKATE-FINDER 2026 – Nur-Lesen-Modus")
         app = QApplication.instance()
@@ -76,7 +76,7 @@ class MainWindow(QMainWindow):
         self.setMinimumSize(760, 520)
         self._build_ui()
         self._refresh_collections()
-        self._refresh_duplicate_view_from_database()
+        self.duplicate_controller.refresh_view_from_database()
 
     def _heading(self, text: str) -> QLabel:
         label = QLabel(text)
@@ -450,7 +450,7 @@ class MainWindow(QMainWindow):
         self.search_button = QPushButton("Suche starten")
         self.search_button.setObjectName("search_start")
         self.search_button.setProperty("primaryAction", True)
-        self.search_button.clicked.connect(self._start_search)
+        self.search_button.clicked.connect(self.search_controller.start)
         self.search_button.setToolTip("Startet eine reine Lese-Suche. Originaldateien werden nicht verändert.")
         query_grid.addWidget(self.query_edit, 0, 0, 1, 3)
         query_grid.addWidget(self.names_box, 1, 0)
@@ -554,7 +554,7 @@ class MainWindow(QMainWindow):
         self.duplicate_start = QPushButton("Gewählten Ordner prüfen")
         self.duplicate_start.setObjectName("duplicate_start")
         self.duplicate_start.setProperty("primaryAction", True)
-        self.duplicate_start.clicked.connect(self._start_duplicate_scan)
+        self.duplicate_start.clicked.connect(self.duplicate_controller.start)
         top.addWidget(self.duplicate_start)
         layout.addLayout(top)
 
@@ -572,7 +572,7 @@ class MainWindow(QMainWindow):
         splitter.setObjectName("duplicate_splitter")
         self.duplicate_group_list = QListWidget()
         self.duplicate_group_list.setObjectName("duplicate_group_list")
-        self.duplicate_group_list.currentRowChanged.connect(self._show_duplicate_group)
+        self.duplicate_group_list.currentRowChanged.connect(self.duplicate_controller.show_group)
         splitter.addWidget(self.duplicate_group_list)
 
         right = QWidget()
@@ -733,86 +733,6 @@ class MainWindow(QMainWindow):
         self.root_label.setText(chosen)
         self.duplicate_root.setText(f"Suchordner: {chosen}")
 
-    def _start_search(self) -> None:
-        query = self.query_edit.text().strip()
-        validation = validate_search_request(
-            self.selected_root,
-            query,
-            self.names_box.isChecked(),
-            self.contents_box.isChecked(),
-        )
-        if not validation.ok:
-            QMessageBox.information(self, validation.title, validation.message)
-            return
-
-        job = SearchJob(
-            root=self.selected_root,
-            query=query,
-            search_names=self.names_box.isChecked(),
-            search_contents=self.contents_box.isChecked(),
-        )
-        self.search_button.setEnabled(False)
-        self.status_label.setText("Hinweis · Textsuche läuft …")
-        self.activity_label.setText("Aktivität: Dateiliste wird vorbereitet")
-        self.step_label.setText("Schritt: Dateien inventarisieren")
-        self.eta_label.setText("Restzeit: wird ermittelt")
-        self.progress_bar.setRange(0, 0)
-        self.counter_label.setText("Dateien werden ermittelt …")
-        self.scan_options = ScanOptions(
-            exclude_python_project_dirs=self.exclude_python_box.isChecked(),
-            excluded_extensions=self.scan_options.excluded_extensions,
-        )
-        self.search_worker = SearchWorker(job, self.database, self.scan_options)
-        self.process_controller.connect_worker_controls(self.search_worker)
-        self.search_worker.completed.connect(self._search_finished)
-        self.search_worker.failed.connect(self._search_failed)
-        self.search_worker.start()
-
-    def _search_finished(
-        self,
-        job: SearchJob,
-        job_id: int,
-        hit_count: int,
-        error_count: int,
-    ) -> None:
-        self.last_search_job_id = job_id
-        self.results_model.set_job(job_id, hit_count)
-        self.search_button.setEnabled(True)
-        self._set_process_idle()
-        if error_count:
-            self.status_label.setText(
-                f"Hinweis · Textsuche abgeschlossen · {error_count} Datei(en) übersprungen"
-            )
-        else:
-            self.status_label.setText("OK · Textsuche abgeschlossen")
-        self.activity_label.setText("Aktivität: Suche abgeschlossen")
-        self.progress_bar.setRange(0, 100)
-        self.progress_bar.setValue(100)
-        self.counter_label.setText(
-            f"{job.scanned_files} Textdateien geprüft · {hit_count} Treffer · "
-            f"{error_count} übersprungen"
-        )
-        self.result_info.setText(
-            f"{hit_count} Treffer · {error_count} Lesefehler · SQLite-Seiten · "
-            f"max. {self.results_model.page_size * self.results_model.max_pages} "
-            "Zeilen im GUI-Puffer"
-        )
-        self.dashboard_process_value.setText(
-            f"Fertig · {job.scanned_files} Dateien · {hit_count} Treffer · "
-            f"{error_count} übersprungen"
-        )
-        self.nav.setCurrentRow(self.PAGE_RESULTS)
-
-    def _search_failed(self, message: str) -> None:
-        entry = record_error(self.base_dir / "logs", "textsuche", message)
-        self.search_button.setEnabled(True)
-        self._set_process_idle()
-        self.status_label.setText("Fehler · Textsuche gestoppt")
-        self.activity_label.setText("Aktivität: sicher gestoppt")
-        self.progress_bar.setRange(0, 100)
-        self.progress_bar.setValue(0)
-        QMessageBox.critical(self, "Suche gestoppt", f"Die Suche wurde sicher beendet.\n\n{message}\n\nLösung: {entry['solution']}")
-
     def _active_worker(self):
         """Kompatibilitätsbrücke für Erweiterungen, die den aktiven Worker abfragen."""
         return self.process_controller.active_worker()
@@ -878,117 +798,6 @@ class MainWindow(QMainWindow):
         self.database.add_collection_item(int(collection_id), path, self.result_note.text())
         self._show_collection(self.collection_list.currentRow())
         self.status_label.setText("OK · Treffer virtuell zur Sammlung hinzugefügt")
-
-    def _start_duplicate_scan(self) -> None:
-        validation = validate_scan_root(self.selected_root)
-        if not validation.ok:
-            QMessageBox.information(self, validation.title, validation.message)
-            return
-        self.duplicate_start.setEnabled(False)
-        self.status_label.setText("Hinweis · Duplikatprüfung läuft …")
-        self.activity_label.setText("Aktivität: Dateiliste wird vorbereitet")
-        self.step_label.setText("Schritt: Dateien inventarisieren")
-        self.eta_label.setText("Restzeit: wird ermittelt")
-        self.progress_bar.setRange(0, 0)
-        self.duplicate_summary.setText("Dateigrößen werden gruppiert; nur Kandidaten werden vollständig gehasht.")
-        self.scan_options = ScanOptions(
-            exclude_python_project_dirs=self.exclude_python_box.isChecked(),
-            excluded_extensions=self.scan_options.excluded_extensions,
-        )
-        self.duplicate_worker = DuplicateWorker(
-            self.selected_root,
-            self.database,
-            self.scan_options,
-        )
-        self.process_controller.connect_worker_controls(self.duplicate_worker)
-        self.duplicate_worker.completed.connect(self._duplicate_scan_finished)
-        self.duplicate_worker.failed.connect(self._duplicate_scan_failed)
-        self.duplicate_worker.start()
-
-    def _duplicate_scan_finished(
-        self,
-        scanned: int,
-        group_count: int,
-        error_count: int,
-    ) -> None:
-        self._refresh_duplicate_view_from_database()
-        self.duplicate_start.setEnabled(True)
-        self._set_process_idle()
-        duplicates = sum(item[3] for item in self.duplicate_groups_cache)
-        if error_count:
-            self.status_label.setText(
-                f"Hinweis · Duplikatprüfung abgeschlossen · {error_count} Datei(en) übersprungen"
-            )
-        else:
-            self.status_label.setText("OK · Duplikatprüfung abgeschlossen")
-        self.activity_label.setText("Aktivität: Duplikatprüfung abgeschlossen")
-        self.step_label.setText("Schritt: abgeschlossen")
-        self.eta_label.setText("Restzeit: 0 s")
-        self.progress_bar.setRange(0, 100)
-        self.progress_bar.setValue(100)
-        self.counter_label.setText(
-            f"{scanned} Dateien inventarisiert · {group_count} Gruppen · "
-            f"{duplicates} Duplikatdateien · {error_count} übersprungen"
-        )
-        self.duplicate_summary.setText(
-            f"{group_count} sichere Duplikatgruppen gefunden. "
-            "Die Schnellprüfung dient nur als Vorfilter; jede angezeigte Gruppe "
-            "wurde vollständig mit SHA-256 bestätigt."
-        )
-        self.dashboard_process_value.setText(
-            f"Fertig · {scanned} Dateien · {group_count} Gruppen · "
-            f"{error_count} übersprungen"
-        )
-
-    def _duplicate_scan_failed(self, message: str) -> None:
-        entry = record_error(self.base_dir / "logs", "duplikatpruefung", message)
-        self.duplicate_start.setEnabled(True)
-        self._set_process_idle()
-        self.status_label.setText("Fehler · Duplikatprüfung gestoppt")
-        self.activity_label.setText("Aktivität: sicher gestoppt")
-        self.progress_bar.setRange(0, 100)
-        self.progress_bar.setValue(0)
-        QMessageBox.critical(
-            self,
-            "Duplikatprüfung gestoppt",
-            f"Die Prüfung wurde sicher beendet.\n\n{message}\n\nLösung: {entry['solution']}",
-        )
-
-    def _refresh_duplicate_view_from_database(self) -> None:
-        self.duplicate_groups_cache = self.database.duplicate_group_summaries()
-        self._fill_duplicate_groups()
-
-    def _fill_duplicate_groups(self) -> None:
-        self.duplicate_group_list.clear()
-        for index, (_group_id, _digest, size, members) in enumerate(
-            self.duplicate_groups_cache,
-            start=1,
-        ):
-            wasted = size * (members - 1)
-            text = (
-                f"Gruppe {index} · {members} Dateien · "
-                f"{format_bytes(wasted)} mehrfach"
-            )
-            self.duplicate_group_list.addItem(text)
-        if self.duplicate_groups_cache:
-            self.duplicate_group_list.setCurrentRow(0)
-        else:
-            self.duplicate_members_model.set_group_id(None)
-
-    def _show_duplicate_group(self, row: int) -> None:
-        if row < 0 or row >= len(self.duplicate_groups_cache):
-            self.duplicate_members_model.set_group_id(None)
-            return
-        group_id, digest, size, members = self.duplicate_groups_cache[row]
-        self.duplicate_members_model.set_group_id(
-            group_id,
-            size=size,
-            count=members,
-        )
-        self.duplicate_summary.setText(
-            f"Gruppe {row + 1}: {members} vollständig identische Dateien · "
-            f"je {format_bytes(size)} · SHA-256 {digest[:16]}…"
-        )
 
     def _create_collection(self) -> None:
         name = self.collection_name.text().strip()

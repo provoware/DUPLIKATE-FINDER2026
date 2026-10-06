@@ -11,7 +11,10 @@ def test_main_window_delegates_process_control_to_controller():
     assert "ProcessUiController(self)" in source
     assert "process_controller.toggle_pause" in source
     assert "process_controller.cancel_active_process" in source
-    assert "process_controller.connect_worker_controls" in source
+    search = (GUI / "search_controller.py").read_text(encoding="utf-8")
+    duplicate = (GUI / "duplicate_controller.py").read_text(encoding="utf-8")
+    assert "process_controller.connect_worker_controls" in search
+    assert "process_controller.connect_worker_controls" in duplicate
     assert "def _on_process_progress" not in source
     assert "def _toggle_pause" not in source
     assert "def _cancel_active_process" not in source

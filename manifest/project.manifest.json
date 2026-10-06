@@ -108,7 +108,10 @@
       "git_diff_fast_state_plan",
       "portable_dependency_cache",
       "full_bundle_path_filtering",
-      "central_dependency_versions"
+      "central_dependency_versions",
+      "shared_scan_ui_support",
+      "search_controller",
+      "duplicate_controller"
     ],
     "file_browser": [
       "lazy_qt_filesystem_model",
