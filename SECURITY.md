@@ -2,7 +2,7 @@
 
 ## Unterstützter Stand
 
-Aktuell befindet sich das Projekt in der read-only Phase `0.1.x`.
+Aktuell befindet sich das Projekt im freigegebenen Nur-Lesen-Sicherheitsstand `0.7.0`.
 
 ## Sicherheitsrelevante Fehler
 
