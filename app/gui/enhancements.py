@@ -92,7 +92,7 @@ class UiEnhancements(QObject):
 
         screen = self.window.screen() or QApplication.primaryScreen()
         geometry = screen.availableGeometry() if screen else None
-        screen_text = f"🖥 Bildschirm {geometry.width()}×{geometry.height()}" if geometry else "🖥 Bildschirm unbekannt"
+        screen_text = f"🖥 {geometry.width()}×{geometry.height()}" if geometry else "🖥 unbekannt"
         self.screen_info = QLabel(screen_text)
         self.screen_info.setToolTip("Automatisch erkannter nutzbarer Bildschirmbereich.")
         grid.addWidget(self.screen_info, 0, 0)
@@ -100,21 +100,21 @@ class UiEnhancements(QObject):
         self.zoom_combo = QComboBox()
         self.zoom_combo.setObjectName("zoom_selector")
         for value in ZOOM_STEPS:
-            self.zoom_combo.addItem(f"Schrift {value} %", value)
+            self.zoom_combo.addItem(f"{value} %", value)
         self.zoom_combo.currentIndexChanged.connect(self._zoom_from_combo)
         self.zoom_combo.setToolTip("Schrift-/Seitenzoom. Alternativ: Strg + Mausrad.")
         grid.addWidget(self.zoom_combo, 0, 1)
 
         self.size_combo = QComboBox()
         self.size_combo.setObjectName("size_selector")
-        self.size_combo.addItem("Fenster: automatisch", None)
+        self.size_combo.addItem("Größe: Auto", None)
         for width, height in ((800, 600), (1024, 768), (1280, 800)):
-            self.size_combo.addItem(f"Fenster {width}×{height}", (width, height))
+            self.size_combo.addItem(f"{width}×{height}", (width, height))
         self.size_combo.currentIndexChanged.connect(self._size_from_combo)
         self.size_combo.setToolTip("Fenstergröße ohne Zahleneingabe auswählen.")
         grid.addWidget(self.size_combo, 0, 2)
 
-        self.cpu_info = QLabel(f"🧠 CPU: {detected_cpu_count()} Kerne erkannt")
+        self.cpu_info = QLabel(f"🧠 {detected_cpu_count()} CPU-Kerne")
         self.cpu_info.setToolTip("Erkannte logische CPU-Kerne. Der Begrenzer betrifft die parallele Duplikatprüfung.")
         grid.addWidget(self.cpu_info, 1, 0)
 
@@ -122,7 +122,7 @@ class UiEnhancements(QObject):
         self.cpu_combo.setObjectName("cpu_core_limit")
         cpu = detected_cpu_count()
         auto = default_cpu_workers()
-        self.cpu_combo.addItem(f"CPU automatisch · {auto} Kerne", 0)
+        self.cpu_combo.addItem(f"Auto · {auto} Kerne", 0)
         if cpu <= 16:
             values = range(1, cpu + 1)
         else:
@@ -135,7 +135,7 @@ class UiEnhancements(QObject):
         )
         grid.addWidget(self.cpu_combo, 1, 1)
 
-        filters = QPushButton("⚙ Prüfoptionen")
+        filters = QPushButton("⚙ Filter")
         filters.setObjectName("dashboard_filter_options")
         filters.clicked.connect(self.window._open_scan_options)
         grid.addWidget(filters, 1, 2)
@@ -160,19 +160,19 @@ class UiEnhancements(QObject):
         )
         grid.addWidget(self.autosave_info, 2, 2)
 
-        export_button = QPushButton("📤 Zustand exportieren")
+        export_button = QPushButton("📤 Export")
         export_button.setObjectName("dashboard_export")
         export_button.clicked.connect(self.window.export_provoware_state)
         export_button.setToolTip("Exportiert nur PROVOWARE-Einstellungen, Markierungen und virtuelle Sammlungen.")
         grid.addWidget(export_button, 3, 0)
 
-        import_button = QPushButton("📥 Zustand importieren")
+        import_button = QPushButton("📥 Import")
         import_button.setObjectName("dashboard_import")
         import_button.clicked.connect(self.window.import_provoware_state)
         import_button.setToolTip("Importiert nur PROVOWARE-Zustände. Originaldateien werden nicht verändert.")
         grid.addWidget(import_button, 3, 1)
 
-        save_now = QPushButton("💾 Jetzt speichern")
+        save_now = QPushButton("💾 Speichern")
         save_now.setObjectName("dashboard_save_now")
         save_now.clicked.connect(self._autosave)
         grid.addWidget(save_now, 3, 2)
@@ -272,7 +272,7 @@ class UiEnhancements(QObject):
 
     def _autosave_label(self, state: str) -> None:
         now = datetime.now().strftime("%H:%M")
-        self.autosave_info.setText(f"💾 Autospeichern 5 min · {state} · {now}")
+        self.autosave_info.setText(f"💾 5 min · {state} · {now}")
 
     def _autosave(self) -> None:
         try:

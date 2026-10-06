@@ -160,7 +160,7 @@ class MainWindow(QMainWindow):
 
         self.status_label = QLabel("🟢 Bereit")
         self.status_label.setObjectName("status_label")
-        self.activity_label = QLabel("Aktueller Schritt: bereit")
+        self.activity_label = QLabel("Schritt: bereit")
         self.activity_label.setObjectName("activity_label")
         self.activity_label.setToolTip("Zeigt den aktuell ausgeführten Arbeitsschritt.")
         self.eta_label = QLabel("Restzeit: –")
@@ -192,15 +192,19 @@ class MainWindow(QMainWindow):
         self.counter_label.setObjectName("counter_label")
         self.counter_label.setAlignment(Qt.AlignmentFlag.AlignRight | Qt.AlignmentFlag.AlignVCenter)
 
+        self.activity_label.setWordWrap(True)
+        self.eta_label.setWordWrap(True)
+        self.counter_label.setWordWrap(True)
         process.addWidget(self.status_label, 0, 0)
-        process.addWidget(self.activity_label, 0, 1, 1, 2)
-        process.addWidget(self.eta_label, 0, 3)
-        process.addWidget(self.progress_bar, 1, 0, 1, 2)
-        process.addWidget(self.pause_button, 1, 2)
-        process.addWidget(self.cancel_button, 1, 3)
-        process.addWidget(self.counter_label, 1, 4)
-        process.setColumnStretch(1, 1)
-        process.setColumnStretch(4, 1)
+        process.addWidget(self.activity_label, 0, 1)
+        process.addWidget(self.eta_label, 0, 2)
+        process.addWidget(self.progress_bar, 1, 0)
+        process.addWidget(self.pause_button, 1, 1)
+        process.addWidget(self.cancel_button, 1, 2)
+        process.addWidget(self.counter_label, 2, 0, 1, 3)
+        process.setColumnStretch(0, 2)
+        process.setColumnStretch(1, 2)
+        process.setColumnStretch(2, 2)
         root.addWidget(process_panel)
 
         self.nav.currentRowChanged.connect(self.pages.setCurrentIndex)
@@ -215,13 +219,12 @@ class MainWindow(QMainWindow):
         layout.setSpacing(8)
         layout.addWidget(self._heading("Übersicht"))
 
-        cards = QGridLayout()
-        cards.setSpacing(8)
-        cards.addWidget(self._card("Sicherheitsmodus", "🔒 Nur lesen"), 0, 0)
-        cards.addWidget(self._card("Textsuche", "🟢 Bereit"), 0, 1)
-        cards.addWidget(self._card("Duplikatprüfung", "🟢 SHA-256"), 1, 0)
-        cards.addWidget(self._card("Datenbank", "🟢 Lokal · SQLite"), 1, 1)
-        layout.addLayout(cards)
+        summary = QLabel(
+            "🔒 Nur lesen  ·  🔎 Suche bereit  ·  🟰 SHA-256  ·  💾 SQLite lokal"
+        )
+        summary.setWordWrap(True)
+        summary.setProperty("infoPanel", True)
+        layout.addWidget(summary)
 
         feature_box = QFrame()
         feature_box.setObjectName("locked_write_features")
@@ -387,14 +390,18 @@ class MainWindow(QMainWindow):
         open_folder = QPushButton("📂 Ordner öffnen")
         open_folder.setObjectName("result_open_folder")
         open_folder.clicked.connect(self._open_selected_result_folder)
-        meta.addWidget(self.result_mark, 0, 0)
-        meta.addWidget(self.result_note, 0, 1, 1, 3)
-        meta.addWidget(save_meta, 1, 0, 1, 2)
-        meta.addWidget(copy_path, 1, 2)
-        meta.addWidget(open_folder, 1, 3)
-        meta.addWidget(QLabel("Sammlung:"), 2, 0)
-        meta.addWidget(self.result_collection, 2, 1, 1, 2)
-        meta.addWidget(add_collection, 2, 3)
+        save_meta.setText("💾 Notiz speichern")
+        add_collection.setText("➕ Zur Sammlung")
+        copy_path.setText("📋 Pfad kopieren")
+        open_folder.setText("📂 Ordner öffnen")
+        meta.addWidget(self.result_mark, 0, 0, 1, 2)
+        meta.addWidget(self.result_note, 1, 0, 1, 2)
+        meta.addWidget(save_meta, 2, 0, 1, 2)
+        meta.addWidget(QLabel("Sammlung:"), 3, 0)
+        meta.addWidget(self.result_collection, 3, 1)
+        meta.addWidget(add_collection, 4, 0)
+        meta.addWidget(copy_path, 4, 1)
+        meta.addWidget(open_folder, 5, 0, 1, 2)
         layout.addWidget(meta_panel)
         return page
 
@@ -668,7 +675,7 @@ class MainWindow(QMainWindow):
         self.cancel_button.setEnabled(True)
         self._last_phase = phase
         self.status_label.setText("🟡 Verarbeitung läuft")
-        self.activity_label.setText(f"Aktueller Schritt: {phase}")
+        self.activity_label.setText(f"Schritt: {phase}")
         self.eta_label.setText("Restzeit: wird berechnet")
 
     def _finish_process(self) -> None:
@@ -725,12 +732,12 @@ class MainWindow(QMainWindow):
     def _process_pause_changed(self, paused: bool) -> None:
         if paused:
             self.status_label.setText("🟡 Pausiert")
-            self.activity_label.setText(f"Aktueller Schritt: pausiert · {self._last_phase}")
+            self.activity_label.setText(f"Schritt: pausiert · {self._last_phase}")
             self.eta_label.setText("Restzeit: nach Fortsetzen")
             self.pause_button.setText("▶ Fortsetzen")
         else:
             self.status_label.setText("🟡 Verarbeitung läuft")
-            self.activity_label.setText(f"Aktueller Schritt: {self._last_phase}")
+            self.activity_label.setText(f"Schritt: {self._last_phase}")
             self.pause_button.setText("⏸ Pause")
 
     def _cancel_active_process(self) -> None:
@@ -741,13 +748,13 @@ class MainWindow(QMainWindow):
         self.cancel_button.setEnabled(False)
         self.pause_button.setEnabled(False)
         self.status_label.setText("🟡 Abbruch angefordert")
-        self.activity_label.setText("Aktueller Schritt: sicherer Abbruch wird abgeschlossen")
+        self.activity_label.setText("Schritt: sicherer Abbruch")
         self.eta_label.setText("Restzeit: wenige Augenblicke")
 
     def _process_cancelled(self, message: str) -> None:
         self._finish_process()
         self.status_label.setText("🟡 Vorgang abgebrochen · Originaldateien unverändert")
-        self.activity_label.setText("Aktueller Schritt: abgebrochen")
+        self.activity_label.setText("Schritt: abgebrochen")
         self.progress_bar.setValue(0)
         self.progress_bar.setFormat("Abgebrochen")
         self.eta_label.setText("Restzeit: –")
@@ -801,7 +808,7 @@ class MainWindow(QMainWindow):
         self.results.setSortingEnabled(sorting)
         self._finish_process()
         self.status_label.setText("🟢 Textsuche abgeschlossen")
-        self.activity_label.setText("Aktueller Schritt: Ergebnisse bereit")
+        self.activity_label.setText("Schritt: Ergebnisse bereit")
         self.counter_label.setText(f"{job.scanned_files} Textdateien geprüft · {len(hits)} Treffer")
         self.result_info.setText(f"{len(hits)} Treffer")
         self.nav.setCurrentRow(self.PAGE_RESULTS)
@@ -810,7 +817,7 @@ class MainWindow(QMainWindow):
         entry = record_error(self.base_dir / "logs", "textsuche", message)
         self._finish_process()
         self.status_label.setText("🔴 Textsuche gestoppt")
-        self.activity_label.setText("Aktueller Schritt: sicher gestoppt")
+        self.activity_label.setText("Schritt: sicher gestoppt")
         self.progress_bar.setValue(0)
         self.eta_label.setText("Restzeit: –")
         QMessageBox.critical(
@@ -906,7 +913,7 @@ class MainWindow(QMainWindow):
         duplicates = sum(len(group.paths) for group in groups)
         self._finish_process()
         self.status_label.setText("🟢 Duplikatprüfung abgeschlossen")
-        self.activity_label.setText("Aktueller Schritt: Duplikatgruppen bereit")
+        self.activity_label.setText("Schritt: Duplikatgruppen bereit")
         self.counter_label.setText(f"{scanned} Dateien geprüft · {len(groups)} Gruppen · {duplicates} Dateien")
         self.duplicate_summary.setText(
             f"{len(groups)} sichere Duplikatgruppen gefunden. Jede Gruppe besitzt identische Größe und SHA-256-Prüfsumme."
