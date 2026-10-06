@@ -114,7 +114,10 @@
       "duplicate_controller",
       "collection_controller",
       "central_navigation_definition",
-      "localized_ui_copy"
+      "localized_ui_copy",
+      "result_controller",
+      "shared_scan_root_controller",
+      "documented_main_window_refactoring_boundary"
     ],
     "file_browser": [
       "lazy_qt_filesystem_model",
