@@ -53,7 +53,7 @@ def test_collection_and_navigation_copy_is_in_text_catalog():
         )
     )
 
-    assert catalog["catalog_version"] == "1.1.0"
+    assert catalog["catalog_version"] == "1.2.0"
     assert manifest["catalogs"][0]["version"] == catalog["catalog_version"]
     assert len(catalog["navigation"]) == 8
     for key in (
