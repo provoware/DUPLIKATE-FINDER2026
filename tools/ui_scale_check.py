@@ -54,6 +54,9 @@ def main() -> int:
             failures.append(
                 f"Fenster-Mindestbedarf {window.minimumSizeHint().width()}x{window.minimumSizeHint().height()} überschreitet 1280x800"
             )
+            for index in range(window.pages.count()):
+                hint = window.pages.widget(index).minimumSizeHint()
+                print(f"DIAGNOSE: Seite {index} Mindestbedarf {hint.width()}x{hint.height()}")
 
         for page_index, names in CRITICAL_BY_PAGE.items():
             window.nav.setCurrentRow(page_index)
