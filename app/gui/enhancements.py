@@ -112,28 +112,28 @@ class UiEnhancements(QObject):
             self.size_combo.addItem(f"Fenster {width}×{height}", (width, height))
         self.size_combo.currentIndexChanged.connect(self._size_from_combo)
         self.size_combo.setToolTip("Fenstergröße ohne Zahleneingabe auswählen.")
-        grid.addWidget(self.size_combo, 1, 0)
+        grid.addWidget(self.size_combo, 0, 2)
 
         self.cpu_combo=QComboBox()
         self.cpu_combo.setObjectName("cpu_limiter")
-        self.cpu_combo.addItem(f"CPU: Auto · {self.cpu_limiter.available}", 0)
+        self.cpu_combo.addItem("CPU: alle", 0)
         for cores in range(1, self.cpu_limiter.available + 1):
-            self.cpu_combo.addItem(f"CPU: {cores} Kern" + ("" if cores == 1 else "e"), cores)
+            self.cpu_combo.addItem(f"CPU: {cores}", cores)
         self.cpu_combo.currentIndexChanged.connect(self._cpu_changed)
         self.cpu_combo.setToolTip("Begrenzt nur PROVOWARE. Weniger Kerne lassen mehr Rechenleistung für andere Programme frei.")
-        grid.addWidget(self.cpu_combo, 1, 1)
+        grid.addWidget(self.cpu_combo, 1, 0)
 
-        tools_button=QPushButton("🧰 Werkzeuge & Sicherung")
+        tools_button=QPushButton("🧰 Werkzeuge")
         tools_button.setObjectName("dashboard_tools")
         tools_button.setProperty("compact", True)
         tools_button.setToolTip("Selbsttest, Protokolle, Export und Import öffnen.")
         tools_button.clicked.connect(self._open_tools_dialog)
-        grid.addWidget(tools_button, 2, 0)
+        grid.addWidget(tools_button, 1, 1)
 
-        autosave=QLabel("💾 Autosave 5 min · virtuelle Änderungen sofort")
+        autosave=QLabel("💾 Autosave: 5 min")
         autosave.setObjectName("autosave_info")
         autosave.setToolTip("Fenster-, Zoom-, CPU- und Filtereinstellungen werden alle fünf Minuten gesichert.")
-        grid.addWidget(autosave, 2, 1)
+        grid.addWidget(autosave, 1, 2)
 
         layout.insertWidget(max(1, layout.count() - 1), panel)
 
