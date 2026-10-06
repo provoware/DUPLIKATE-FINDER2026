@@ -66,7 +66,7 @@ def test_startup_never_uses_system_package_manager_or_network_installer():
 
 def test_console_entrypoint_exists_and_reuses_core():
     source = (APP / "cli.py").read_text(encoding="utf-8")
-    assert "TextSearcher" in source
+    assert "run_search_to_database" in source
     assert "scan_duplicate_groups" in source
     assert "validate_scan_root" in source
 

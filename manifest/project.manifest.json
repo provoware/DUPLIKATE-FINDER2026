@@ -117,7 +117,12 @@
       "localized_ui_copy",
       "result_controller",
       "shared_scan_root_controller",
-      "documented_main_window_refactoring_boundary"
+      "documented_main_window_refactoring_boundary",
+      "resource_dashboard_controller",
+      "state_portability_controller",
+      "shared_paged_table_model_contract",
+      "shared_search_database_pipeline",
+      "file_browser_no_cosmetic_split_boundary"
     ],
     "file_browser": [
       "lazy_qt_filesystem_model",
@@ -198,6 +203,26 @@
           "appimage_ubuntu_22_04_success",
           "appimage_ubuntu_24_04_success",
           "appimage_usb_path_success"
+        ],
+        "latest_maintenance_reopened_on": "2026-10-07",
+        "latest_maintenance_reopen_reason": "Ausdrücklicher Nutzerauftrag: gezieltes Wartbarkeits-Refactoring nach Nutzenprüfung; keine kosmetische Zerlegung.",
+        "latest_maintenance_refrozen_on": "2026-10-07",
+        "latest_maintenance_refreeze_evidence": [
+          "quality_core_success",
+          "ui_100_success",
+          "ui_150_success",
+          "ui_200_success",
+          "autonomous_acceptance_success",
+          "portable_lite_recovery_success",
+          "appimage_build_success",
+          "appimage_ubuntu_22_04_success",
+          "appimage_ubuntu_24_04_success",
+          "appimage_usb_path_success"
+        ],
+        "latest_maintenance_scope": [
+          "app/gui/enhancements.py",
+          "app/gui/resource_dashboard_controller.py",
+          "app/gui/state_portability_controller.py"
         ]
       },
       {
@@ -229,6 +254,61 @@
           "targeted_tests",
           "full_acceptance",
           "post_validation"
+        ],
+        "latest_maintenance_reopened_on": "2026-10-07",
+        "latest_maintenance_reopen_reason": "Ausdrücklicher Nutzerauftrag: gezieltes Wartbarkeits-Refactoring nach Nutzenprüfung; keine kosmetische Zerlegung.",
+        "latest_maintenance_refrozen_on": "2026-10-07",
+        "latest_maintenance_refreeze_evidence": [
+          "quality_core_success",
+          "ui_100_success",
+          "ui_150_success",
+          "ui_200_success",
+          "autonomous_acceptance_success",
+          "portable_lite_recovery_success",
+          "appimage_build_success",
+          "appimage_ubuntu_22_04_success",
+          "appimage_ubuntu_24_04_success",
+          "appimage_usb_path_success"
+        ],
+        "latest_maintenance_scope": [
+          "app/gui/table_models.py",
+          "app/gui/workers.py",
+          "app/core/search_pipeline.py",
+          "app/cli.py"
+        ]
+      },
+      {
+        "id": "main_window_controller_architecture",
+        "name": "MainWindow-/Controller-Architektur",
+        "status": "FROZEN",
+        "since_version": "0.9.0",
+        "frozen_on": "2026-10-07",
+        "scope": [
+          "app/gui/main_window.py",
+          "app/gui/*_controller.py",
+          "app/gui/navigation.py",
+          "app/gui/scan_controller_support.py"
+        ],
+        "allowed_without_reopen": [
+          "safety_correction",
+          "regression_correction",
+          "required_platform_compatibility",
+          "approved_feature_requiring_existing_controller_extension"
+        ],
+        "reopen_requires": [
+          "explicit_scope_decision",
+          "demonstrated_duplicate_code_or_coupling_reduction",
+          "targeted_tests",
+          "full_800x600_100_150_200_acceptance",
+          "post_validation"
+        ],
+        "prohibited_reason_only": [
+          "file_size_reduction",
+          "cosmetic_class_splitting"
+        ],
+        "evidence": [
+          "docs/REFACTORING_GRENZE_MAIN_WINDOW.md",
+          "tests/test_final_main_window_refactor.py"
         ]
       }
     ]
