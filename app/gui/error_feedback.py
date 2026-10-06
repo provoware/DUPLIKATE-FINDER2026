@@ -15,13 +15,15 @@ def report_ui_error(
     title: str,
     lead: str,
     error: BaseException,
+    show_dialog: bool = True,
 ) -> None:
     """Protokolliert GUI-Fehler einheitlich und zeigt eine laiengerechte Lösung."""
     message = str(error) or error.__class__.__name__
     entry = record_error(window.base_dir / "logs", area, message)
     set_status(window.status_label, f"Fehler · {title}", "error")
-    QMessageBox.critical(
-        window,
-        title,
-        f"{lead}\n\n{message}\n\nLösung: {entry['solution']}",
-    )
+    if show_dialog:
+        QMessageBox.critical(
+            window,
+            title,
+            f"{lead}\n\n{message}\n\nLösung: {entry['solution']}",
+        )
