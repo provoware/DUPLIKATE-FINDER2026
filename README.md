@@ -1,6 +1,53 @@
 # PROVOWARE DUPLIKATE-FINDER 2026
 
-Lokales Linux-Werkzeug für **Textsuche**, **vollständige Duplikatprüfung** und **virtuelle Organisation**. Das Programm liest Originaldateien, verändert sie aber nie.
+Lokales Linux-Werkzeug für **Textsuche**, **vollständige Duplikatprüfung**, **Datei-/Dokumentvorschau** und **virtuelle Organisation**. Das Programm arbeitet offline mit lokalen Dateien. Originaldateien werden gelesen, aber nicht verändert.
+
+## In 30 Sekunden erklärt
+
+1. Programm starten.
+2. Ordner oder externen Datenträger auswählen.
+3. Suchen, Duplikate prüfen oder Dateien im Bereich **„Dateien & Vorschau“** ansehen.
+4. Treffer bei Bedarf **virtuell** markieren oder Sammlungen zuordnen.
+5. Originaldateien bleiben unverändert.
+
+Für den Einstieg ohne Vorwissen: [Laienanleitung](docs/LAIENANLEITUNG.md).
+
+## Fakten und Zahlen
+
+| Merkmal | Stand |
+| --- | --- |
+| Entwicklungsstand | **v0.9.0** |
+| letzter stabiler Release | **v0.8.0** |
+| Zielsystem | Linux x86_64 |
+| Projekt-Python | **3.12.15** |
+| Oberfläche | **PySide6 / Qt 6.11.2** |
+| lokale Datenbank | SQLite |
+| Hauptbereiche | **8** |
+| kleinste verbindliche Fensterprüfung | **800 × 600 Pixel** |
+| automatische Zoomprüfungen | **100 %, 150 %, 200 %** |
+| einstellbarer UI-Zoom | **80–200 %** |
+| maximale normale Textvorschau | **512 KiB** |
+| Duplikat-Endprüfung | vollständiges **SHA-256** |
+| Originaldateien | **Nur-Lesen** |
+| Cloud-Zwang | **nein** |
+| Konto/Anmeldung | **nein** |
+| v0.8.0 autonome Abnahme | **89/89 Prüfungen grün** |
+| v0.8.0 Lite entpackt | **733,0 MiB** |
+| v0.8.0 Recovery entpackt | **985,7 MiB** |
+| Lite-Ersparnis gegenüber Recovery | **252,7 MiB / 25,64 %** |
+| AppImage-Prototyp v0.8.0 | **239 MiB**, erfolgreich auf Ubuntu 22.04 + 24.04 getestet |
+
+> **Wichtig:** Der AppImage-Stand ist derzeit ein isolierter Prototyp und noch kein offizielles stabiles Paket.
+
+## Direkte Projektlinks
+
+- **Repository:** https://github.com/provoware/DUPLIKATE-FINDER2026
+- **Releases / Downloads:** https://github.com/provoware/DUPLIKATE-FINDER2026/releases
+- **Fehler melden / Vorschläge:** https://github.com/provoware/DUPLIKATE-FINDER2026/issues
+- **Sicherheitsinformationen:** https://github.com/provoware/DUPLIKATE-FINDER2026/blob/main/SECURITY.md
+- **Änderungsprotokoll:** https://github.com/provoware/DUPLIKATE-FINDER2026/blob/main/CHANGELOG.md
+- **Laienanleitung:** https://github.com/provoware/DUPLIKATE-FINDER2026/blob/main/docs/LAIENANLEITUNG.md
+- **Portable Hinweise:** https://github.com/provoware/DUPLIKATE-FINDER2026/blob/main/docs/PORTABLE_RELEASE.md
 
 ## Sicherheitsversprechen
 
@@ -36,17 +83,33 @@ Die Duplikatprüfung kann reguläre Dateien aller Dateitypen prüfen. Ablauf:
 Treffer können markiert, kommentiert und Sammlungen zugeordnet werden. Die Originaldatei bleibt dabei unverändert an ihrem Speicherort.
 
 ### Dateien & Vorschau
-Der neue Nur-Lesen-Bereich zeigt normale Ordner und eingehängte externe Datenträger über das Qt-Dateisystemmodell an.
+Der Nur-Lesen-Bereich zeigt normale Ordner und eingehängte externe Datenträger über das Qt-Dateisystemmodell an. Das bedeutet: Auch große Ordner müssen nicht zuerst vollständig in eine eigene Python-Liste geladen werden.
 
-- Filter nach Dateiname und Dateigruppe
-- Textvorschau bis 512 KiB
-- skalierte Bildvorschau
-- PDF-Erstseitenvorschau über QtPdf
-- Metadaten für Audio und Video ohne zusätzlichen internen Player
-- Extern öffnen, Ordner anzeigen und Pfad kopieren
-- virtuelle Markierung und Zuordnung zu Sammlungen
-- symbolische Verknüpfungen werden nicht automatisch geöffnet
-- sichere Benutzer-Mounts unter /run/media werden gezielt unterstützt; /run selbst bleibt gesperrt
+**Direkt im Tool darstellbar:**
+
+- normale Textdateien mit Größenbegrenzung,
+- **DOCX** als extrahierte Textvorschau,
+- **ODT** als extrahierte Textvorschau,
+- verbreitete Bildformate mit Bildformat, Originalabmessungen und Seitenverhältnis,
+- **PDF mit Seitennavigation**,
+- WAV mit Dauer, Kanälen, Abtastrate und Bit-Tiefe,
+- weitere Audio-/Videoformate mit erweiterten Metadaten, wenn das vorhandene Linux-System diese Analyse bereitstellt.
+
+**Dateihilfen:**
+
+- Filter nach Dateiname und Dateigruppe,
+- Ordner / USB-Datenträger auswählen,
+- eine Ebene zurück,
+- Dateiliste neu laden,
+- Datei mit Standardprogramm öffnen,
+- Speicherordner im Dateimanager öffnen,
+- Pfad kopieren,
+- virtuelle Markierung,
+- Zuordnung zu einer virtuellen Sammlung.
+
+Es gibt weiterhin **keinen internen Audio-/Videoplayer**. Dadurch werden Codec- und Multimedia-Abhängigkeiten nicht unnötig Teil des stabilen Programmkerns.
+
+Symbolische Verknüpfungen werden nicht automatisch geöffnet. Sichere Benutzer-Mounts unter `/run/media/<Benutzer>/<Datenträger>` werden gezielt unterstützt; der übrige Systembereich `/run` bleibt gesperrt.
 
 
 ## Oberfläche
@@ -69,6 +132,25 @@ Beide Profile enthalten eine eigene Python-3.12-Laufzeit und PySide6. Die Laufze
 `STARTEN.sh` verwendet ausschließlich `runtime/bin/python3`. Für USB-Sticks gibt es zusätzlich `STARTEN_VOM_STICK.sh`. Wenn ein Linux-System Programme direkt vom Stick ausführen darf, startet das Werkzeug dort. Ist der Stick mit der Linux-Sicherheitsoption `noexec` eingehängt, wird nur die Programmlaufzeit in einen lokalen Cache kopiert und von dort gestartet.
 
 Fehlt die portable Laufzeit, wird **nicht** heimlich auf System-Python ausgewichen und es werden keine Linux-Systempakete installiert.
+
+## Welche Paketvariante ist für wen gedacht?
+
+| Variante | Zweck |
+| --- | --- |
+| **Lite** | empfohlene normale Nutzung |
+| **Recovery** | zusätzlich lokaler Reparaturvorrat für PySide6 |
+| **AppImage-Prototyp** | eine einzelne ausführbare Datei; noch nicht offiziell freigegeben |
+
+Für normale Nutzung ist **Lite** die erste Wahl. Recovery ist größer, weil absichtlich zusätzliche Offline-Reparaturdateien enthalten bleiben.
+
+## Datenschutz und lokale Arbeitsweise
+
+- keine Anmeldung notwendig,
+- kein Benutzerkonto notwendig,
+- keine Cloud für die Kernfunktionen notwendig,
+- Suchindex, Markierungen, Sammlungen und technische Zustände bleiben lokal,
+- SQLite-Daten liegen im lokalen PROVOWARE-Arbeitsordner,
+- Originaldateien werden nicht in die Datenbank kopiert.
 
 ## Entwicklung
 
@@ -117,7 +199,9 @@ tools/        Prüfwerkzeuge
 
 ## Projektstatus
 
-**v0.8.0 – Datei-/Medienbrowser · Text/Bild/PDF-Vorschau · Nur-Lesen-Dateihilfen**
+**v0.9.0 – erweiterte Dokument-/Bild-/PDF-/Medienvorschau · Laienoptimierung**
+
+Der stabile veröffentlichte Stand bleibt **v0.8.0**, bis der v0.9.0-Entwicklungszweig alle Pflichtprüfungen bestanden hat und formal gemergt wurde.
 
 Physische Dateiänderungen sind noch nicht freigegeben. Dieser Bereich bleibt gesperrt, bis ein eigener Änderungsvertrag, Vorschau, Transaktionsjournal, Rückgängig-Funktion und separate Abnahmetests existieren.
 
