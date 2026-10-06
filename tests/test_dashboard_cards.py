@@ -10,5 +10,8 @@ def test_dashboard_cards_use_compact_two_by_two_layout():
     block=source[start:source.index("def _build_ui",start)]
     assert "QHBoxLayout(frame)" in block
     dashboard=source[source.index("def _dashboard_page"):source.index("def _root_selector")]
-    assert 'self._card("Duplikatprüfung", "🟢 SHA-256"), 1, 0' in dashboard
+    assert '"Vorgang", "🟢 Bereit", "dashboard_process_metrics"' in dashboard
+    assert '"Ressourcen", "CPU – · RAM – · SWAP –", "dashboard_resource_metrics"' in dashboard
     assert 'self._card("Datenbank", "🟢 Lokal · SQLite"), 1, 1' in dashboard
+    assert 'cards.addWidget(process_card, 0, 1)' in dashboard
+    assert 'cards.addWidget(resource_card, 1, 0)' in dashboard
