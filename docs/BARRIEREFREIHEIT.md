@@ -18,6 +18,9 @@ Die Oberfläche soll auch ohne technische Vorkenntnisse und bei vergrößerter S
 - Statusmeldungen verwenden eindeutige Wörter wie „OK“, „Hinweis“ und „Fehler“; Farbe dient nur als Zusatz,
 - Standardzeichen statt Schrift-Symbole halten Beschriftungen auch ohne Emoji-Schrift vollständig lesbar,
 - Fokusrahmen sind per Tastatur sichtbar und Kontrollkästchen auch im gesperrten Zustand klar erkennbar.
+- jeder Hauptbereich besitzt eine eigene Akzentfarbe; Überschriften, Beschriftungen und Fokuszustände bleiben zusätzlich textlich eindeutig,
+- die neue Datei-Vorschau zeigt Metadaten als auswählbaren Text und bietet für nicht darstellbare Formate eine verständliche Textmeldung,
+- Textvorschauen sind begrenzt, damit sehr große Dateien die Oberfläche nicht blockieren.
 
 ## Automatische Prüfung
 
