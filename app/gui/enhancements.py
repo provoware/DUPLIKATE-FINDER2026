@@ -13,7 +13,7 @@ MIME_PATH = "application/x-provoware-path"
 
 
 class UiEnhancements(QObject):
-    def __init__(self, window, base_dir: Path, database) -> None:
+    def __init__(self, window, base_dir: Path, database, install_global_filter: bool = True) -> None:
         super().__init__(window)
         self.window = window
         self.base_dir = base_dir
@@ -24,9 +24,10 @@ class UiEnhancements(QObject):
         self._configure_drag_drop()
         self._add_dashboard_tools()
         self._adapt_to_screen()
-        app = QApplication.instance()
-        if app is not None:
-            app.installEventFilter(self)
+        self.app = QApplication.instance()
+        self.install_global_filter = install_global_filter
+        if self.app is not None and self.install_global_filter:
+            self.app.installEventFilter(self)
         self.timer = QTimer(self)
         self.timer.timeout.connect(self._refresh_status_style)
         self.timer.start(300)
@@ -56,43 +57,46 @@ class UiEnhancements(QObject):
         panel.setObjectName("diagnostic_dashboard")
         panel.setProperty("card", True)
         grid = QGridLayout(panel)
-        title = QLabel("Systemstatus & Bedienkomfort")
-        title.setProperty("heading", True)
-        grid.addWidget(title, 0, 0, 1, 4)
+        grid.setContentsMargins(6, 4, 6, 4)
+        grid.setHorizontalSpacing(8)
+        grid.setVerticalSpacing(4)
+
         screen = self.window.screen() or QApplication.primaryScreen()
         geometry = screen.availableGeometry() if screen else None
-        screen_text = f"{geometry.width()} × {geometry.height()} px erkannt" if geometry else "Bildschirmgröße nicht ermittelbar"
-        self.screen_info = QLabel("🖥 " + screen_text)
-        self.screen_info.setWordWrap(True)
-        grid.addWidget(self.screen_info, 1, 0, 1, 2)
-        self.log_info = QLabel(f"🧾 Protokoll: {self.base_dir / 'logs' / 'provoware.log'}")
-        self.log_info.setWordWrap(True)
-        grid.addWidget(self.log_info, 1, 2, 1, 2)
-        grid.addWidget(QLabel("Schrift / Seitenzoom:"), 2, 0)
+        screen_text = f"🖥 {geometry.width()}×{geometry.height()}" if geometry else "🖥 unbekannt"
+        self.screen_info = QLabel(screen_text)
+        self.screen_info.setToolTip("Automatisch erkannter nutzbarer Bildschirmbereich.")
+        grid.addWidget(self.screen_info, 0, 0)
+
         self.zoom_combo = QComboBox()
         self.zoom_combo.setObjectName("zoom_selector")
         for value in ZOOM_STEPS:
             self.zoom_combo.addItem(f"{value} %", value)
         self.zoom_combo.setCurrentText("100 %")
         self.zoom_combo.currentIndexChanged.connect(self._zoom_from_combo)
-        self.zoom_combo.setToolTip("Alternativ Strg gedrückt halten und am Mausrad drehen.")
-        grid.addWidget(self.zoom_combo, 2, 1)
-        grid.addWidget(QLabel("Fenstergröße:"), 2, 2)
+        self.zoom_combo.setToolTip("Schrift-/Seitenzoom. Alternativ: Strg + Mausrad.")
+        grid.addWidget(self.zoom_combo, 0, 1)
+
         self.size_combo = QComboBox()
         self.size_combo.setObjectName("size_selector")
-        self.size_combo.addItem("Automatisch", None)
+        self.size_combo.addItem("Auto-Größe", None)
         for width, height in ((800, 600), (1024, 768), (1280, 800)):
-            self.size_combo.addItem(f"{width} × {height}", (width, height))
+            self.size_combo.addItem(f"{width}×{height}", (width, height))
         self.size_combo.currentIndexChanged.connect(self._size_from_combo)
-        grid.addWidget(self.size_combo, 2, 3)
-        self.selftest_button = QPushButton("🩺 Selbsttest erneut")
+        self.size_combo.setToolTip("Fenstergröße ohne Zahleneingabe auswählen.")
+        grid.addWidget(self.size_combo, 0, 2)
+
+        self.selftest_button = QPushButton("🩺 Selbsttest")
         self.selftest_button.setObjectName("dashboard_selftest")
         self.selftest_button.clicked.connect(self._show_selftest)
-        grid.addWidget(self.selftest_button, 3, 0, 1, 2)
-        logs_button = QPushButton("📂 Protokollordner öffnen")
+        grid.addWidget(self.selftest_button, 0, 3)
+
+        logs_button = QPushButton("📂 Protokolle")
         logs_button.setObjectName("dashboard_logs")
+        logs_button.setToolTip(str(self.base_dir / "logs"))
         logs_button.clicked.connect(lambda: QDesktopServices.openUrl(QUrl.fromLocalFile(str(self.base_dir / "logs"))))
-        grid.addWidget(logs_button, 3, 2, 1, 2)
+        grid.addWidget(logs_button, 0, 4)
+
         layout.insertWidget(max(1, layout.count() - 1), panel)
 
     def _adapt_to_screen(self) -> None:
@@ -212,3 +216,13 @@ class UiEnhancements(QObject):
                     event.acceptProposedAction()
                 return True
         return super().eventFilter(obj, event)
+
+    def dispose(self) -> None:
+        self.timer.stop()
+        if self.app is not None and self.install_global_filter:
+            self.app.removeEventFilter(self)
+        try:
+            self.window.results.viewport().removeEventFilter(self)
+            self.window.collection_list.viewport().removeEventFilter(self)
+        except RuntimeError:
+            pass
