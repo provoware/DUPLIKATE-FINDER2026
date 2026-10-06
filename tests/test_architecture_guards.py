@@ -9,7 +9,7 @@ def test_no_tkinter_anywhere_in_python_source():
     import re
 
     offenders = []
-    forbidden_import = re.compile(r"(?m)^\\s*(?:from\\s+tkinter(?:\\.|\\s)|import\\s+tkinter(?:\\.|\\s|$))")
+    forbidden_import = re.compile(r"(?m)^\s*(?:from\s+tkinter(?:\.|\s)|import\s+tkinter(?:\.|\s|$))")
     for source_root in (APP, ROOT / "tools"):
         for path in source_root.rglob("*.py"):
             text = path.read_text(encoding="utf-8").casefold()
@@ -40,7 +40,7 @@ def test_no_destructive_file_api_in_application():
 
 def test_release_start_never_falls_back_to_system_python():
     text = (ROOT / "STARTEN.sh").read_text(encoding="utf-8")
-    assert 'runtime/bin/python3' in text
+    assert "runtime/bin/python3" in text
     assert "python3 -m app.main" not in text
     assert "command -v python" not in text
 
@@ -70,6 +70,20 @@ def test_console_entrypoint_exists_and_reuses_core():
     assert "scan_duplicate_groups" in source
     assert "validate_scan_root" in source
 
+
+def test_core_modules_do_not_depend_on_private_scanner_control_methods():
+    offenders = []
+    forbidden = ("._checkpoint(", "._paused_seconds")
+    for path in (APP / "core").glob("*.py"):
+        if path.name == "scanner.py":
+            continue
+        text = path.read_text(encoding="utf-8")
+        for needle in forbidden:
+            if needle in text:
+                offenders.append(f"{path}:{needle}")
+    assert offenders == []
+
+
 def test_development_start_is_self_bootstrapping():
     source = (ROOT / "ENTWICKLUNG_STARTEN.sh").read_text(encoding="utf-8")
     assert ".provoware-dev" in source
@@ -78,10 +92,10 @@ def test_development_start_is_self_bootstrapping():
     assert "sudo " not in source
     assert "PySide6" in source
 
+
 def test_dependency_contract_is_documented():
     assert (ROOT / "dependencies.env").is_file()
     assert (ROOT / "docs" / "ABHAENGIGKEITEN.md").is_file()
     text = (ROOT / "dependencies.env").read_text(encoding="utf-8")
     assert 'PYTHON_VERSION="3.12.15"' in text
     assert 'PYSIDE6_VERSION="6.11.2"' in text
-
