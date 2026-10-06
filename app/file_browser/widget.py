@@ -68,6 +68,9 @@ class FileBrowserWidget(QWidget):
         self.setProperty("area", "files")
         self._root: Path | None = None
         self._current_path: Path | None = None
+        self._pdf_document = None
+        self._pdf_page = 0
+        self._pdf_base_details = ""
 
         self.model = QFileSystemModel(self)
         self.model.setFilter(QDir.Filter.AllEntries | QDir.Filter.NoDotAndDotDot)
@@ -94,20 +97,24 @@ class FileBrowserWidget(QWidget):
         choose.setObjectName("file_browser_choose")
         choose.setProperty("primaryAction", True)
         choose.setAccessibleName("Ordner oder externen Datenträger auswählen")
+        choose.setToolTip("Wähle den Ordner oder USB-Datenträger, dessen Dateien du ansehen möchtest.")
         choose.clicked.connect(self.choose_root)
 
         up = QPushButton("Hoch")
         up.setObjectName("file_browser_up")
+        up.setToolTip("Gehe zum übergeordneten Ordner zurück.")
         up.clicked.connect(self.go_up)
 
         refresh = QPushButton("Neu laden")
         refresh.setObjectName("file_browser_refresh")
+        refresh.setToolTip("Lade die aktuelle Dateiliste neu.")
         refresh.clicked.connect(self.refresh_view)
 
         self.query = QLineEdit()
         self.query.setObjectName("file_browser_query")
         self.query.setPlaceholderText("Dateiname filtern")
         self.query.setAccessibleName("Dateiliste nach Dateiname filtern")
+        self.query.setToolTip("Tippe einen Teil des Dateinamens ein. Die Liste wird sofort gefiltert.")
         self.query.textChanged.connect(self.proxy.set_query)
 
         self.kind = QComboBox()
@@ -117,9 +124,11 @@ class FileBrowserWidget(QWidget):
         self.kind.addItem("Text", "text")
         self.kind.addItem("Bilder", "image")
         self.kind.addItem("PDF", "pdf")
+        self.kind.addItem("Dokumente (DOCX/ODT)", "document")
         self.kind.addItem("Video", "video")
         self.kind.addItem("Audio", "audio")
         self.kind.addItem("Andere Dateien", "other")
+        self.kind.setToolTip("Zeige nur eine bestimmte Dateigruppe oder alle Dateien.")
         self.kind.currentIndexChanged.connect(
             lambda _index: self.proxy.set_kind(str(self.kind.currentData()))
         )
@@ -163,6 +172,32 @@ class FileBrowserWidget(QWidget):
         self.preview_title.setProperty("heading", True)
         preview_layout.addWidget(self.preview_title)
 
+        self.pdf_nav = QWidget()
+        self.pdf_nav.setObjectName("file_preview_pdf_nav")
+        pdf_nav_layout = QHBoxLayout(self.pdf_nav)
+        pdf_nav_layout.setContentsMargins(0, 0, 0, 0)
+        pdf_nav_layout.setSpacing(4)
+
+        self.pdf_previous = QPushButton("← Seite")
+        self.pdf_previous.setObjectName("file_preview_pdf_previous")
+        self.pdf_previous.setToolTip("Vorherige PDF-Seite anzeigen.")
+        self.pdf_previous.clicked.connect(self.previous_pdf_page)
+
+        self.pdf_page_label = QLabel("Seite – / –")
+        self.pdf_page_label.setObjectName("file_preview_pdf_page")
+        self.pdf_page_label.setAlignment(Qt.AlignmentFlag.AlignCenter)
+
+        self.pdf_next = QPushButton("Seite →")
+        self.pdf_next.setObjectName("file_preview_pdf_next")
+        self.pdf_next.setToolTip("Nächste PDF-Seite anzeigen.")
+        self.pdf_next.clicked.connect(self.next_pdf_page)
+
+        pdf_nav_layout.addWidget(self.pdf_previous)
+        pdf_nav_layout.addWidget(self.pdf_page_label, 1)
+        pdf_nav_layout.addWidget(self.pdf_next)
+        self.pdf_nav.setVisible(False)
+        preview_layout.addWidget(self.pdf_nav)
+
         self.preview_image = QLabel("Vorschau")
         self.preview_image.setObjectName("file_preview_image")
         self.preview_image.setAlignment(Qt.AlignmentFlag.AlignCenter)
@@ -186,26 +221,31 @@ class FileBrowserWidget(QWidget):
         self.open_button = QPushButton("Öffnen")
         self.open_button.setObjectName("file_browser_open")
         self.open_button.setEnabled(False)
+        self.open_button.setToolTip("Öffne die Datei mit dem unter Linux eingestellten Standardprogramm.")
         self.open_button.clicked.connect(self.open_current)
 
         self.show_button = QPushButton("Ordner")
         self.show_button.setObjectName("file_browser_show")
         self.show_button.setEnabled(False)
+        self.show_button.setToolTip("Öffne den Speicherort der Datei im Linux-Dateimanager.")
         self.show_button.clicked.connect(self.show_current_folder)
 
         self.copy_button = QPushButton("Pfad kopieren")
         self.copy_button.setObjectName("file_browser_copy")
         self.copy_button.setEnabled(False)
+        self.copy_button.setToolTip("Kopiere den vollständigen Dateipfad in die Zwischenablage.")
         self.copy_button.clicked.connect(self.copy_current_path)
 
         self.mark_button = QPushButton("Markieren")
         self.mark_button.setObjectName("file_browser_mark")
         self.mark_button.setEnabled(False)
+        self.mark_button.setToolTip("Markiere die Datei nur innerhalb von PROVOWARE. Die Originaldatei bleibt unverändert.")
         self.mark_button.clicked.connect(self.toggle_mark)
 
         self.collection_button = QPushButton("Zu Sammlung")
         self.collection_button.setObjectName("file_browser_collection")
         self.collection_button.setEnabled(False)
+        self.collection_button.setToolTip("Ordne die Datei einer virtuellen Sammlung zu.")
         self.collection_button.clicked.connect(self.add_to_collection)
 
         actions.addWidget(self.open_button, 0, 0)
@@ -221,8 +261,8 @@ class FileBrowserWidget(QWidget):
         root.addWidget(splitter, 1)
 
         note = QLabel(
-            "Nur lesen: Vorschau und externe Öffnung verändern keine Dateien. "
-            "Löschen, Verschieben, Umbenennen und Überschreiben bleiben gesperrt."
+            "So geht's: Ordner wählen → Datei anklicken → Vorschau rechts. "
+            "Nur lesen: Originaldateien bleiben unverändert."
         )
         note.setObjectName("file_browser_safety")
         note.setProperty("card", True)
@@ -289,6 +329,7 @@ class FileBrowserWidget(QWidget):
             self.show_preview(path)
 
     def show_preview(self, path: Path) -> None:
+        self._reset_pdf_preview()
         self._current_path = path
         exists = path.exists()
         is_link = path.is_symlink()
@@ -319,19 +360,11 @@ class FileBrowserWidget(QWidget):
         state = self.database.virtual_item(path)
         self.mark_button.setText("Markierung entfernen" if state.marked else "Markieren")
 
+        if data.kind == "pdf" and self._open_pdf_preview(path, data.details):
+            return
+
         if data.image is not None:
-            pixmap = QPixmap.fromImage(data.image)
-            target = self.preview_image.size()
-            if target.width() > 40 and target.height() > 40:
-                pixmap = pixmap.scaled(
-                    target,
-                    Qt.AspectRatioMode.KeepAspectRatio,
-                    Qt.TransformationMode.SmoothTransformation,
-                )
-            self.preview_image.setPixmap(pixmap)
-            self.preview_image.setText("")
-            self.preview_image.setVisible(True)
-            self.preview_text.setVisible(False)
+            self._display_image(data.image)
         else:
             self.preview_image.clear()
             self.preview_image.setVisible(False)
@@ -339,6 +372,7 @@ class FileBrowserWidget(QWidget):
             self.preview_text.setVisible(True)
 
     def _clear_preview(self, message: str) -> None:
+        self._reset_pdf_preview()
         self._current_path = None
         self.preview_title.setText("Keine Datei ausgewählt")
         self.preview_image.clear()
@@ -353,6 +387,86 @@ class FileBrowserWidget(QWidget):
         self.mark_button.setEnabled(False)
         self.collection_button.setEnabled(False)
         self.mark_button.setText("Markieren")
+
+    def _display_image(self, image) -> None:
+        pixmap = QPixmap.fromImage(image)
+        target = self.preview_image.size()
+        if target.width() > 40 and target.height() > 40:
+            pixmap = pixmap.scaled(
+                target,
+                Qt.AspectRatioMode.KeepAspectRatio,
+                Qt.TransformationMode.SmoothTransformation,
+            )
+        self.preview_image.setPixmap(pixmap)
+        self.preview_image.setText("")
+        self.preview_image.setVisible(True)
+        self.preview_text.setVisible(False)
+
+    def _reset_pdf_preview(self) -> None:
+        if self._pdf_document is not None:
+            try:
+                self._pdf_document.close()
+            except AttributeError:
+                pass
+        self._pdf_document = None
+        self._pdf_page = 0
+        self._pdf_base_details = ""
+        if hasattr(self, "pdf_nav"):
+            self.pdf_nav.setVisible(False)
+
+    def _open_pdf_preview(self, path: Path, base_details: str) -> bool:
+        try:
+            from PySide6.QtPdf import QPdfDocument
+        except ImportError:
+            return False
+
+        document = QPdfDocument(self)
+        error = document.load(str(path))
+        if error != QPdfDocument.Error.None_ or document.pageCount() < 1:
+            return False
+
+        self._pdf_document = document
+        self._pdf_page = 0
+        self._pdf_base_details = base_details.split("\nPDF-Seiten:", 1)[0]
+        self.pdf_nav.setVisible(True)
+        self._render_pdf_page()
+        return True
+
+    def _render_pdf_page(self) -> None:
+        if self._pdf_document is None:
+            return
+        from PySide6.QtCore import QSize
+
+        pages = self._pdf_document.pageCount()
+        self._pdf_page = min(max(self._pdf_page, 0), pages - 1)
+        page_size = self._pdf_document.pagePointSize(self._pdf_page).toSize()
+        page_size.scale(QSize(1000, 1200), Qt.AspectRatioMode.KeepAspectRatio)
+        image = self._pdf_document.render(self._pdf_page, page_size)
+        if image.isNull():
+            self.preview_image.clear()
+            self.preview_image.setVisible(False)
+            self.preview_text.setPlainText("Diese PDF-Seite konnte nicht dargestellt werden.")
+            self.preview_text.setVisible(True)
+        else:
+            self._display_image(image)
+
+        current = self._pdf_page + 1
+        self.pdf_page_label.setText(f"Seite {current} / {pages}")
+        self.pdf_previous.setEnabled(self._pdf_page > 0)
+        self.pdf_next.setEnabled(self._pdf_page + 1 < pages)
+        self.preview_details.setText(
+            f"{self._pdf_base_details}\nPDF-Seiten: {pages} · angezeigt: {current}"
+        )
+
+    def previous_pdf_page(self) -> None:
+        if self._pdf_document is not None and self._pdf_page > 0:
+            self._pdf_page -= 1
+            self._render_pdf_page()
+
+    def next_pdf_page(self) -> None:
+        if self._pdf_document is not None and self._pdf_page + 1 < self._pdf_document.pageCount():
+            self._pdf_page += 1
+            self._render_pdf_page()
 
     def open_current(self) -> None:
         if self._current_path and self._current_path.exists():
