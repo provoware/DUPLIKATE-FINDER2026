@@ -22,6 +22,7 @@ class TestSandbox:
         temporary = tempfile.TemporaryDirectory(
             prefix="provoware-testlab-",
             dir=str(parent) if parent is not None else None,
+            delete=False,
         )
         root = Path(temporary.name)
         (root / MARKER).write_text("PROVOWARE test sandbox\n", encoding="utf-8")
