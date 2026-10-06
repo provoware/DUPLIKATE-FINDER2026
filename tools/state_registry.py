@@ -96,6 +96,18 @@ def git_changed(root: Path, base: str | None) -> list[str]:
     proc=subprocess.run(["git","diff","--name-only",f"{base}...HEAD"],cwd=root,capture_output=True,text=True)
     return sorted({line.strip() for line in proc.stdout.splitlines() if line.strip()}) if proc.returncode==0 else []
 
+def quick_signature(root: Path, changed: list[str]) -> str:
+    h=hashlib.sha256()
+    for name in sorted(changed):
+        path=root/name
+        h.update(name.encode())
+        if path.is_file():
+            h.update(digest(path).encode())
+        else:
+            h.update(b"<deleted>")
+    return h.hexdigest()
+
+
 def main() -> int:
     parser=argparse.ArgumentParser()
     parser.add_argument("--record",action="store_true")
@@ -108,21 +120,35 @@ def main() -> int:
     if state_path.exists():
         try: old=json.loads(state_path.read_text(encoding="utf-8"))
         except Exception: old={}
-    new=snapshot(root)
-    changed=git_changed(root,args.base) or changed_files(old,new)
+
+    git_changes=git_changed(root,args.base)
+    if args.base and not args.record:
+        changed=git_changes
+        aggregate=quick_signature(root,changed)
+        timestamp=datetime.now().astimezone().isoformat()
+        unchanged=not changed
+        new=None
+    else:
+        new=snapshot(root)
+        changed=git_changes or changed_files(old,new)
+        aggregate=new["aggregate_sha256"]
+        timestamp=new["timestamp"]
+        unchanged=bool(old) and old.get("aggregate_sha256")==aggregate
+
     plan={
-        "timestamp":new["timestamp"],
-        "unchanged":bool(old) and old.get("aggregate_sha256")==new["aggregate_sha256"],
+        "timestamp":timestamp,
+        "unchanged":unchanged,
         "changed_files":changed,
         "areas":sorted({a for name in changed for a in area_for(name)}),
         "checks":recommended_checks(changed),
-        "aggregate_sha256":new["aggregate_sha256"],
+        "aggregate_sha256":aggregate,
     }
     if args.output:
         args.output.parent.mkdir(parents=True,exist_ok=True)
         args.output.write_text(json.dumps(plan,ensure_ascii=False,indent=2),encoding="utf-8")
     print(json.dumps(plan,ensure_ascii=False,indent=2))
     if args.record:
+        assert new is not None
         state_path.parent.mkdir(parents=True,exist_ok=True)
         state_path.write_text(json.dumps(new,ensure_ascii=False,indent=2),encoding="utf-8")
     return 0
