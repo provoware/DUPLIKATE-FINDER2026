@@ -32,8 +32,10 @@ jobs:
           if ! "$R/runtime/bin/python3" -m pip --version >/dev/null 2>&1; then
             "$R/runtime/bin/python3" -m ensurepip --upgrade
           fi
-          "$R/runtime/bin/python3" -m pip install --disable-pip-version-check --no-cache-dir "PySide6>=6.8,<7"
-          cp -a app docs agents STARTEN.sh STARTEN.desktop README.md SECURITY.md CHANGELOG.md pyproject.toml "$R/"
+          mkdir -p "$R/wheelhouse"
+          "$R/runtime/bin/python3" -m pip download --disable-pip-version-check --only-binary=:all: --dest "$R/wheelhouse" "PySide6>=6.8,<7"
+          "$R/runtime/bin/python3" -m pip install --disable-pip-version-check --no-index --find-links "$R/wheelhouse" "PySide6>=6.8,<7"
+          cp -a app docs agents STARTEN.sh STARTEN_KONSOLE.sh STARTEN.desktop README.md SECURITY.md CHANGELOG.md pyproject.toml "$R/"
           mkdir -p "$R/data" "$R/logs" "$R/recovery" "$R/quarantine"
           touch "$R/data/.gitkeep" "$R/logs/.gitkeep" "$R/recovery/.gitkeep" "$R/quarantine/.gitkeep"
           chmod +x "$R/STARTEN.sh" "$R/STARTEN.desktop"

@@ -30,6 +30,7 @@ from app.gui.workers import DuplicateWorker, SearchWorker
 from app.models.entities import DuplicateGroup, SearchHit, SearchJob
 from app.safety.policy import WRITE_FEATURES
 from app.storage.database import Database
+from app.validation import validate_scan_root, validate_search_request
 
 
 class MainWindow(QMainWindow):
@@ -72,6 +73,8 @@ class MainWindow(QMainWindow):
         frame = QFrame()
         frame.setProperty("card", True)
         layout = QVBoxLayout(frame)
+        layout.setContentsMargins(5, 4, 5, 4)
+        layout.setSpacing(3)
         a = QLabel(title)
         a.setStyleSheet("font-weight: 700;")
         b = QLabel(value)
@@ -148,7 +151,8 @@ class MainWindow(QMainWindow):
         page = QWidget()
         page.setObjectName("page_dashboard")
         layout = QVBoxLayout(page)
-        layout.setSpacing(12)
+        layout.setContentsMargins(2, 2, 2, 2)
+        layout.setSpacing(6)
         layout.addWidget(self._heading("Übersicht"))
 
         cards = QGridLayout()
@@ -168,15 +172,18 @@ class MainWindow(QMainWindow):
         feature_layout.addWidget(label, 0, 0, 1, 2)
 
         flags = {row["key"]: row for row in self.database.feature_flags()}
-        for index, (key, text) in enumerate(WRITE_FEATURES.items(), start=1):
+        for index, (key, text) in enumerate(WRITE_FEATURES.items()):
             checkbox = QCheckBox(text)
             checkbox.setObjectName(f"feature_{key}")
             checkbox.setChecked(bool(flags[key]["enabled"]))
             checkbox.setEnabled(False)
             checkbox.setToolTip("Vorbereitet, aber in Version 1 absichtlich gesperrt.")
-            state = QLabel("🔒 AUS · gesperrt")
-            feature_layout.addWidget(checkbox, index, 0)
-            feature_layout.addWidget(state, index, 1)
+            state = QLabel("🔒 AUS")
+            state.setToolTip("Technisch gesperrt. Originaldateien bleiben unverändert.")
+            row = 1 + index // 2
+            column = (index % 2) * 2
+            feature_layout.addWidget(checkbox, row, column)
+            feature_layout.addWidget(state, row, column + 1)
         layout.addWidget(feature_box)
 
         quick = QGridLayout()
@@ -191,7 +198,7 @@ class MainWindow(QMainWindow):
         go_collections.clicked.connect(lambda: self.nav.setCurrentRow(self.PAGE_COLLECTIONS))
         quick.addWidget(go_search, 0, 0)
         quick.addWidget(go_duplicates, 0, 1)
-        quick.addWidget(go_collections, 1, 0, 1, 2)
+        quick.addWidget(go_collections, 0, 2)
         layout.addLayout(quick)
         layout.addStretch(1)
         return page
@@ -449,20 +456,24 @@ class MainWindow(QMainWindow):
         chosen = QFileDialog.getExistingDirectory(self, "Suchordner wählen", str(Path.home()))
         if not chosen:
             return
+        validation = validate_scan_root(Path(chosen))
+        if not validation.ok:
+            QMessageBox.information(self, validation.title, validation.message)
+            return
         self.selected_root = Path(chosen)
         self.root_label.setText(chosen)
         self.duplicate_root.setText(f"Suchordner: {chosen}")
 
     def _start_search(self) -> None:
-        if not self.selected_root:
-            QMessageBox.information(self, "Ordner fehlt", "Bitte zuerst einen Suchordner wählen.")
-            return
         query = self.query_edit.text().strip()
-        if not query:
-            QMessageBox.information(self, "Suchbegriff fehlt", "Bitte einen Suchbegriff eingeben.")
-            return
-        if not (self.names_box.isChecked() or self.contents_box.isChecked()):
-            QMessageBox.information(self, "Suchart fehlt", "Bitte Dateinamen und/oder Dateiinhalte auswählen.")
+        validation = validate_search_request(
+            self.selected_root,
+            query,
+            self.names_box.isChecked(),
+            self.contents_box.isChecked(),
+        )
+        if not validation.ok:
+            QMessageBox.information(self, validation.title, validation.message)
             return
 
         job = SearchJob(
@@ -481,6 +492,8 @@ class MainWindow(QMainWindow):
 
     def _search_finished(self, job: SearchJob, hits: list[SearchHit]) -> None:
         self.last_hits = list(hits)
+        sorting = self.results.isSortingEnabled()
+        self.results.setSortingEnabled(False)
         self.results.setRowCount(0)
         for hit in hits:
             row = self.results.rowCount()
@@ -493,6 +506,7 @@ class MainWindow(QMainWindow):
             self.results.setItem(row, 2, QTableWidgetItem(str(hit.path)))
             self.results.setItem(row, 3, QTableWidgetItem("" if hit.line_number is None else str(hit.line_number)))
             self.results.setItem(row, 4, QTableWidgetItem(hit.excerpt))
+        self.results.setSortingEnabled(sorting)
         self.search_button.setEnabled(True)
         self.status_label.setText("🟢 Textsuche abgeschlossen")
         self.counter_label.setText(f"{job.scanned_files} Textdateien geprüft · {len(hits)} Treffer")
@@ -543,12 +557,9 @@ class MainWindow(QMainWindow):
         self.status_label.setText("🟢 Treffer virtuell zur Sammlung hinzugefügt")
 
     def _start_duplicate_scan(self) -> None:
-        if not self.selected_root:
-            QMessageBox.information(
-                self,
-                "Ordner fehlt",
-                "Bitte unter Textsuche zuerst einen Ordner wählen. Derselbe Ordner wird sicher geprüft.",
-            )
+        validation = validate_scan_root(self.selected_root)
+        if not validation.ok:
+            QMessageBox.information(self, validation.title, validation.message)
             return
         self.duplicate_start.setEnabled(False)
         self.status_label.setText("🟡 Duplikatprüfung läuft …")
@@ -598,6 +609,8 @@ class MainWindow(QMainWindow):
         if row < 0 or row >= len(self.duplicate_groups_cache):
             return
         group = self.duplicate_groups_cache[row]
+        sorting = self.duplicate_members.isSortingEnabled()
+        self.duplicate_members.setSortingEnabled(False)
         self.duplicate_members.setRowCount(0)
         for path in group.paths:
             table_row = self.duplicate_members.rowCount()
@@ -611,6 +624,7 @@ class MainWindow(QMainWindow):
             self.duplicate_members.setItem(table_row, 1, QTableWidgetItem(str(path.parent)))
             self.duplicate_members.setItem(table_row, 2, QTableWidgetItem(self._human_size(group.size)))
             self.duplicate_members.setItem(table_row, 3, QTableWidgetItem(modified))
+        self.duplicate_members.setSortingEnabled(sorting)
         self.duplicate_summary.setText(
             f"Gruppe {row + 1}: {len(group.paths)} vollständig identische Dateien · "
             f"je {self._human_size(group.size)} · SHA-256 {group.sha256[:16]}…"
@@ -668,6 +682,8 @@ class MainWindow(QMainWindow):
         items = self.database.collection_items(collection_id)
         suffix = f" · {collection.note}" if collection.note else ""
         self.collection_summary.setText(f"{collection.name} · {len(items)} Einträge{suffix}")
+        sorting = self.collection_items_table.isSortingEnabled()
+        self.collection_items_table.setSortingEnabled(False)
         self.collection_items_table.setRowCount(0)
         for entry in items:
             row = self.collection_items_table.rowCount()
@@ -677,6 +693,7 @@ class MainWindow(QMainWindow):
             self.collection_items_table.setItem(row, 0, path_item)
             self.collection_items_table.setItem(row, 1, QTableWidgetItem(str(entry.path.parent)))
             self.collection_items_table.setItem(row, 2, QTableWidgetItem(entry.note))
+        self.collection_items_table.setSortingEnabled(sorting)
 
     def _remove_selected_collection_item(self) -> None:
         collection_id = self._current_collection_id()

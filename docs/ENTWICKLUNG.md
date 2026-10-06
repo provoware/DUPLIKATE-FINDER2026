@@ -29,3 +29,11 @@ Danach:
 ## Keine Systemänderungen
 
 Entwicklungsabhängigkeiten gehören in `.venv`. Release-Abhängigkeiten gehören in `runtime/`. Das Hauptsystem wird nicht verändert.
+
+## Autonome Gesamt-Abnahme
+
+Vor einer Freigabe zusätzlich ausführen:
+
+    QT_QPA_PLATFORM=offscreen python tools/autonomous_acceptance.py --output artifacts/abnahme
+
+Der erzeugte HTML-Bericht ist Teil der Regressionsevidenz. Neue Funktionen müssen bestehende Testdateiverträge und UI-Profile bestehen.

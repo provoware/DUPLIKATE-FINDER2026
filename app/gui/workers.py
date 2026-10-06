@@ -1,12 +1,15 @@
 from __future__ import annotations
 
 from pathlib import Path
+import logging
 
 from PySide6.QtCore import QThread, Signal
 
 from app.core.duplicates import scan_duplicate_groups
 from app.core.search import TextSearcher
 from app.models.entities import SearchJob
+
+LOGGER = logging.getLogger(__name__)
 
 
 class SearchWorker(QThread):
@@ -22,6 +25,7 @@ class SearchWorker(QThread):
             hits = TextSearcher().search(self.job)
             self.completed.emit(self.job, hits)
         except Exception as exc:  # GUI-Grenze
+            LOGGER.exception("Hintergrundauftrag fehlgeschlagen")
             self.failed.emit(str(exc))
 
 
@@ -38,4 +42,5 @@ class DuplicateWorker(QThread):
             scanned, groups = scan_duplicate_groups(self.root)
             self.completed.emit(scanned, groups)
         except Exception as exc:  # GUI-Grenze
+            LOGGER.exception("Hintergrundauftrag fehlgeschlagen")
             self.failed.emit(str(exc))
