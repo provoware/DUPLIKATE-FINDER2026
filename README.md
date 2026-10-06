@@ -35,6 +35,20 @@ Die Duplikatprüfung kann reguläre Dateien aller Dateitypen prüfen. Ablauf:
 ### Virtuelle Sammlungen
 Treffer können markiert, kommentiert und Sammlungen zugeordnet werden. Die Originaldatei bleibt dabei unverändert an ihrem Speicherort.
 
+### Dateien & Vorschau
+Der neue Nur-Lesen-Bereich zeigt normale Ordner und eingehängte externe Datenträger über das Qt-Dateisystemmodell an.
+
+- Filter nach Dateiname und Dateigruppe
+- Textvorschau bis 512 KiB
+- skalierte Bildvorschau
+- PDF-Erstseitenvorschau über QtPdf
+- Metadaten für Audio und Video ohne zusätzlichen internen Player
+- Extern öffnen, Ordner anzeigen und Pfad kopieren
+- virtuelle Markierung und Zuordnung zu Sammlungen
+- symbolische Verknüpfungen werden nicht automatisch geöffnet
+- sichere Benutzer-Mounts unter /run/media werden gezielt unterstützt; /run selbst bleibt gesperrt
+
+
 ## Oberfläche
 
 Die grafische Oberfläche verwendet ausschließlich **PySide6/Qt**. Tkinter ist durch einen automatischen Architekturtest verboten.
@@ -103,7 +117,7 @@ tools/        Prüfwerkzeuge
 
 ## Projektstatus
 
-**v0.7.1 – Wartung / Portable Lite + Recovery / effizientere Entwicklung / verbesserte Sichtbarkeit**
+**v0.8.0 – Datei-/Medienbrowser · Text/Bild/PDF-Vorschau · Nur-Lesen-Dateihilfen**
 
 Physische Dateiänderungen sind noch nicht freigegeben. Dieser Bereich bleibt gesperrt, bis ein eigener Änderungsvertrag, Vorschau, Transaktionsjournal, Rückgängig-Funktion und separate Abnahmetests existieren.
 
@@ -135,6 +149,7 @@ Die Konsole verwendet nummerierte Menüs, sichere Vorauswahlen und dieselben Sch
 - Drag & Drop von Suchtreffern in virtuelle Sammlungen
 - klarere Arbeitsführung direkt auf der Übersicht
 - stärkere Navigation-, Fokus- und Statuskontraste
+- eigene Akzentfarbe für jeden Hauptbereich bei einheitlichem dunklem Grunddesign
 - farblich und textlich eindeutiger Status
 - rotierende Protokolle im Ordner logs/
 - lokaler Selbsttest im Dashboard
