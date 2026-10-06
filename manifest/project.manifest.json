@@ -130,7 +130,7 @@
       {
         "id": "ui_process_control",
         "name": "Bedienoberfläche / Prozesssteuerung",
-        "status": "REOPENED",
+        "status": "FROZEN",
         "since_version": "0.6.0",
         "frozen_on": "2026-10-06",
         "reopened_from_version": "0.5.1",
@@ -157,13 +157,15 @@
           "post_validation"
         ],
         "refrozen_on": "2026-10-06",
-        "refrozen_version": "0.7.1",
+        "refrozen_version": "0.8.0",
         "refreeze_evidence": [
+          "targeted_checks_success",
           "quality_core_success",
           "ui_100_success",
           "ui_150_success",
           "ui_200_success",
-          "autonomous_acceptance_success"
+          "autonomous_acceptance_success",
+          "portable_lite_recovery_success"
         ]
       },
       {
