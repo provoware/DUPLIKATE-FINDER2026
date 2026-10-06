@@ -132,3 +132,16 @@ Automatisch geprüft werden:
 - Laufzeittest auf Ubuntu 24.04.
 
 Das erzeugte AppImage wird ausschließlich als Workflow-Artefakt bereitgestellt. Eine automatische Veröffentlichung an GitHub Releases ist absichtlich nicht aktiviert.
+
+
+### Messergebnis des v0.9.0-Prototyps
+
+- AppImage-Größe: ca. **263 MB**
+- Build-System: Ubuntu 22.04
+- Starttest Ubuntu 22.04: **grün**
+- Starttest Ubuntu 24.04: **grün**
+- SHA-256-Prüfung: **grün**
+- simulierter USB-Pfad mit Leerzeichen: **grün**
+- stabile automatische Veröffentlichung: **weiterhin deaktiviert**
+
+Damit ist die technische Machbarkeit bestätigt. Vor einer Aufnahme in einen offiziellen Release bleibt eine bewusste Produktentscheidung erforderlich.
