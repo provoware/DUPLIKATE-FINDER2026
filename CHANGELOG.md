@@ -12,6 +12,21 @@
 ### Geplant
 - weitere Dateiformate und spätere, separat freizugebende Schreibfunktionen
 
+## [0.4.0] – 2026-10-06
+
+### Verbessert
+- zweiphasige Fortschrittsanzeige: Dateien erfassen → Dateien prüfen
+- Restzeit ignoriert Pausenzeiten
+- sicherer Abbruch mit Rückfrage
+- modernere, klarer getrennte Listen und Kopfzeilen
+- Neonrand nur für Hauptaktionen; ruhigere Sekundärknöpfe
+- dunkle kontrastreiche Statusflächen
+- CPU-Voreinstellungen 25/50/75/100 Prozent mit echter Kernzahl
+- Autosave zeigt letzte Sicherungszeit
+- Import legt vor Übernahme automatisch eine Wiederherstellungssicherung an
+- Dateityp-Ausschlüsse mit laiengerechten Voreinstellungen
+- strengere Import-Versionsprüfung
+
 ## [0.3.1] – 2026-10-06
 
 ### Hinzugefügt
