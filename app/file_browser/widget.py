@@ -5,6 +5,7 @@ from pathlib import Path
 from PySide6.QtCore import QDir, QModelIndex, QSortFilterProxyModel, Qt, QUrl
 from PySide6.QtGui import QDesktopServices, QGuiApplication, QPixmap
 from PySide6.QtWidgets import (
+    QAbstractItemView,
     QComboBox,
     QFileDialog,
     QFileSystemModel,
@@ -96,6 +97,14 @@ class FileBrowserWidget(QWidget):
         choose.setProperty("primaryAction", True)
         choose.clicked.connect(self.choose_root)
 
+        up = QPushButton("Eine Ebene hoch")
+        up.setObjectName("file_browser_up")
+        up.clicked.connect(self.go_up)
+
+        refresh = QPushButton("Aktualisieren")
+        refresh.setObjectName("file_browser_refresh")
+        refresh.clicked.connect(self.refresh_view)
+
         self.query = QLineEdit()
         self.query.setObjectName("file_browser_query")
         self.query.setPlaceholderText("Dateiname filtern")
@@ -114,10 +123,12 @@ class FileBrowserWidget(QWidget):
             lambda _index: self.proxy.set_kind(str(self.kind.currentData()))
         )
 
-        controls.addWidget(self.root_label, 0, 0, 1, 3)
-        controls.addWidget(choose, 0, 3)
+        controls.addWidget(self.root_label, 0, 0, 1, 2)
+        controls.addWidget(choose, 0, 2)
+        controls.addWidget(up, 0, 3)
         controls.addWidget(self.query, 1, 0, 1, 2)
-        controls.addWidget(self.kind, 1, 2, 1, 2)
+        controls.addWidget(self.kind, 1, 2)
+        controls.addWidget(refresh, 1, 3)
         root.addLayout(controls)
 
         splitter = QSplitter(Qt.Orientation.Horizontal)
@@ -127,9 +138,9 @@ class FileBrowserWidget(QWidget):
         self.table.setObjectName("file_browser_table")
         self.table.setModel(self.proxy)
         self.table.setSortingEnabled(True)
-        self.table.setSelectionBehavior(QTableView.SelectionBehavior.SelectRows)
-        self.table.setSelectionMode(QTableView.SelectionMode.SingleSelection)
-        self.table.setEditTriggers(QTableView.EditTrigger.NoEditTriggers)
+        self.table.setSelectionBehavior(QAbstractItemView.SelectionBehavior.SelectRows)
+        self.table.setSelectionMode(QAbstractItemView.SelectionMode.SingleSelection)
+        self.table.setEditTriggers(QAbstractItemView.EditTrigger.NoEditTriggers)
         self.table.doubleClicked.connect(self._activate_index)
         self.table.selectionModel().currentChanged.connect(self._selection_changed)
         self.table.horizontalHeader().setStretchLastSection(True)
@@ -202,9 +213,23 @@ class FileBrowserWidget(QWidget):
         return root
 
     def choose_root(self) -> None:
-        chosen = QFileDialog.getExistingDirectory(self, "Ordner oder Datenträger wählen", str(Path.home()))
+        chosen = QFileDialog.getExistingDirectory(self, "Ordner oder Datenträger wählen", str(self._root or Path.home()))
         if chosen:
             self.set_root(Path(chosen))
+
+    def go_up(self) -> None:
+        if self._root is None:
+            return
+        parent = self._root.parent
+        if parent != self._root:
+            self.set_root(parent)
+
+    def refresh_view(self) -> None:
+        if self._root is None:
+            return
+        current = self._root
+        self.model.setRootPath("")
+        self.set_root(current)
 
     def set_root(self, root: Path) -> bool:
         try:
