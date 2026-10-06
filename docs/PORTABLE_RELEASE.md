@@ -67,3 +67,15 @@ Lite wird zusätzlich als ZIP erzeugt. Das ZIP ist für einfaches Kopieren und E
 ## Sicherheitsgrenze
 
 Kein Paketprofil aktiviert physische Dateiänderungen. Löschen, Verschieben, Umbenennen und Quarantäne bleiben gesperrt.
+
+
+## Gemessener v0.8.0-Stand
+
+- Recovery entpackt: 985,7 MiB
+- Lite entpackt: 733,0 MiB
+- Einsparung Lite: 252,7 MiB bzw. 25,64 %
+- Lite tar.gz: ca. 274 MB
+- Lite ZIP: ca. 310 MB
+- Recovery tar.gz: ca. 520 MB
+
+Diese Reduktion entstand ohne aggressive Beschneidung der Python-/Qt-Laufzeit.
