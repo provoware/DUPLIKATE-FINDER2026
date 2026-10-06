@@ -45,21 +45,16 @@ class TextSearcher:
         hits: list[SearchHit] = []
         job.status = JobStatus.RUNNING
         source = records if records is not None else self.scanner.iter_text_files(job.root)
-        pause_provider = (
-            (lambda: self.scanner.control.paused_seconds)
-            if self.scanner.control
-            else None
-        )
         tracker = ProgressTracker(
             max(0, int(total_records)),
             "Textdateien durchsuchen",
-            pause_provider,
+            self.scanner.paused_seconds,
             total_bytes=max(0, int(total_bytes)) if job.search_contents else 0,
         )
         processed_bytes = 0
 
         for index, record in enumerate(source, start=1):
-            self.scanner._checkpoint()
+            self.scanner.checkpoint()
             job.scanned_files += 1
             path = record.path
 
@@ -82,7 +77,7 @@ class TextSearcher:
                         errors="replace",
                     ) as handle:
                         for number, line in enumerate(handle, start=1):
-                            self.scanner._checkpoint()
+                            self.scanner.checkpoint()
                             if query in line.casefold():
                                 self._record_hit(
                                     hits,

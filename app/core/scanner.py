@@ -2,6 +2,7 @@ from __future__ import annotations
 
 import os
 from collections.abc import Callable, Iterator
+from contextlib import contextmanager
 from dataclasses import dataclass, field
 from pathlib import Path
 
@@ -55,12 +56,39 @@ class FileScanner:
         self.on_error = on_error
         self.error_count = 0
 
-    def _checkpoint(self) -> None:
+    def checkpoint(self) -> None:
+        """Prüft Pause/Abbruch, ohne auf interne Scanner-Details zuzugreifen."""
         if self.control is not None:
             self.control.checkpoint()
 
-    def _paused_seconds(self) -> float:
+    def paused_seconds(self) -> float:
+        """Liefert die bisherige Pausenzeit für belastbare Fortschrittswerte."""
         return self.control.paused_seconds if self.control is not None else 0.0
+
+    @contextmanager
+    def temporary_error_handler(
+        self,
+        handler: ErrorCallback,
+        *,
+        chain_existing: bool = True,
+    ) -> Iterator[None]:
+        """Installiert einen Fehlerempfänger nur für den umschlossenen Arbeitsschritt."""
+        previous = self.on_error
+
+        def dispatch(issue: ScanIssue) -> None:
+            handler(issue)
+            if chain_existing and previous is not None:
+                previous(issue)
+
+        self.on_error = dispatch
+        try:
+            yield
+        finally:
+            self.on_error = previous
+
+    # Rückwärtskompatibilität für ältere interne Aufrufer.
+    _checkpoint = checkpoint
+    _paused_seconds = paused_seconds
 
     def report_error(self, path: Path, stage: str, error: BaseException) -> None:
         self.error_count += 1
@@ -80,7 +108,7 @@ class FileScanner:
         excluded_dirs_cf = {name.casefold() for name in excluded_dirs}
         excluded_ext = self.options.normalized_extensions()
         discovered = 0
-        tracker = ProgressTracker(0, "Dateien erfassen", self._paused_seconds)
+        tracker = ProgressTracker(0, "Dateien erfassen", self.paused_seconds)
 
         def walk_error(error: OSError) -> None:
             path = Path(getattr(error, "filename", safe_root) or safe_root)
@@ -91,7 +119,7 @@ class FileScanner:
             followlinks=self.policy.follow_symlinks,
             onerror=walk_error,
         ):
-            self._checkpoint()
+            self.checkpoint()
             current = Path(dirpath)
             kept: list[str] = []
             for dirname in dirnames:
@@ -108,7 +136,7 @@ class FileScanner:
             dirnames[:] = kept
 
             for filename in filenames:
-                self._checkpoint()
+                self.checkpoint()
                 path = current / filename
                 try:
                     if path.suffix.casefold() in excluded_ext:
