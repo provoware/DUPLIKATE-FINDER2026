@@ -96,7 +96,7 @@ tools/        Prüfwerkzeuge
 
 ## Projektstatus
 
-**v0.7.0 – robuste Scan-Pipeline / SQLite-Großlisten / Nur-Lesen-Sicherheitsstand**
+**v0.7.0 – robuste Scan-Pipeline / SQLite-Großlisten / Nur-Lesen-Sicherheitsstand · Robustheit & Skalierung FROZEN 🟢**
 
 Physische Dateiänderungen sind noch nicht freigegeben. Dieser Bereich bleibt gesperrt, bis ein eigener Änderungsvertrag, Vorschau, Transaktionsjournal, Rückgängig-Funktion und separate Abnahmetests existieren.
 
