@@ -111,7 +111,10 @@
       "central_dependency_versions",
       "shared_scan_ui_support",
       "search_controller",
-      "duplicate_controller"
+      "duplicate_controller",
+      "collection_controller",
+      "central_navigation_definition",
+      "localized_ui_copy"
     ],
     "file_browser": [
       "lazy_qt_filesystem_model",
