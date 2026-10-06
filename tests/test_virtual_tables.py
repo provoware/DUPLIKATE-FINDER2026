@@ -57,9 +57,21 @@ def test_search_model_marking_refreshes_cached_pages(tmp_path:Path):
     model.set_job(job_id)
     path=model.path_at(0)
     assert path is not None
+    notifications=[]
+    model.dataChanged.connect(
+        lambda first,last,_roles: notifications.append((first.row(),last.row(),first.column(),last.column()))
+    )
     database.set_virtual_item(path,True,"")
     model.set_marked(path,True)
-    assert model.data(model.index(0,0))=="★"
+    assert model.data(model.index(0,0))=="Ja"
+    assert notifications==[(0,0,0,0)]
+
+
+def test_compact_navigation_replaces_sidebar_on_narrow_windows():
+    source=(Path(__file__).resolve().parents[1]/"app/gui/main_window.py").read_text(encoding="utf-8")
+    assert 'self.width() < 960' in source
+    assert 'self.compact_nav.setVisible(compact)' in source
+    assert 'self.nav.setVisible(not compact)' in source
 
 
 def test_collection_model_is_virtual_qt_view_and_returns_path():

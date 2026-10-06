@@ -4,7 +4,7 @@
   "project": {
     "id": "provoware-duplicate-finder-2026",
     "name": "PROVOWARE DUPLIKATE-FINDER 2026",
-    "version": "0.5.1",
+    "version": "0.6.0",
     "language": "de-DE"
   },
   "runtime": {
@@ -40,7 +40,7 @@
       200
     ],
     "full_acceptance_before_merge": true,
-    "minimum_acceptance_checks": 77
+    "minimum_acceptance_checks": 81
   },
   "state": {
     "registry": ".provoware-state/development-state.json",
@@ -90,8 +90,11 @@
         "id": "ui_process_control",
         "name": "Bedienoberfläche / Prozesssteuerung",
         "status": "FROZEN",
-        "since_version": "0.5.0",
+        "since_version": "0.6.0",
         "frozen_on": "2026-10-06",
+        "reopened_from_version": "0.5.1",
+        "reopened_on": "2026-10-06",
+        "reopen_reason": "Ausdrücklicher Nutzerauftrag für eine professionelle Überarbeitung von Bedienung, Erscheinungsbild und Barrierefreiheit; nach vollständiger 800x600-/100/150/200-%-Abnahme erneut eingefroren.",
         "scope": [
           "app/gui/**",
           "app/process_control.py",

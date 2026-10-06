@@ -10,7 +10,7 @@ def test_acceptance_minimum_is_registered_and_not_stale():
     manifest=json.loads((ROOT/"manifest/project.manifest.json").read_text(encoding="utf-8"))
     minimum=manifest["quality"]["minimum_acceptance_checks"]
     assert isinstance(minimum,int)
-    assert minimum >= 77
+    assert minimum >= 81
 
 
 def test_portable_workflow_uses_manifest_minimum_instead_of_exact_old_count():

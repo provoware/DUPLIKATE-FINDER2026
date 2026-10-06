@@ -21,22 +21,25 @@ def requested_zoom()->int:
 
 def apply_accessible_theme(app:QApplication,zoom:int|None=None)->int:
     active_zoom=zoom or requested_zoom()
+    app.setProperty("provowareUiZoom",active_zoom)
     point_size=max(9,round(11*active_zoom/100))
     app.setFont(QFont("Sans Serif",point_size))
     app.setStyleSheet("""
-        QWidget { color:#eef8ff; background:#0e151d; }
-        QMainWindow, QDialog { background:#080e14; }
+        QWidget { color:#f3f7fb; background:#0e151d; }
+        QLabel { background:transparent; }
+        QCheckBox, QRadioButton { background:transparent; }
+        QMainWindow, QDialog { background:#0a1118; }
 
         QFrame[card="true"] {
-            background:#15222d;
-            border:1px solid #35576d;
+            background:#172532;
+            border:1px solid #3c5c70;
             border-radius:10px;
-            padding:8px;
+            padding:4px;
         }
         QFrame[section="true"] {
-            background:#111e28;
-            border:1px solid #34596f;
-            border-left:5px solid #00e5ff;
+            background:#13232d;
+            border:1px solid #42657a;
+            border-left:5px solid #45d8df;
             border-radius:9px;
             padding:8px;
         }
@@ -47,6 +50,8 @@ def apply_accessible_theme(app:QApplication,zoom:int|None=None)->int:
             padding:8px;
         }
         QLabel[hint="true"] { color:#b8cfde; }
+        QLabel[cardTitle="true"] { color:#c0d0dc; font-size:0.92em; }
+        QLabel[cardValue="true"] { color:#ffffff; font-weight:800; }
 
         QPushButton {
             background:#182934;
@@ -59,19 +64,19 @@ def apply_accessible_theme(app:QApplication,zoom:int|None=None)->int:
         }
         QPushButton[primaryAction="true"] {
             background:#0d3441;
-            border:2px solid #00e5ff;
+            border:2px solid #45d8df;
         }
         QPushButton[primaryAction="true"]:hover {
             background:#105064;
-            border:2px solid #6ff5ff;
+            border:2px solid #8af3f4;
         }
-        QPushButton[compact="true"] { min-height:30px; padding:5px 10px; }
+        QPushButton[compact="true"] { min-height:40px; padding:7px 12px; }
         QPushButton:hover { background:#203a49; border-color:#86b7d0; }
         QPushButton:pressed { background:#0d5365; }
         QPushButton:focus { border:3px solid #ffe45e; }
-        QPushButton:disabled { color:#778997; background:#151d24; border-color:#3d4d58; }
-        QPushButton#process_cancel { border:2px solid #ff4d79; background:#321521; }
-        QPushButton#process_pause { border:2px solid #ffe45e; background:#30290f; color:#fff4b8; }
+        QPushButton:disabled { color:#c0cbd3; background:#1b252d; border-color:#53616c; }
+        QPushButton#process_cancel { border:2px solid #ff6688; background:#381827; }
+        QPushButton#process_pause { border:2px solid #f5cf58; background:#332b14; color:#fff2bd; }
 
         QLineEdit, QComboBox, QSpinBox {
             background:#09131b;
@@ -81,13 +86,13 @@ def apply_accessible_theme(app:QApplication,zoom:int|None=None)->int:
             padding:7px 9px;
             min-height:30px;
         }
-        QLineEdit:focus, QComboBox:focus, QSpinBox:focus { border:2px solid #00e5ff; }
+        QLineEdit:focus, QComboBox:focus, QSpinBox:focus { border:2px solid #45d8df; }
 
-        QListWidget, QTableWidget {
+        QListWidget, QTableView, QTableWidget {
             background:#09131b;
             alternate-background-color:#112330;
             color:#f0f9ff;
-            border:1px solid #466b82;
+            border:1px solid #58788c;
             border-radius:8px;
             gridline-color:#294352;
             selection-background-color:#075f75;
@@ -111,6 +116,8 @@ def apply_accessible_theme(app:QApplication,zoom:int|None=None)->int:
             border:1px solid #294f63;
         }
         QListWidget#main_navigation::item { margin:2px 3px; border-radius:5px; }
+        QTableView::item { padding:6px; border-bottom:1px solid #263b49; }
+        QTableView::item:selected { background:#075f75; color:#ffffff; }
 
         QHeaderView::section {
             background:#183545;
@@ -119,7 +126,7 @@ def apply_accessible_theme(app:QApplication,zoom:int|None=None)->int:
             font-weight:900;
             border:0;
             border-right:1px solid #3d6277;
-            border-bottom:2px solid #00e5ff;
+            border-bottom:2px solid #45d8df;
         }
 
         QProgressBar {
@@ -135,12 +142,15 @@ def apply_accessible_theme(app:QApplication,zoom:int|None=None)->int:
 
         QCheckBox { spacing:8px; }
         QCheckBox::indicator { width:22px; height:22px; }
+        QCheckBox::indicator:unchecked { background:#0b151d; border:2px solid #8fa5b4; border-radius:4px; }
+        QCheckBox::indicator:checked { background:#087989; border:2px solid #75eff1; border-radius:4px; }
+        QCheckBox::indicator:disabled { background:#202b33; border-color:#8998a2; }
 
         QLabel[heading="true"] { font-weight:900; color:#ffffff; }
         QLabel#safety_banner {
             background:#102d23;
             color:#dbffe9;
-            border:2px solid #39e58c;
+            border:2px solid #4ddd9c;
             border-radius:8px;
             padding:8px;
             font-weight:900;
@@ -152,11 +162,11 @@ def apply_accessible_theme(app:QApplication,zoom:int|None=None)->int:
         QToolTip {
             background:#061018;
             color:#ffffff;
-            border:1px solid #00e5ff;
+            border:1px solid #45d8df;
             padding:7px;
         }
         QSplitter::handle { background:#294c5d; }
-        QScrollBar:vertical, QScrollBar:horizontal { background:#0a131a; border:0; }
+        QScrollBar:vertical, QScrollBar:horizontal { background:#0a131a; border:0; min-width:14px; min-height:14px; }
         QScrollBar::handle:vertical, QScrollBar::handle:horizontal {
             background:#345f73; border-radius:5px; min-height:24px; min-width:24px;
         }

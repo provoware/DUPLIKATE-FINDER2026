@@ -1,8 +1,12 @@
 # Freeze-Vertrag – Bedienoberfläche / Prozesssteuerung
 
-**Status:** FROZEN 🟢  
-**Seit:** v0.5.0  
+**Status:** FROZEN
+**Seit:** v0.6.0
 **Datum:** 2026-10-06
+
+## Wiederöffnung und erneute Einfrierung
+
+Der Bereich wurde am 2026-10-06 aus v0.5.1 auf ausdrücklichen Nutzerauftrag geöffnet. Anlass waren überfüllte Informationskarten, Ersatzzeichen statt Symbolen und ein zu enges Layout. Nach der Überarbeitung und der vollständigen autonomen Abnahme mit 800×600 sowie 100/150/200 % wurde der Bereich für v0.6.0 erneut eingefroren.
 
 ## Eingefrorener Umfang
 

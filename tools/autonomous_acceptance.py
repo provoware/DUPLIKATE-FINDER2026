@@ -145,6 +145,24 @@ def ui_checks(output: Path) -> tuple[list[Result], list[dict]]:
                     page_hint=window.pages.widget(page_index).minimumSizeHint()
                     print(f"UI-DIAG | {label} | Seite {page_index} | {page_hint.width()}x{page_hint.height()}")
             results.append(Result("Oberfläche", f"{label} Mindestlayout", hint.width() <= width and hint.height() <= height, f"Bedarf {hint.width()}x{hint.height()} bei Fenster {width}x{height}"))
+            compact_navigation = width < 960
+            window.compact_nav.setCurrentIndex(window.PAGE_HELP)
+            app.processEvents()
+            selection_sync = window.nav.currentRow() == window.PAGE_HELP
+            window.nav.setCurrentRow(window.PAGE_SEARCH)
+            app.processEvents()
+            selection_sync = selection_sync and window.compact_nav.currentIndex() == window.PAGE_SEARCH
+            navigation_visible = (
+                window.compact_nav.isVisible() == compact_navigation
+                and window.nav.isVisible() != compact_navigation
+            )
+            results.append(Result(
+                "Bedienung", f"{label} Bereichsnavigation",
+                navigation_visible and selection_sync,
+                "passende Navigation sichtbar; Auswahl bleibt in beiden Ansichten synchron"
+                if navigation_visible and selection_sync
+                else "Navigation fehlt, ist doppelt sichtbar oder Auswahl wurde nicht synchronisiert",
+            ))
             for page_index in range(window.pages.count()):
                 window.nav.setCurrentRow(page_index)
                 app.processEvents()

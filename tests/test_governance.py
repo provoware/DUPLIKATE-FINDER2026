@@ -50,12 +50,14 @@ def test_text_catalog_manifest_matches_catalog_version():
     assert manifest["active_locale"] == catalog["locale"]
 
 
-def test_ui_process_area_is_frozen_after_v050():
+def test_ui_process_area_reopening_and_freeze_are_recorded():
     data=json.loads((ROOT/"manifest/project.manifest.json").read_text(encoding="utf-8"))
     frozen={item["id"]:item for item in data["governance"]["frozen_areas"]}
     area=frozen["ui_process_control"]
     assert area["status"]=="FROZEN"
-    assert area["since_version"]=="0.5.0"
+    assert area["since_version"]=="0.6.0"
+    assert area["reopened_from_version"]=="0.5.1"
+    assert area["reopened_on"]=="2026-10-06"
     assert "app/gui/**" in area["scope"]
     assert "full_800x600_100_150_200_acceptance" in area["reopen_requires"]
     assert (ROOT/"docs/FREEZE_BEDIENUNG_PROZESS.md").is_file()

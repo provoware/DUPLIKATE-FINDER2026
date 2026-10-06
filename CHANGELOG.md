@@ -2,15 +2,25 @@
 
 ## [Unveröffentlicht]
 
-### Hinzugefügt
-- selbstbootstrappender Entwicklungsstart mit eigener Python-3.12.15-Laufzeit
-- automatisches und wiederverwendbares System-/Abhängigkeitsprofil
-- vollständige Abhängigkeitsdokumentation
-- Entwicklungs-Vollpaket mit Runtime und lokalem Paketvorrat
-- erweiterter Architekturtest: Tk/Tkinter auch in Werkzeugen verboten
-
 ### Geplant
 - weitere Dateiformate und spätere, separat freizugebende Schreibfunktionen
+
+## [0.6.0] – 2026-10-06
+
+### Verbessert
+- Bereichsauswahl wechselt bei schmalen Fenstern in eine klar beschriftete obere Auswahl
+- Statuskarten ordnen Überschrift und Wert getrennt an und passen sich bei 200 % an
+- gesperrte Dateiaktionen sind kompakt und ausdrücklich beschriftet
+- Fokus-, Tabellen- und Kontrollkästchen-Stile verbessert; Statusmeldungen bleiben auch ohne Symbole verständlich
+- Bedienoberfläche bei 800×600 sowie 100/150/200 % geprüft und anschließend erneut eingefroren
+
+### Behoben
+- Symbolzeichen, die in der Standardschrift als leere Kästchen erschienen, aus der Oberfläche entfernt
+- Kartenbeschriftungen auf dunklen Flächen lesbar gemacht
+- überbreite Seitenleiste auf kleinen Fenstern durch kompakte Bereichsauswahl ersetzt
+- Markierungsänderungen in großen Treffermengen aktualisieren nur die betroffenen Tabellenzeilen statt bis zu 100.000 Zeilen
+- Programmversion wird aus den Projektmetadaten gelesen; auch der direkte Build-Nachweis nutzt denselben Stand
+- README und Projektmanifest auf v0.6.0 aktualisiert
 
 ## [0.5.1] – 2026-10-06
 
