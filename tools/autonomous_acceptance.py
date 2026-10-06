@@ -117,7 +117,7 @@ def ui_checks(output: Path) -> tuple[list[Result], list[dict]]:
             db = Database(base / "data" / "ui.sqlite3")
             db.initialize()
             window = MainWindow(base, db)
-            enhancement = UiEnhancements(window, base, db)
+            enhancement = UiEnhancements(window, base, db, install_global_filter=False)
             enhancement._apply_zoom(zoom)
             window.resize(width, height)
             window.show()
@@ -140,7 +140,9 @@ def ui_checks(output: Path) -> tuple[list[Result], list[dict]]:
                 plausible = screenshot_is_plausible(image_path)
                 results.append(Result("Bild", file_name, plausible, "Bildinhalt plausibel" if plausible else "Bild wirkt leer/einfarbig"))
                 shots.append({"profile": label, "page": page_index, "file": file_name, "ok": ok and plausible})
+            enhancement.dispose()
             window.close()
+            app.processEvents()
             del enhancement
     return results, shots
 
