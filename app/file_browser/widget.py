@@ -1,0 +1,308 @@
+from __future__ import annotations
+
+from pathlib import Path
+
+from PySide6.QtCore import QDir, QModelIndex, QSortFilterProxyModel, Qt, QUrl
+from PySide6.QtGui import QDesktopServices, QGuiApplication, QPixmap
+from PySide6.QtWidgets import (
+    QComboBox,
+    QFileDialog,
+    QFileSystemModel,
+    QFrame,
+    QGridLayout,
+    QHBoxLayout,
+    QLabel,
+    QLineEdit,
+    QMessageBox,
+    QPushButton,
+    QSplitter,
+    QTableView,
+    QTextBrowser,
+    QVBoxLayout,
+    QWidget,
+)
+
+from app.file_browser.classification import classify_path
+from app.file_browser.preview import build_preview
+from app.safety.policy import SafetyPolicy, SafetyViolation
+
+
+class FileFilterProxy(QSortFilterProxyModel):
+    def __init__(self, parent=None) -> None:
+        super().__init__(parent)
+        self._query = ""
+        self._kind = "all"
+        self.setDynamicSortFilter(True)
+
+    def set_query(self, value: str) -> None:
+        self._query = value.casefold().strip()
+        self.invalidateFilter()
+
+    def set_kind(self, value: str) -> None:
+        self._kind = value
+        self.invalidateFilter()
+
+    def filterAcceptsRow(self, row: int, parent: QModelIndex) -> bool:
+        source = self.sourceModel()
+        index = source.index(row, 0, parent)
+        if not index.isValid():
+            return False
+        path = Path(source.filePath(index))
+        if source.isDir(index):
+            return True
+        if self._query and self._query not in path.name.casefold():
+            return False
+        if self._kind != "all" and classify_path(path, is_dir=False).key != self._kind:
+            return False
+        return True
+
+
+class FileBrowserWidget(QWidget):
+    def __init__(self, parent=None) -> None:
+        super().__init__(parent)
+        self.setObjectName("file_browser")
+        self.setProperty("area", "files")
+        self._root: Path | None = None
+        self._current_path: Path | None = None
+
+        self.model = QFileSystemModel(self)
+        self.model.setFilter(QDir.Filter.AllEntries | QDir.Filter.NoDotAndDotDot)
+        self.model.setReadOnly(True)
+        self.model.setRootPath("")
+
+        self.proxy = FileFilterProxy(self)
+        self.proxy.setSourceModel(self.model)
+        self.setLayout(self._build_layout())
+
+    def _build_layout(self) -> QVBoxLayout:
+        root = QVBoxLayout()
+        root.setContentsMargins(4, 4, 4, 4)
+        root.setSpacing(6)
+
+        title = QLabel("Dateien & Vorschau")
+        title.setObjectName("file_browser_title")
+        title.setProperty("heading", True)
+        title.setWordWrap(True)
+        root.addWidget(title)
+
+        controls = QGridLayout()
+        self.root_label = QLineEdit()
+        self.root_label.setObjectName("file_browser_root")
+        self.root_label.setReadOnly(True)
+        self.root_label.setPlaceholderText("Noch kein Ordner oder Datenträger gewählt")
+
+        choose = QPushButton("Ordner / Datenträger wählen")
+        choose.setObjectName("file_browser_choose")
+        choose.setProperty("primaryAction", True)
+        choose.clicked.connect(self.choose_root)
+
+        self.query = QLineEdit()
+        self.query.setObjectName("file_browser_query")
+        self.query.setPlaceholderText("Dateiname filtern")
+        self.query.textChanged.connect(self.proxy.set_query)
+
+        self.kind = QComboBox()
+        self.kind.setObjectName("file_browser_kind")
+        self.kind.addItem("Alle Dateitypen", "all")
+        self.kind.addItem("Text", "text")
+        self.kind.addItem("Bilder", "image")
+        self.kind.addItem("PDF", "pdf")
+        self.kind.addItem("Video", "video")
+        self.kind.addItem("Audio", "audio")
+        self.kind.addItem("Andere Dateien", "other")
+        self.kind.currentIndexChanged.connect(
+            lambda _index: self.proxy.set_kind(str(self.kind.currentData()))
+        )
+
+        controls.addWidget(self.root_label, 0, 0, 1, 3)
+        controls.addWidget(choose, 0, 3)
+        controls.addWidget(self.query, 1, 0, 1, 2)
+        controls.addWidget(self.kind, 1, 2, 1, 2)
+        root.addLayout(controls)
+
+        splitter = QSplitter(Qt.Orientation.Horizontal)
+        splitter.setObjectName("file_browser_splitter")
+
+        self.table = QTableView()
+        self.table.setObjectName("file_browser_table")
+        self.table.setModel(self.proxy)
+        self.table.setSortingEnabled(True)
+        self.table.setSelectionBehavior(QTableView.SelectionBehavior.SelectRows)
+        self.table.setSelectionMode(QTableView.SelectionMode.SingleSelection)
+        self.table.setEditTriggers(QTableView.EditTrigger.NoEditTriggers)
+        self.table.doubleClicked.connect(self._activate_index)
+        self.table.selectionModel().currentChanged.connect(self._selection_changed)
+        self.table.horizontalHeader().setStretchLastSection(True)
+        splitter.addWidget(self.table)
+
+        preview_frame = QFrame()
+        preview_frame.setObjectName("file_preview_panel")
+        preview_frame.setProperty("section", True)
+        preview_layout = QVBoxLayout(preview_frame)
+
+        self.preview_title = QLabel("Keine Datei ausgewählt")
+        self.preview_title.setObjectName("file_preview_title")
+        self.preview_title.setWordWrap(True)
+        self.preview_title.setProperty("heading", True)
+        preview_layout.addWidget(self.preview_title)
+
+        self.preview_image = QLabel("Vorschau")
+        self.preview_image.setObjectName("file_preview_image")
+        self.preview_image.setAlignment(Qt.AlignmentFlag.AlignCenter)
+        self.preview_image.setMinimumHeight(120)
+        self.preview_image.setWordWrap(True)
+        preview_layout.addWidget(self.preview_image, 2)
+
+        self.preview_text = QTextBrowser()
+        self.preview_text.setObjectName("file_preview_text")
+        self.preview_text.setOpenExternalLinks(False)
+        self.preview_text.setVisible(False)
+        preview_layout.addWidget(self.preview_text, 2)
+
+        self.preview_details = QLabel("Metadaten erscheinen hier.")
+        self.preview_details.setObjectName("file_preview_details")
+        self.preview_details.setWordWrap(True)
+        self.preview_details.setTextInteractionFlags(Qt.TextInteractionFlag.TextSelectableByMouse)
+        preview_layout.addWidget(self.preview_details)
+
+        actions = QHBoxLayout()
+        self.open_button = QPushButton("Extern öffnen")
+        self.open_button.setObjectName("file_browser_open")
+        self.open_button.setEnabled(False)
+        self.open_button.clicked.connect(self.open_current)
+
+        self.show_button = QPushButton("Ordner anzeigen")
+        self.show_button.setObjectName("file_browser_show")
+        self.show_button.setEnabled(False)
+        self.show_button.clicked.connect(self.show_current_folder)
+
+        self.copy_button = QPushButton("Pfad kopieren")
+        self.copy_button.setObjectName("file_browser_copy")
+        self.copy_button.setEnabled(False)
+        self.copy_button.clicked.connect(self.copy_current_path)
+
+        actions.addWidget(self.open_button)
+        actions.addWidget(self.show_button)
+        actions.addWidget(self.copy_button)
+        preview_layout.addLayout(actions)
+
+        splitter.addWidget(preview_frame)
+        splitter.setStretchFactor(0, 3)
+        splitter.setStretchFactor(1, 2)
+        root.addWidget(splitter, 1)
+
+        note = QLabel(
+            "Nur-Lesen-Bereich: Vorschau und externe Öffnung verändern Originaldateien nicht. "
+            "Löschen, Verschieben, Umbenennen und Überschreiben bleiben gesperrt."
+        )
+        note.setObjectName("file_browser_safety")
+        note.setProperty("card", True)
+        note.setWordWrap(True)
+        root.addWidget(note)
+        return root
+
+    def choose_root(self) -> None:
+        chosen = QFileDialog.getExistingDirectory(self, "Ordner oder Datenträger wählen", str(Path.home()))
+        if chosen:
+            self.set_root(Path(chosen))
+
+    def set_root(self, root: Path) -> bool:
+        try:
+            safe = SafetyPolicy().ensure_scan_root_allowed(root)
+        except SafetyViolation as exc:
+            QMessageBox.information(self, "Ordner gesperrt", str(exc))
+            return False
+        if not safe.is_dir():
+            QMessageBox.information(self, "Kein Ordner", "Der gewählte Pfad ist kein lesbarer Ordner.")
+            return False
+        source_index = self.model.setRootPath(str(safe))
+        proxy_index = self.proxy.mapFromSource(source_index)
+        self.table.setRootIndex(proxy_index)
+        self.root_label.setText(str(safe))
+        self._root = safe
+        self._clear_preview("Ordner gewählt. Datei anklicken, um die Vorschau zu öffnen.")
+        return True
+
+    def _path_for_proxy_index(self, index: QModelIndex) -> Path | None:
+        if not index.isValid():
+            return None
+        source_index = self.proxy.mapToSource(index.siblingAtColumn(0))
+        if not source_index.isValid():
+            return None
+        return Path(self.model.filePath(source_index))
+
+    def _selection_changed(self, current: QModelIndex, _previous: QModelIndex) -> None:
+        path = self._path_for_proxy_index(current)
+        if path is not None:
+            self.show_preview(path)
+
+    def _activate_index(self, index: QModelIndex) -> None:
+        path = self._path_for_proxy_index(index)
+        if path is None:
+            return
+        if path.is_dir():
+            self.set_root(path)
+        else:
+            self.show_preview(path)
+
+    def show_preview(self, path: Path) -> None:
+        self._current_path = path
+        self.open_button.setEnabled(path.exists())
+        self.show_button.setEnabled(path.exists())
+        self.copy_button.setEnabled(True)
+
+        if path.is_dir():
+            self._clear_preview("Ordner – doppelklicken, um hineinzuwechseln.")
+            self.preview_title.setText(path.name or str(path))
+            self.preview_details.setText(f"Pfad: {path}")
+            return
+
+        data = build_preview(path)
+        self.preview_title.setText(data.title)
+        self.preview_details.setText(data.details)
+
+        if data.image is not None:
+            pixmap = QPixmap.fromImage(data.image)
+            target = self.preview_image.size()
+            if target.width() > 40 and target.height() > 40:
+                pixmap = pixmap.scaled(
+                    target,
+                    Qt.AspectRatioMode.KeepAspectRatio,
+                    Qt.TransformationMode.SmoothTransformation,
+                )
+            self.preview_image.setPixmap(pixmap)
+            self.preview_image.setText("")
+            self.preview_image.setVisible(True)
+            self.preview_text.setVisible(False)
+        else:
+            self.preview_image.clear()
+            self.preview_image.setVisible(False)
+            self.preview_text.setPlainText(data.text or "Keine Vorschau verfügbar.")
+            self.preview_text.setVisible(True)
+
+    def _clear_preview(self, message: str) -> None:
+        self._current_path = None
+        self.preview_title.setText("Keine Datei ausgewählt")
+        self.preview_image.clear()
+        self.preview_image.setText(message)
+        self.preview_image.setVisible(True)
+        self.preview_text.clear()
+        self.preview_text.setVisible(False)
+        self.preview_details.setText("Metadaten erscheinen hier.")
+        self.open_button.setEnabled(False)
+        self.show_button.setEnabled(False)
+        self.copy_button.setEnabled(False)
+
+    def open_current(self) -> None:
+        if self._current_path and self._current_path.exists():
+            QDesktopServices.openUrl(QUrl.fromLocalFile(str(self._current_path)))
+
+    def show_current_folder(self) -> None:
+        if not self._current_path:
+            return
+        folder = self._current_path if self._current_path.is_dir() else self._current_path.parent
+        QDesktopServices.openUrl(QUrl.fromLocalFile(str(folder)))
+
+    def copy_current_path(self) -> None:
+        if self._current_path:
+            QGuiApplication.clipboard().setText(str(self._current_path))
