@@ -73,7 +73,6 @@ jobs:
           P="$GITHUB_WORKSPACE/out/$PACKAGE"
           "$P/ENTWICKLUNG_STARTEN.sh" --nur-pruefen
           "$P/ENTWICKLUNG_STARTEN.sh" --tests
-          "$P/ENTWICKLUNG_STARTEN.sh" --abnahme
       - name: Reproduzierbares Archiv und Pruefsumme
         run: |
           set -euo pipefail

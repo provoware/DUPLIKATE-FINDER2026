@@ -225,7 +225,7 @@ PROVOWARE Entwicklungsstart
   ./ENTWICKLUNG_STARTEN.sh --nur-pruefen alles pruefen/reparieren, dann beenden
   ./ENTWICKLUNG_STARTEN.sh --schnelltest gezielte Prüfungen für geänderte Bereiche
   ./ENTWICKLUNG_STARTEN.sh --tests      vollständige Kompilierung + Tests
-  ./ENTWICKLUNG_STARTEN.sh --abnahme    autonome 73/73-Abnahme
+  ./ENTWICKLUNG_STARTEN.sh --abnahme    vollständige autonome Abnahme
 EOF
     exit 0 ;;
   *) die "Unbekannte Option: $MODE" ;;

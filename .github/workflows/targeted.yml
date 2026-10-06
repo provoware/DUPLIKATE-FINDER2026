@@ -1,0 +1,56 @@
+name: Gezielte Entwicklungsprüfung
+
+on:
+  push:
+    branches: ["feature/**", "chore/**"]
+
+permissions:
+  contents: read
+
+concurrency:
+  group: provoware-targeted-${{ github.ref }}
+  cancel-in-progress: true
+
+jobs:
+  targeted:
+    name: Zustandsbasierte Schnellprüfung
+    runs-on: ubuntu-24.04
+    env:
+      QT_QPA_PLATFORM: offscreen
+    steps:
+      - uses: actions/checkout@v4
+        with:
+          fetch-depth: 0
+      - uses: actions/setup-python@v5
+        with:
+          python-version: "3.12"
+          cache: pip
+      - name: Prüfplan aus Dateizustand ableiten
+        id: plan
+        run: |
+          python tools/state_registry.py --base origin/main --output artifacts/pruefplan.json
+          python - <<'PY' >> "$GITHUB_OUTPUT"
+          import json
+          plan=json.load(open("artifacts/pruefplan.json",encoding="utf-8"))
+          areas=set(plan["areas"])
+          print("gui=" + ("true" if "gui" in areas else "false"))
+          print("areas=" + ",".join(sorted(areas)))
+          PY
+      - name: Qt-Laufzeit nur bei GUI-Änderungen
+        if: steps.plan.outputs.gui == 'true'
+        run: |
+          sudo apt-get update
+          sudo apt-get install -y --no-install-recommends libegl1 libgl1 libxkbcommon0 libfontconfig1
+      - name: Python-Abhängigkeiten aus Cache
+        run: python -m pip install -e ".[test]"
+      - name: Gezielte Prüfungen
+        run: python tools/targeted_checks.py --base origin/main
+      - name: Prüfplan sichern
+        if: always()
+        uses: actions/upload-artifact@v4
+        with:
+          name: gezielter-pruefplan
+          path: |
+            artifacts/pruefplan.json
+            artifacts/ui-schnelltest.png
+          if-no-files-found: ignore

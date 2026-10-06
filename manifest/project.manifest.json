@@ -39,7 +39,8 @@
       150,
       200
     ],
-    "full_acceptance_before_merge": true
+    "full_acceptance_before_merge": true,
+    "minimum_acceptance_checks": 77
   },
   "state": {
     "registry": ".provoware-state/development-state.json",

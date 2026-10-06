@@ -169,7 +169,7 @@ jobs:
           "$P/runtime/bin/python3" -c 'import PySide6; print("OK | PySide6 offline repariert:", PySide6.__version__)'             | tee "$GITHUB_WORKSPACE/e2e/evidence/offline-repair.txt"
           grep -q '"ok": true' "$GITHUB_WORKSPACE/e2e/workspace/logs/startup-status.json"
 
-      - name: Autonome 73-von-73-Abnahme im entpackten Paket
+      - name: Vollständige autonome Abnahme im entpackten Paket
         env:
           QT_QPA_PLATFORM: offscreen
           PROVOWARE_PROJECT_DIR: ${{ github.workspace }}/e2e/workspace
@@ -185,10 +185,12 @@ jobs:
           import sys
           from pathlib import Path
           report = json.loads(Path(sys.argv[1]).read_text(encoding="utf-8"))
+          manifest = json.loads(Path("manifest/project.manifest.json").read_text(encoding="utf-8"))
           results = report["results"]
-          assert len(results) == 73, len(results)
+          minimum = int(manifest["quality"]["minimum_acceptance_checks"])
+          assert len(results) >= minimum, (len(results), minimum)
           assert all(item["ok"] for item in results)
-          print("OK | 73/73 autonome Prüfungen grün")
+          print(f"OK | {len(results)}/{len(results)} autonome Prüfungen grün · Mindestabdeckung {minimum}")
           PY
 
       - name: E2E-Evidenz zusammenfassen
@@ -204,7 +206,8 @@ jobs:
             echo "GUI-Start: OK"
             echo "Konsolenstart: OK"
             echo "Offline-Reparatur: OK"
-            echo "Autonome Abnahme: 73/73 grün"
+            COUNT="$(python3 -c 'import json; print(len(json.load(open("e2e/evidence/abnahme/report.json"))["results"]))')"
+            echo "Autonome Abnahme: ${COUNT}/${COUNT} grün"
             echo "Originaldatei-Sicherheitsmodus: read_only"
           } | tee "$GITHUB_WORKSPACE/e2e/evidence/E2E-SUMMARY.txt"
 

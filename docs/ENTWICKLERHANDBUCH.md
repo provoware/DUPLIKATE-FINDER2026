@@ -24,6 +24,12 @@ Vor Merge:
 - `pyproject.toml`
 - `resources/texts/manifest.json`
 
+## Zweistufige Prüfstrategie
+
+Auf Feature-Zweigen läuft zuerst die **gezielte Entwicklungsprüfung**. Sie leitet aus den geänderten Dateien die betroffenen Bereiche ab und vermeidet unnötige UI-/Gesamtprüfungen.
+
+Auf jedem Pull Request und auf `main` bleiben die vollständigen Kern-, 100/150/200-%- und autonomen Prüfungen Pflicht. Damit wird Geschwindigkeit nur während der Iteration optimiert, nicht bei der Freigabe.
+
 ## Arbeitsfolge
 
 1. Zustandsregister erzeugen.

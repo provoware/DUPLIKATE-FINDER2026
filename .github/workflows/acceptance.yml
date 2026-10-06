@@ -2,7 +2,7 @@ name: Autonome Abnahme
 
 on:
   push:
-    branches: [main, "feature/**", "chore/**"]
+    branches: [main]
   pull_request:
 
 permissions:
