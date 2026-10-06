@@ -1,16 +1,26 @@
 from __future__ import annotations
 
-from pathlib import Path
+from collections.abc import Callable
 
-from app.core.scanner import FileScanner
+from app.core.control import ProcessControl
+from app.core.scanner import FileScanner, ScanOptions
 from app.models.entities import JobStatus, SearchHit, SearchJob
+
+ProgressCallback = Callable[[int, int, str], None]
 
 
 class TextSearcher:
     def __init__(self, scanner: FileScanner | None = None) -> None:
         self.scanner = scanner or FileScanner()
 
-    def search(self, job: SearchJob) -> list[SearchHit]:
+    def search(
+        self,
+        job: SearchJob,
+        *,
+        options: ScanOptions | None = None,
+        control: ProcessControl | None = None,
+        progress: ProgressCallback | None = None,
+    ) -> list[SearchHit]:
         query = job.query.casefold().strip()
         if not query:
             return []
@@ -18,7 +28,25 @@ class TextSearcher:
         hits: list[SearchHit] = []
         job.status = JobStatus.RUNNING
 
-        for record in self.scanner.iter_text_files(job.root):
+        def discovered(count: int, _path) -> None:
+            if progress is not None and (count == 1 or count % 25 == 0):
+                progress(count, 0, "Dateiliste wird aufgebaut")
+
+        records = list(
+            self.scanner.iter_text_files(
+                job.root,
+                options=options,
+                control=control,
+                on_discovered=discovered,
+            )
+        )
+        total = len(records)
+        if progress is not None:
+            progress(0, total, "Textdateien werden durchsucht")
+
+        for index, record in enumerate(records, start=1):
+            if control is not None:
+                control.checkpoint()
             job.scanned_files += 1
             path = record.path
 
@@ -29,6 +57,8 @@ class TextSearcher:
                 try:
                     with path.open("r", encoding="utf-8", errors="replace") as handle:
                         for number, line in enumerate(handle, start=1):
+                            if control is not None and number % 128 == 0:
+                                control.checkpoint()
                             if query in line.casefold():
                                 excerpt = line.strip()[:300]
                                 hits.append(
@@ -36,6 +66,9 @@ class TextSearcher:
                                 )
                 except (OSError, PermissionError):
                     job.errors.append(str(path))
+
+            if progress is not None:
+                progress(index, total, "Textdateien werden durchsucht")
 
         job.hits = len(hits)
         job.status = JobStatus.DONE
