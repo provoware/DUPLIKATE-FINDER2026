@@ -4,7 +4,7 @@
   "project": {
     "id": "provoware-duplicate-finder-2026",
     "name": "PROVOWARE DUPLIKATE-FINDER 2026",
-    "version": "0.7.1",
+    "version": "0.8.0",
     "language": "de-DE"
   },
   "runtime": {
@@ -109,6 +109,20 @@
       "portable_dependency_cache",
       "full_bundle_path_filtering",
       "central_dependency_versions"
+    ],
+    "file_browser": [
+      "lazy_qt_filesystem_model",
+      "filename_filter",
+      "file_kind_filter",
+      "text_preview_512k_limit",
+      "scaled_image_preview",
+      "qt_pdf_first_page_preview",
+      "external_open",
+      "show_parent_folder",
+      "copy_path",
+      "virtual_marking",
+      "virtual_collections",
+      "safe_runtime_media_mounts"
     ]
   },
   "governance": {
@@ -116,12 +130,12 @@
       {
         "id": "ui_process_control",
         "name": "Bedienoberfläche / Prozesssteuerung",
-        "status": "FROZEN",
+        "status": "REOPENED",
         "since_version": "0.6.0",
         "frozen_on": "2026-10-06",
         "reopened_from_version": "0.5.1",
         "reopened_on": "2026-10-06",
-        "reopen_reason": "Ausdrücklicher Nutzerauftrag für bessere Toolführung, Farben, Sichtbarkeit und effizientere Bedienung; nach vollständiger Abnahme wieder einzufrieren.",
+        "reopen_reason": "Ausdrücklicher Nutzerauftrag für v0.8.0: eigener Dateien-&-Vorschau-Bereich sowie unterschiedliche, kontrastreiche Akzentfarben je Hauptbereich. Re-Freeze erst nach vollständiger 800x600-/100/150/200-%-Abnahme.",
         "scope": [
           "app/gui/**",
           "app/process_control.py",
