@@ -12,6 +12,17 @@
 ### Geplant
 - weitere Dateiformate und spätere, separat freizugebende Schreibfunktionen
 
+## [0.5.1] – 2026-10-06
+
+### Korrektur des eingefrorenen Leistungsumfangs
+- Suchtreffer jetzt tatsächlich datenvirtualisiert: SQLite ist die Quelle, nicht mehr eine vollständige Python-Trefferliste
+- GUI lädt Treffer in Seiten zu 200 Zeilen
+- maximal acht Seiten gleichzeitig im GUI-Puffer (standardmäßig höchstens 1.600 Treffer)
+- 100.000-Treffer-Regression prüft begrenzten Seitencache
+- Sortierung großer Trefferlisten erfolgt datenbankgestützt
+- Treffer werden während der Suche in kleinen Blöcken gespeichert
+- Bedienoberfläche / Prozesssteuerung bleibt FROZEN; Änderung ist eine Regression-/Vertragskorrektur
+
 ## [0.5.0] – 2026-10-06
 
 ### Leistung und Überwachung

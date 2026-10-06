@@ -57,7 +57,7 @@ class MainWindow(QMainWindow):
         self.selected_root: Path | None = None
         self.search_worker: SearchWorker | None = None
         self.duplicate_worker: DuplicateWorker | None = None
-        self.last_hits: list[SearchHit] = []
+        self.last_search_job_id: int | None = None
         self.duplicate_groups_cache: list[DuplicateGroup] = []
         self.results_model = SearchResultsModel(database, self)
         self.duplicate_members_model = DuplicateMembersModel(self)
@@ -626,24 +626,26 @@ class MainWindow(QMainWindow):
             exclude_python_project_dirs=self.exclude_python_box.isChecked(),
             excluded_extensions=self.scan_options.excluded_extensions,
         )
-        self.search_worker = SearchWorker(job, self.scan_options)
+        self.search_worker = SearchWorker(job, self.database, self.scan_options)
         self._connect_worker_controls(self.search_worker)
         self.search_worker.completed.connect(self._search_finished)
         self.search_worker.failed.connect(self._search_failed)
         self.search_worker.start()
 
-    def _search_finished(self, job: SearchJob, hits: list[SearchHit]) -> None:
-        self.last_hits = list(hits)
-        self.results_model.set_hits(self.last_hits)
+    def _search_finished(self, job: SearchJob, job_id: int, hit_count: int) -> None:
+        self.last_search_job_id = job_id
+        self.results_model.set_job(job_id, hit_count)
         self.search_button.setEnabled(True)
         self._set_process_idle()
         self.status_label.setText("🟢 Textsuche abgeschlossen")
         self.activity_label.setText("Aktivität: Suche abgeschlossen")
         self.progress_bar.setRange(0, 100)
         self.progress_bar.setValue(100)
-        self.counter_label.setText(f"{job.scanned_files} Textdateien geprüft · {len(hits)} Treffer")
-        self.result_info.setText(f"{len(hits)} Treffer · virtuelle Liste")
-        self.dashboard_process_value.setText(f"🟢 Fertig · {job.scanned_files} Dateien · {len(hits)} Treffer")
+        self.counter_label.setText(f"{job.scanned_files} Textdateien geprüft · {hit_count} Treffer")
+        self.result_info.setText(
+            f"{hit_count} Treffer · SQLite-Seiten · max. {self.results_model.page_size * self.results_model.max_pages} Zeilen im GUI-Puffer"
+        )
+        self.dashboard_process_value.setText(f"🟢 Fertig · {job.scanned_files} Dateien · {hit_count} Treffer")
         self.nav.setCurrentRow(self.PAGE_RESULTS)
 
     def _search_failed(self, message: str) -> None:
