@@ -9,6 +9,8 @@ from PySide6.QtWidgets import QFileDialog, QMessageBox
 
 from app.settings_store import SettingsStore
 from app.state_portability import export_state, import_state
+from app.gui.error_feedback import report_ui_error
+from app.gui.status_feedback import set_status
 
 
 class StatePortabilityController:
@@ -51,14 +53,16 @@ class StatePortabilityController:
                 self.collect_settings(),
             )
         except Exception as exc:
-            QMessageBox.critical(
+            report_ui_error(
                 self.window,
-                "Export fehlgeschlagen",
-                f"Der Export wurde sicher gestoppt.\n\n{exc}",
+                area="zustandsexport",
+                title="Export fehlgeschlagen",
+                lead="Der Export wurde sicher gestoppt.",
+                error=exc,
             )
             return
 
-        self.window.status_label.setText("OK · Export geprüft und gespeichert")
+        set_status(self.window.status_label, "OK · Export geprüft und gespeichert", "ok")
         QMessageBox.information(
             self.window,
             "Export abgeschlossen",
@@ -98,10 +102,12 @@ class StatePortabilityController:
             )
             payload = import_state(self.database, Path(path))
         except Exception as exc:
-            QMessageBox.critical(
+            report_ui_error(
                 self.window,
-                "Import abgelehnt",
-                f"Die Datei wurde nicht übernommen.\n\n{exc}",
+                area="zustandsimport",
+                title="Import abgelehnt",
+                lead="Die Datei wurde nicht übernommen.",
+                error=exc,
             )
             return
 
@@ -112,7 +118,7 @@ class StatePortabilityController:
             self.apply_loaded_settings()
 
         self.window._refresh_collections()
-        self.window.status_label.setText("OK · Import vor- und nachgeprüft")
+        set_status(self.window.status_label, "OK · Import vor- und nachgeprüft", "ok")
         QMessageBox.information(
             self.window,
             "Import abgeschlossen",
