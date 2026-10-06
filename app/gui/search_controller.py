@@ -11,6 +11,7 @@ from app.gui.scan_controller_support import (
 from app.gui.workers import SearchWorker
 from app.models.entities import SearchJob
 from app.validation import validate_search_request
+from app.gui.status_feedback import set_status
 
 
 class SearchController:
@@ -61,11 +62,13 @@ class SearchController:
         self.window._set_process_idle()
 
         if error_count:
-            self.window.status_label.setText(
-                f"Hinweis · Textsuche abgeschlossen · {error_count} Datei(en) übersprungen"
+            set_status(
+                self.window.status_label,
+                f"Hinweis · Textsuche abgeschlossen · {error_count} Datei(en) übersprungen",
+                "warning",
             )
         else:
-            self.window.status_label.setText("OK · Textsuche abgeschlossen")
+            set_status(self.window.status_label, "OK · Textsuche abgeschlossen", "ok")
 
         self.window.activity_label.setText("Aktivität: Suche abgeschlossen")
         self.window.progress_bar.setRange(0, 100)
