@@ -3,6 +3,7 @@ from __future__ import annotations
 from collections.abc import Callable
 from datetime import datetime
 from pathlib import Path
+import sqlite3
 from typing import Any
 
 from PySide6.QtWidgets import QFileDialog, QMessageBox
@@ -52,7 +53,7 @@ class StatePortabilityController:
                 target,
                 self.collect_settings(),
             )
-        except Exception as exc:
+        except (OSError, sqlite3.Error, TypeError, ValueError) as exc:
             report_ui_error(
                 self.window,
                 area="zustandsexport",
@@ -101,7 +102,7 @@ class StatePortabilityController:
                 self.collect_settings(),
             )
             payload = import_state(self.database, Path(path))
-        except Exception as exc:
+        except (OSError, sqlite3.Error, ValueError) as exc:
             report_ui_error(
                 self.window,
                 area="zustandsimport",
@@ -112,12 +113,25 @@ class StatePortabilityController:
             return
 
         imported_settings = payload.get("settings")
-        if isinstance(imported_settings, dict):
-            self.settings.update(imported_settings)
-            self.store.save(self.settings)
-            self.apply_loaded_settings()
+        try:
+            if isinstance(imported_settings, dict):
+                self.settings.update(imported_settings)
+                self.store.save(self.settings)
+                self.apply_loaded_settings()
+            self.window._refresh_collections()
+        except (OSError, sqlite3.Error, ValueError) as exc:
+            report_ui_error(
+                self.window,
+                area="zustandsimport-nachbereitung",
+                title="Import übernommen · Nachbereitung fehlgeschlagen",
+                lead=(
+                    "Der virtuelle Zustand wurde importiert, aber Einstellungen "
+                    "oder Anzeige konnten danach nicht vollständig aktualisiert werden."
+                ),
+                error=exc,
+            )
+            return
 
-        self.window._refresh_collections()
         set_status(self.window.status_label, "OK · Import vor- und nachgeprüft", "ok")
         QMessageBox.information(
             self.window,
