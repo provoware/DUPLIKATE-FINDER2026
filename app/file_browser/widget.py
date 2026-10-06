@@ -124,6 +124,7 @@ class FileBrowserWidget(QWidget):
         self.kind.addItem("Text", "text")
         self.kind.addItem("Bilder", "image")
         self.kind.addItem("PDF", "pdf")
+        self.kind.addItem("Dokument (DOCX/ODT)", "document")
         self.kind.addItem("Video", "video")
         self.kind.addItem("Audio", "audio")
         self.kind.addItem("Andere Dateien", "other")
@@ -337,6 +338,7 @@ class FileBrowserWidget(QWidget):
         self.collection_button.setEnabled(exists and not path.is_dir() and not is_link)
 
         if is_link:
+            self.pdf_nav.setVisible(False)
             self.preview_title.setText(path.name)
             self.preview_image.clear()
             self.preview_image.setText("Symbolische Verknüpfung – Vorschau und externes Öffnen sind aus Sicherheitsgründen deaktiviert.")

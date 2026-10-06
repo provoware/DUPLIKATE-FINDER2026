@@ -108,3 +108,13 @@ Nach Umsetzung wurden erfolgreich geprüft:
 - AppImage-Start aus simuliertem USB-Pfad mit Leerzeichen.
 
 **Bedienoberfläche / Prozesssteuerung = FROZEN 🟢 ab v0.9.0.**
+
+### Abschlusskorrekturen vor Veröffentlichung v0.9.0
+
+Der Nutzerauftrag „vervollständige und verbessere bis zum release“ vom
+2026-10-06 umfasst die Zusammenführung der vorbereiteten Dokumentvorschau
+und begrenzte Robustheitskorrekturen. Der Dokumentfilter wird ergänzt;
+veraltete PDF-Navigation bei Auswahl eines Symlinks wird ausgeblendet.
+Vor Veröffentlichung erzwingt der Paketworkflow erneut die vollständige
+Regression, autonome Abnahme und 100/150/200-%-Prüfung. Der bisherige
+Freeze gilt nach diesen Abschlussprüfungen weiter.

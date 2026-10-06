@@ -108,3 +108,57 @@ def test_non_wav_media_explains_metadata_limit(tmp_path: Path):
     path.write_bytes(b"placeholder")
     details = "\n".join(media_metadata(path))
     assert "ohne zusätzliche Medienbibliothek" in details
+
+
+def test_text_reader_never_loads_entire_large_file(tmp_path, monkeypatch):
+    import io
+    path = tmp_path / 'large.txt'
+    path.write_bytes(b'x' * 2000)
+    class BoundedReader(io.BytesIO):
+        def read(self, size=-1):
+            assert 0 < size <= 128
+            return super().read(size)
+    monkeypatch.setattr(Path, 'open', lambda *a, **k: BoundedReader(b'x' * 2000))
+    info = text_preview_info(path, limit=128)
+    assert info.truncated and len(info.text) == 128
+
+
+def test_even_length_windows_text_is_not_misread_as_utf16(tmp_path):
+    path = tmp_path / 'windows.txt'
+    path.write_bytes(b'Gr\xf6\xdfe!')
+    assert read_text_preview(path) == 'Größe!'
+
+
+def test_broken_wav_does_not_crash_preview(tmp_path):
+    path = tmp_path / 'broken.wav'
+    path.write_bytes(b'RIFF')
+    assert 'konnten nicht' in '\n'.join(media_metadata(path))
+
+
+def test_deeply_nested_json_falls_back_to_text(tmp_path):
+    path = tmp_path / 'deep.json'
+    raw = '[' * 2000 + '0' + ']' * 2000
+    path.write_text(raw)
+    assert read_text_preview(path) == raw
+
+
+def test_document_preview_formats_and_safety(tmp_path):
+    import zipfile
+    from app.file_browser.preview import read_document_preview, MAX_DOCUMENT_XML_BYTES
+    for suffix, member, xml in [
+        ('.docx', 'word/document.xml', '<doc><p><t>Hallo Welt</t></p></doc>'),
+        ('.odt', 'content.xml', '<doc><h>Titel</h><p>Hallo Welt</p></doc>'),
+    ]:
+        path = tmp_path / ('test' + suffix)
+        with zipfile.ZipFile(path, 'w') as archive:
+            archive.writestr(member, xml)
+        assert classify_path(path).key == 'document'
+        assert 'Hallo Welt' in build_preview(path).text
+        with zipfile.ZipFile(path, 'w') as archive:
+            archive.writestr(member, '<!DOCTYPE doc [<!ENTITY x "unsafe">]><doc><p>&x;</p></doc>')
+        assert 'abgebrochen' in read_document_preview(path)
+        with zipfile.ZipFile(path, 'w', compression=zipfile.ZIP_DEFLATED) as archive:
+            archive.writestr(member, 'x' * (MAX_DOCUMENT_XML_BYTES + 1))
+        assert 'ungewöhnlich groß' in read_document_preview(path)
+        path.write_bytes(b'broken archive')
+        assert 'nicht gelesen' in read_document_preview(path)

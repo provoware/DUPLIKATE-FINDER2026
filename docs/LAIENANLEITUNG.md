@@ -119,3 +119,10 @@ Der automatische Test prüft unter Ubuntu 22.04 und 24.04:
 - Start aus einem simulierten USB-Pfad mit Leerzeichen.
 
 Lite und Recovery bleiben die stabilen Paketformen, bis der AppImage-Prototyp vollständig freigegeben ist.
+
+### Word- und LibreOffice-Dokumente
+
+DOCX- und ODT-Dateien zeigen ihren Text direkt in der Vorschau. Wähle bei
+Bedarf den Filter „Dokument (DOCX/ODT)“. Die Vorschau zeigt keine originale
+Seitengestaltung; Bilder, Makros und eingebettete Programme werden nicht ausgeführt.
+Sehr große oder beschädigte Dokumente zeigen stattdessen einen verständlichen Hinweis.

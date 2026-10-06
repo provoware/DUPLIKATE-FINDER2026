@@ -4,6 +4,12 @@
 
 ## [0.9.0] – 2026-10-06
 
+### Veröffentlichung und Robustheit
+- Lite/Recovery-Veröffentlichung einschließlich Prüfsummen und Buildnachweisen automatisiert
+- große Textdateien bereits beim Einlesen begrenzt
+- defekte WAV-Dateien, tiefe JSON-Strukturen und Windows-Textkodierung abgesichert
+- DOCX-/ODT-Textvorschau aus dem vorbereiteten Änderungsstand übernommen und begrenzt
+
 ### Vorschau und Metadaten
 - Textvorschau um Zeichencodierung sowie Zeilen-, Wort- und Zeichenzahl erweitert
 - JSON-Dateien bei gültigem Inhalt eingerückt dargestellt

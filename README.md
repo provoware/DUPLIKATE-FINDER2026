@@ -237,3 +237,11 @@ Neu hinzugekommen:
 Für Laien: `docs/LAIENANLEITUNG.md`.
 
 Für Entwickler: `docs/ENTWICKLERHANDBUCH.md`.
+
+### Dokumentvorschau in v0.9.0
+
+DOCX und ODT werden als Textvorschau unterstützt (maximal 100.000 Zeichen,
+interner XML-Text maximal 4 MiB). Makros werden nicht ausgeführt.
+Die Textvorschau liest höchstens 512 KiB ein.
+Die Veröffentlichung liefert Lite als tar.gz/ZIP, Recovery als tar.gz und
+SHA-256-Prüfsummen sowie ein gesondertes Paket mit Prüfnachweisen.
