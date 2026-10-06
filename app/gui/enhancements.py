@@ -92,10 +92,6 @@ class UiEnhancements(QObject):
 
         screen = self.window.screen() or QApplication.primaryScreen()
         geometry = screen.availableGeometry() if screen else None
-        screen_text = f"🖥 {geometry.width()}×{geometry.height()}" if geometry else "🖥 unbekannt"
-        self.screen_info = QLabel(screen_text)
-        self.screen_info.setToolTip("Automatisch erkannter nutzbarer Bildschirmbereich.")
-        grid.addWidget(self.screen_info, 0, 0)
 
         self.zoom_combo = QComboBox()
         self.zoom_combo.setObjectName("zoom_selector")
@@ -103,7 +99,7 @@ class UiEnhancements(QObject):
             self.zoom_combo.addItem(f"{value} %", value)
         self.zoom_combo.currentIndexChanged.connect(self._zoom_from_combo)
         self.zoom_combo.setToolTip("Schrift-/Seitenzoom. Alternativ: Strg + Mausrad.")
-        grid.addWidget(self.zoom_combo, 0, 1)
+        grid.addWidget(self.zoom_combo, 0, 0)
 
         self.size_combo = QComboBox()
         self.size_combo.setObjectName("size_selector")
@@ -111,39 +107,40 @@ class UiEnhancements(QObject):
         for width, height in ((800, 600), (1024, 768), (1280, 800)):
             self.size_combo.addItem(f"{width}×{height}", (width, height))
         self.size_combo.currentIndexChanged.connect(self._size_from_combo)
-        self.size_combo.setToolTip("Fenstergröße ohne Zahleneingabe auswählen.")
-        grid.addWidget(self.size_combo, 0, 2)
-
-        self.cpu_info = QLabel(f"🧠 {detected_cpu_count()} CPU-Kerne")
-        self.cpu_info.setToolTip("Erkannte logische CPU-Kerne. Der Begrenzer betrifft die parallele Duplikatprüfung.")
-        grid.addWidget(self.cpu_info, 1, 0)
+        if geometry:
+            self.size_combo.setToolTip(
+                f"Fenstergröße wählen. Nutzbarer Bildschirm: {geometry.width()}×{geometry.height()}."
+            )
+        else:
+            self.size_combo.setToolTip("Fenstergröße ohne Zahleneingabe auswählen.")
+        grid.addWidget(self.size_combo, 0, 1)
 
         self.cpu_combo = QComboBox()
         self.cpu_combo.setObjectName("cpu_core_limit")
         cpu = detected_cpu_count()
         auto = default_cpu_workers()
-        self.cpu_combo.addItem(f"Auto · {auto} Kerne", 0)
+        self.cpu_combo.addItem(f"CPU Auto · {auto}/{cpu}", 0)
         if cpu <= 16:
             values = range(1, cpu + 1)
         else:
             values = sorted({1, 2, 4, 6, 8, 12, 16, max(1, cpu // 2), cpu})
         for value in values:
-            self.cpu_combo.addItem(f"Maximal {value} Kern" + ("" if value == 1 else "e"), value)
+            self.cpu_combo.addItem(f"CPU max. {value}", value)
         self.cpu_combo.currentIndexChanged.connect(self._cpu_changed)
         self.cpu_combo.setToolTip(
-            "Begrenzt die gleichzeitig laufenden SHA-256-Prüfungen. Weniger Kerne = ruhigerer Rechner."
+            f"{cpu} CPU-Kerne erkannt. Begrenzt parallele SHA-256-Prüfungen."
         )
-        grid.addWidget(self.cpu_combo, 1, 1)
+        grid.addWidget(self.cpu_combo, 0, 2)
 
         filters = QPushButton("⚙ Filter")
         filters.setObjectName("dashboard_filter_options")
         filters.clicked.connect(self.window._open_scan_options)
-        grid.addWidget(filters, 1, 2)
+        grid.addWidget(filters, 1, 0)
 
         self.selftest_button = QPushButton("🩺 Selbsttest")
         self.selftest_button.setObjectName("dashboard_selftest")
         self.selftest_button.clicked.connect(self._show_selftest)
-        grid.addWidget(self.selftest_button, 2, 0)
+        grid.addWidget(self.selftest_button, 1, 1)
 
         logs_button = QPushButton("📂 Protokolle")
         logs_button.setObjectName("dashboard_logs")
@@ -151,31 +148,27 @@ class UiEnhancements(QObject):
         logs_button.clicked.connect(
             lambda: QDesktopServices.openUrl(QUrl.fromLocalFile(str(self.base_dir / "logs")))
         )
-        grid.addWidget(logs_button, 2, 1)
+        grid.addWidget(logs_button, 1, 2)
+
+        export_button = QPushButton("📤 Export")
+        export_button.setObjectName("dashboard_export")
+        export_button.clicked.connect(self.window.export_provoware_state)
+        export_button.setToolTip("Exportiert nur PROVOWARE-Einstellungen, Markierungen und virtuelle Sammlungen.")
+        grid.addWidget(export_button, 2, 0)
+
+        import_button = QPushButton("📥 Import")
+        import_button.setObjectName("dashboard_import")
+        import_button.clicked.connect(self.window.import_provoware_state)
+        import_button.setToolTip("Importiert nur PROVOWARE-Zustände. Originaldateien werden nicht verändert.")
+        grid.addWidget(import_button, 2, 1)
 
         self.autosave_info = QLabel()
         self.autosave_info.setObjectName("autosave_info")
         self.autosave_info.setToolTip(
             "Einstellungen und virtuelle PROVOWARE-Daten werden alle fünf Minuten im Wiederherstellungsordner gesichert."
         )
+        self.autosave_info.setWordWrap(True)
         grid.addWidget(self.autosave_info, 2, 2)
-
-        export_button = QPushButton("📤 Export")
-        export_button.setObjectName("dashboard_export")
-        export_button.clicked.connect(self.window.export_provoware_state)
-        export_button.setToolTip("Exportiert nur PROVOWARE-Einstellungen, Markierungen und virtuelle Sammlungen.")
-        grid.addWidget(export_button, 3, 0)
-
-        import_button = QPushButton("📥 Import")
-        import_button.setObjectName("dashboard_import")
-        import_button.clicked.connect(self.window.import_provoware_state)
-        import_button.setToolTip("Importiert nur PROVOWARE-Zustände. Originaldateien werden nicht verändert.")
-        grid.addWidget(import_button, 3, 1)
-
-        save_now = QPushButton("💾 Speichern")
-        save_now.setObjectName("dashboard_save_now")
-        save_now.clicked.connect(self._autosave)
-        grid.addWidget(save_now, 3, 2)
 
         layout.insertWidget(max(1, layout.count() - 1), panel)
 

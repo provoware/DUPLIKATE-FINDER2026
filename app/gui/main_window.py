@@ -188,7 +188,7 @@ class MainWindow(QMainWindow):
         self.cancel_button.setToolTip("Fordert einen sicheren Abbruch an. Originaldateien bleiben unverändert.")
         self.cancel_button.clicked.connect(self._cancel_active_process)
 
-        self.counter_label = QLabel("0 Dateien geprüft · 0 Treffer")
+        self.counter_label = QLabel("0 geprüft · 0 Treffer")
         self.counter_label.setObjectName("counter_label")
         self.counter_label.setAlignment(Qt.AlignmentFlag.AlignRight | Qt.AlignmentFlag.AlignVCenter)
 
@@ -198,13 +198,14 @@ class MainWindow(QMainWindow):
         process.addWidget(self.status_label, 0, 0)
         process.addWidget(self.activity_label, 0, 1)
         process.addWidget(self.eta_label, 0, 2)
-        process.addWidget(self.progress_bar, 1, 0)
-        process.addWidget(self.pause_button, 1, 1)
-        process.addWidget(self.cancel_button, 1, 2)
-        process.addWidget(self.counter_label, 2, 0, 1, 3)
-        process.setColumnStretch(0, 2)
-        process.setColumnStretch(1, 2)
-        process.setColumnStretch(2, 2)
+        process.addWidget(self.counter_label, 0, 3)
+        process.addWidget(self.progress_bar, 1, 0, 1, 2)
+        process.addWidget(self.pause_button, 1, 2)
+        process.addWidget(self.cancel_button, 1, 3)
+        process.setColumnStretch(0, 1)
+        process.setColumnStretch(1, 3)
+        process.setColumnStretch(2, 1)
+        process.setColumnStretch(3, 1)
         root.addWidget(process_panel)
 
         self.nav.currentRowChanged.connect(self.pages.setCurrentIndex)
@@ -674,7 +675,7 @@ class MainWindow(QMainWindow):
         self.pause_button.setText("⏸ Pause")
         self.cancel_button.setEnabled(True)
         self._last_phase = phase
-        self.status_label.setText("🟡 Verarbeitung läuft")
+        self.status_label.setText("🟡 Läuft")
         self.activity_label.setText(f"Schritt: {phase}")
         self.eta_label.setText("Restzeit: wird berechnet")
 
@@ -809,7 +810,7 @@ class MainWindow(QMainWindow):
         self._finish_process()
         self.status_label.setText("🟢 Textsuche abgeschlossen")
         self.activity_label.setText("Schritt: Ergebnisse bereit")
-        self.counter_label.setText(f"{job.scanned_files} Textdateien geprüft · {len(hits)} Treffer")
+        self.counter_label.setText(f"{job.scanned_files} geprüft · {len(hits)} Treffer")
         self.result_info.setText(f"{len(hits)} Treffer")
         self.nav.setCurrentRow(self.PAGE_RESULTS)
 
@@ -914,7 +915,7 @@ class MainWindow(QMainWindow):
         self._finish_process()
         self.status_label.setText("🟢 Duplikatprüfung abgeschlossen")
         self.activity_label.setText("Schritt: Duplikatgruppen bereit")
-        self.counter_label.setText(f"{scanned} Dateien geprüft · {len(groups)} Gruppen · {duplicates} Dateien")
+        self.counter_label.setText(f"{scanned} geprüft · {len(groups)} Gruppen · {duplicates} Dateien")
         self.duplicate_summary.setText(
             f"{len(groups)} sichere Duplikatgruppen gefunden. Jede Gruppe besitzt identische Größe und SHA-256-Prüfsumme."
         )
