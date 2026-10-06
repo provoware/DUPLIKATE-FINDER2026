@@ -17,6 +17,7 @@
 - Zustandsimport wird vollständig vorgeprüft und innerhalb einer Transaktion nachgeprüft
 
 ### Skalierung
+- Robustheit / Skalierung nach vollständiger Abnahme als FROZEN 🟢 markiert
 - produktive Such- und Duplikatläufe verwenden SQLite-Inventare statt vollständiger Python-Dateilisten
 - Duplikatpipeline: Dateigröße → kurze Inhaltsprobe → vollständiges SHA-256
 - SHA-256 wird nur für unveränderte Dateien wiederverwendet

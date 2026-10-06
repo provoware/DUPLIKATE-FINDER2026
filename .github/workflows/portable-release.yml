@@ -7,7 +7,7 @@ on:
     branches: ["feature/release-e2e-*", "feature/provoware-autonomie-standard-*"]
 
 permissions:
-  contents: read
+  contents: write
 
 concurrency:
   group: provoware-portable-${{ github.workflow }}-${{ github.ref }}
@@ -226,3 +226,27 @@ jobs:
             release/${{ env.ARCHIVE }}
             release/${{ env.ARCHIVE }}.sha256
             e2e/evidence/
+
+      - name: GitHub Release erst nach erfolgreicher E2E-Abnahme veröffentlichen
+        if: startsWith(github.ref, 'refs/tags/v')
+        env:
+          GH_TOKEN: ${{ github.token }}
+        run: |
+          set -euo pipefail
+          TAG="${GITHUB_REF_NAME}"
+          NOTES="docs/RELEASE_NOTES_v${VERSION}.md"
+          test "$TAG" = "v$VERSION"
+          test -f "$NOTES"
+          test -f "release/$ARCHIVE"
+          test -f "release/$ARCHIVE.sha256"
+          test -f "e2e/evidence/E2E-SUMMARY.txt"
+          test -f "e2e/evidence/BUILD-NACHWEIS.json"
+          test -f "e2e/evidence/SBOM.spdx.json"
+
+          if gh release view "$TAG" >/dev/null 2>&1; then
+            gh release edit "$TAG"               --title "PROVOWARE DUPLIKATE-FINDER 2026 v$VERSION"               --notes-file "$NOTES"               --latest
+          else
+            gh release create "$TAG"               --verify-tag               --title "PROVOWARE DUPLIKATE-FINDER 2026 v$VERSION"               --notes-file "$NOTES"               --latest
+          fi
+
+          gh release upload "$TAG"             "release/$ARCHIVE"             "release/$ARCHIVE.sha256"             "e2e/evidence/E2E-SUMMARY.txt"             "e2e/evidence/BUILD-NACHWEIS.json"             "e2e/evidence/SBOM.spdx.json"             --clobber
