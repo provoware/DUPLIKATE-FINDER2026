@@ -86,9 +86,11 @@ def test_collection_model_is_virtual_qt_view_and_returns_path():
 
 
 def test_main_window_no_longer_builds_qtablewidget_rows():
-    source=(Path(__file__).resolve().parents[1]/"app/gui/main_window.py").read_text(encoding="utf-8")
+    root=Path(__file__).resolve().parents[1]
+    source=(root/"app/gui/main_window.py").read_text(encoding="utf-8")
+    search_controller=(root/"app/gui/search_controller.py").read_text(encoding="utf-8")
     assert "QTableView" in source
     assert "QTableWidget" not in source
     assert ".insertRow(" not in source
-    assert "results_model.set_job" in source
+    assert "results_model.set_job" in search_controller
     assert "last_hits" not in source
