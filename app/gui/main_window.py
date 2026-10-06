@@ -65,6 +65,7 @@ class MainWindow(QMainWindow):
         font.setBold(True)
         font.setPointSize(font.pointSize() + 3)
         label.setFont(font)
+        label.setWordWrap(True)
         return label
 
     def _card(self, title: str, value: str) -> QFrame:
@@ -298,9 +299,8 @@ class MainWindow(QMainWindow):
         page.setObjectName("page_duplicates")
         layout = QVBoxLayout(page)
 
-        top = QHBoxLayout()
+        top = QVBoxLayout()
         top.addWidget(self._heading("Duplikate – gruppiert und vollständig geprüft"))
-        top.addStretch(1)
         self.duplicate_start = QPushButton("🟰 Gewählten Ordner prüfen")
         self.duplicate_start.setObjectName("duplicate_start")
         self.duplicate_start.clicked.connect(self._start_duplicate_scan)
