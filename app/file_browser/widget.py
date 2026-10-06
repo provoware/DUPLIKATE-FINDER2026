@@ -80,8 +80,8 @@ class FileBrowserWidget(QWidget):
 
     def _build_layout(self) -> QVBoxLayout:
         root = QVBoxLayout()
-        root.setContentsMargins(4, 4, 4, 4)
-        root.setSpacing(6)
+        root.setContentsMargins(2, 2, 2, 2)
+        root.setSpacing(3)
 
         controls = QGridLayout()
         self.root_label = QLineEdit()
@@ -166,7 +166,7 @@ class FileBrowserWidget(QWidget):
         self.preview_image = QLabel("Vorschau")
         self.preview_image.setObjectName("file_preview_image")
         self.preview_image.setAlignment(Qt.AlignmentFlag.AlignCenter)
-        self.preview_image.setMinimumHeight(36)
+        self.preview_image.setMinimumHeight(28)
         self.preview_image.setWordWrap(True)
         preview_layout.addWidget(self.preview_image, 2)
 
