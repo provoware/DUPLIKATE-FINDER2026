@@ -59,3 +59,23 @@ def test_progress_tracker_estimates_remaining_time():
     assert info.percent==50
     assert info.eta_seconds is not None
     assert info.eta_seconds>0
+
+
+def test_pause_time_is_not_counted_in_eta():
+    control=ProcessControl()
+    tracker=ProgressTracker(10,"Test",lambda:control.paused_seconds)
+    tracker.started-=10
+    control._paused_total=5
+    info=tracker.update(5)
+    assert info.eta_seconds is not None
+    assert 4 <= info.eta_seconds <= 7
+
+
+def test_scanner_reports_inventory_phase(tmp_path:Path):
+    for i in range(30):
+        (tmp_path/f"{i}.txt").write_text("x",encoding="utf-8")
+    events=[]
+    scanner=FileScanner(progress=events.append)
+    list(scanner.iter_files(tmp_path))
+    assert any(event.total == 0 and "erfassen" in event.step for event in events)
+    assert any("Dateiliste fertig" in event.step for event in events)

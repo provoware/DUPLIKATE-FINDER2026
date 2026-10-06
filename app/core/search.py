@@ -23,7 +23,8 @@ class TextSearcher:
         hits:list[SearchHit]=[]
         job.status=JobStatus.RUNNING
         records=list(self.scanner.iter_text_files(job.root))
-        tracker=ProgressTracker(len(records),"Textdateien durchsuchen")
+        pause_provider=(lambda:self.scanner.control.paused_seconds) if self.scanner.control else None
+        tracker=ProgressTracker(len(records),"Textdateien durchsuchen",pause_provider)
 
         for index,record in enumerate(records,start=1):
             self.scanner._checkpoint()
@@ -46,7 +47,7 @@ class TextSearcher:
                     job.errors.append(str(path))
 
             if self.progress:
-                self.progress(tracker.update(index,f"Datei {index} von {len(records)}"))
+                self.progress(tracker.update(index,f"Text prüfen · Datei {index} von {len(records)}"))
 
         job.hits=len(hits)
         job.status=JobStatus.DONE

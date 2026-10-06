@@ -1,6 +1,8 @@
 from __future__ import annotations
 
 from pathlib import Path
+from datetime import datetime
+from math import ceil
 
 from PySide6.QtCore import QEvent, QMimeData, QObject, QPoint, QTimer, Qt, QUrl
 from PySide6.QtGui import QDesktopServices, QDrag
@@ -65,6 +67,17 @@ class UiEnhancements(QObject):
             header.setSectionResizeMode(3, QHeaderView.ResizeMode.ResizeToContents)
             header.setSectionResizeMode(4, QHeaderView.ResizeMode.Stretch)
             self.window.results.setColumnWidth(2, 300)
+        if isinstance(getattr(self.window, "duplicate_members", None), QTableWidget):
+            header=self.window.duplicate_members.horizontalHeader()
+            header.setSectionResizeMode(0,QHeaderView.ResizeMode.ResizeToContents)
+            header.setSectionResizeMode(1,QHeaderView.ResizeMode.Stretch)
+            header.setSectionResizeMode(2,QHeaderView.ResizeMode.ResizeToContents)
+            header.setSectionResizeMode(3,QHeaderView.ResizeMode.ResizeToContents)
+        if isinstance(getattr(self.window, "collection_items_table", None), QTableWidget):
+            header=self.window.collection_items_table.horizontalHeader()
+            header.setSectionResizeMode(0,QHeaderView.ResizeMode.ResizeToContents)
+            header.setSectionResizeMode(1,QHeaderView.ResizeMode.Stretch)
+            header.setSectionResizeMode(2,QHeaderView.ResizeMode.Stretch)
         for list_name in ("nav", "duplicate_group_list", "collection_list"):
             view=getattr(self.window, list_name, None)
             if view is not None:
@@ -85,9 +98,9 @@ class UiEnhancements(QObject):
         panel.setObjectName("diagnostic_dashboard")
         panel.setProperty("section", True)
         grid = QGridLayout(panel)
-        grid.setContentsMargins(6, 4, 6, 4)
+        grid.setContentsMargins(5, 3, 5, 3)
         grid.setHorizontalSpacing(8)
-        grid.setVerticalSpacing(4)
+        grid.setVerticalSpacing(2)
 
         screen = self.window.screen() or QApplication.primaryScreen()
         geometry = screen.availableGeometry() if screen else None
@@ -116,9 +129,15 @@ class UiEnhancements(QObject):
 
         self.cpu_combo=QComboBox()
         self.cpu_combo.setObjectName("cpu_limiter")
-        self.cpu_combo.addItem("CPU: alle", 0)
-        for cores in range(1, self.cpu_limiter.available + 1):
-            self.cpu_combo.addItem(f"CPU: {cores}", cores)
+        available=self.cpu_limiter.available
+        self.cpu_combo.addItem(f"CPU: 100 % · {available}", 0)
+        choices=[]
+        for percent in (25,50,75):
+            cores=max(1,min(available,ceil(available*percent/100)))
+            if cores not in [value for _label,value in choices]:
+                choices.append((f"CPU: {percent} % · {cores}",cores))
+        for label,cores in choices:
+            self.cpu_combo.addItem(label,cores)
         self.cpu_combo.currentIndexChanged.connect(self._cpu_changed)
         self.cpu_combo.setToolTip("Begrenzt nur PROVOWARE. Weniger Kerne lassen mehr Rechenleistung für andere Programme frei.")
         grid.addWidget(self.cpu_combo, 1, 0)
@@ -130,10 +149,10 @@ class UiEnhancements(QObject):
         tools_button.clicked.connect(self._open_tools_dialog)
         grid.addWidget(tools_button, 1, 1)
 
-        autosave=QLabel("💾 Autosave: 5 min")
-        autosave.setObjectName("autosave_info")
-        autosave.setToolTip("Fenster-, Zoom-, CPU- und Filtereinstellungen werden alle fünf Minuten gesichert.")
-        grid.addWidget(autosave, 1, 2)
+        self.autosave_info=QLabel("💾 Auto: ≤ 5 min")
+        self.autosave_info.setObjectName("autosave_info")
+        self.autosave_info.setToolTip("Fenster-, Zoom-, CPU- und Filtereinstellungen werden alle fünf Minuten gesichert. Markierungen und Sammlungen werden sofort in der lokalen Datenbank gespeichert.")
+        grid.addWidget(self.autosave_info, 1, 2)
 
         layout.insertWidget(max(1, layout.count() - 1), panel)
 
@@ -221,8 +240,11 @@ class UiEnhancements(QObject):
     def _autosave(self) -> None:
         self.settings=self._collect_settings()
         self.store.save(self.settings)
+        stamp=datetime.now().strftime("%H:%M")
+        if hasattr(self,"autosave_info"):
+            self.autosave_info.setText(f"💾 Gesichert {stamp}")
         if self.window._active_worker() is None:
-            self.window.status_label.setText("🟢 Autosave gespeichert")
+            self.window.status_label.setText("🟢 Einstellungen automatisch gesichert")
 
     def _cpu_changed(self) -> None:
         requested=int(self.cpu_combo.currentData() or 0)
@@ -264,7 +286,9 @@ class UiEnhancements(QObject):
         )
         if answer != QMessageBox.StandardButton.Yes:
             return
+        backup=self.base_dir/"recovery"/f"PROVOWARE-vor-Import-{datetime.now().strftime('%Y%m%d-%H%M%S')}.json"
         try:
+            export_state(self.database,backup,self._collect_settings())
             payload=import_state(self.database,Path(path))
         except Exception as exc:
             QMessageBox.critical(self.window,"Import abgelehnt",f"Die Datei wurde nicht übernommen.\n\n{exc}")
@@ -276,7 +300,11 @@ class UiEnhancements(QObject):
             self._apply_loaded_settings()
         self.window._refresh_collections()
         self.window.status_label.setText("🟢 Import vor- und nachgeprüft")
-        QMessageBox.information(self.window,"Import abgeschlossen","Der virtuelle Zustand wurde sicher übernommen.")
+        QMessageBox.information(
+            self.window,
+            "Import abgeschlossen",
+            f"Der virtuelle Zustand wurde sicher übernommen.\n\nVorheriger Zustand gesichert unter:\n{backup}",
+        )
 
     def _adapt_to_screen(self) -> None:
         screen = self.window.screen() or QApplication.primaryScreen()
@@ -346,11 +374,11 @@ class UiEnhancements(QObject):
     def _refresh_status_style(self) -> None:
         text = self.window.status_label.text()
         if text.startswith("🔴"):
-            style = "font-weight:800; color:#a40000; background:#ffe9e9; padding:5px;"
+            style = "font-weight:900; color:#ffd9e2; background:#35121d; border:1px solid #ff4d79; border-radius:6px; padding:5px 8px;"
         elif text.startswith("🟡"):
-            style = "font-weight:800; color:#6b4b00; background:#fff4c2; padding:5px;"
+            style = "font-weight:900; color:#fff2b0; background:#322a0d; border:1px solid #ffe45e; border-radius:6px; padding:5px 8px;"
         else:
-            style = "font-weight:800; color:#075b2a; background:#e7f8ed; padding:5px;"
+            style = "font-weight:900; color:#d8ffe9; background:#0e2b20; border:1px solid #39e58c; border-radius:6px; padding:5px 8px;"
         if self.window.status_label.styleSheet() != style:
             self.window.status_label.setStyleSheet(style)
 

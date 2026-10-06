@@ -148,8 +148,9 @@ class MainWindow(QMainWindow):
         footer = QVBoxLayout()
         footer.setSpacing(3)
 
-        status_row = QHBoxLayout()
-        status_row.setSpacing(6)
+        status_row = QGridLayout()
+        status_row.setHorizontalSpacing(6)
+        status_row.setVerticalSpacing(2)
         self.status_label = QLabel("🟢 Bereit")
         self.status_label.setObjectName("status_label")
         self.status_label.setStyleSheet("font-weight: 800;")
@@ -164,10 +165,11 @@ class MainWindow(QMainWindow):
         self.eta_label = QLabel("Restzeit: –")
         self.eta_label.setObjectName("eta_label")
         self.eta_label.setToolTip("Grobe Schätzung auf Basis der bisherigen Geschwindigkeit.")
-        status_row.addWidget(self.status_label)
-        status_row.addWidget(self.activity_label, 1)
-        status_row.addWidget(self.step_label, 1)
-        status_row.addWidget(self.eta_label)
+        self.eta_label.setWordWrap(True)
+        status_row.addWidget(self.status_label,0,0)
+        status_row.addWidget(self.activity_label,0,1,1,2)
+        status_row.addWidget(self.step_label,1,0,1,2)
+        status_row.addWidget(self.eta_label,1,2)
         footer.addLayout(status_row)
 
         control_row = QHBoxLayout()
@@ -206,7 +208,7 @@ class MainWindow(QMainWindow):
         page.setObjectName("page_dashboard")
         layout = QVBoxLayout(page)
         layout.setContentsMargins(2, 2, 2, 2)
-        layout.setSpacing(6)
+        layout.setSpacing(4)
         layout.addWidget(self._heading("Übersicht"))
 
         cards = QGridLayout()
@@ -243,10 +245,13 @@ class MainWindow(QMainWindow):
         quick = QGridLayout()
         go_search = QPushButton("🔎 Text suchen")
         go_search.setObjectName("dashboard_go_search")
+        go_search.setProperty("primaryAction", True)
         go_duplicates = QPushButton("🟰 Duplikate prüfen")
         go_duplicates.setObjectName("dashboard_go_duplicates")
+        go_duplicates.setProperty("primaryAction", True)
         go_collections = QPushButton("📁 Sammlungen")
         go_collections.setObjectName("dashboard_go_collections")
+        go_collections.setProperty("primaryAction", True)
         go_search.clicked.connect(lambda: self.nav.setCurrentRow(self.PAGE_SEARCH))
         go_duplicates.clicked.connect(lambda: self.nav.setCurrentRow(self.PAGE_DUPLICATES))
         go_collections.clicked.connect(lambda: self.nav.setCurrentRow(self.PAGE_COLLECTIONS))
@@ -292,6 +297,7 @@ class MainWindow(QMainWindow):
         self.contents_box.setChecked(True)
         self.search_button = QPushButton("🔎 SUCHEN")
         self.search_button.setObjectName("search_start")
+        self.search_button.setProperty("primaryAction", True)
         self.search_button.clicked.connect(self._start_search)
         self.search_button.setToolTip("Startet eine reine Lese-Suche. Originaldateien werden nicht verändert.")
         query_grid.addWidget(self.query_edit, 0, 0, 1, 3)
@@ -388,6 +394,7 @@ class MainWindow(QMainWindow):
         top.addWidget(self._heading("Duplikate – gruppiert und vollständig geprüft"))
         self.duplicate_start = QPushButton("🟰 Gewählten Ordner prüfen")
         self.duplicate_start.setObjectName("duplicate_start")
+        self.duplicate_start.setProperty("primaryAction", True)
         self.duplicate_start.clicked.connect(self._start_duplicate_scan)
         top.addWidget(self.duplicate_start)
         layout.addLayout(top)
@@ -662,14 +669,25 @@ class MainWindow(QMainWindow):
             self.pause_button.setText("▶ Fortsetzen")
             self.status_label.setText("🟡 Pausiert")
             self.activity_label.setText("Aktivität: pausiert – sicherer Zwischenstand")
+            self.eta_label.setText("Restzeit: angehalten")
         else:
             self.pause_button.setText("⏸ Pause")
             self.status_label.setText("🟡 Vorgang läuft …")
             self.activity_label.setText("Aktivität: Verarbeitung fortgesetzt")
+            self.eta_label.setText("Restzeit: wird neu berechnet")
 
     def _cancel_active_process(self) -> None:
         worker = self._active_worker()
         if worker is None:
+            return
+        answer = QMessageBox.question(
+            self,
+            "Vorgang abbrechen?",
+            "Der laufende Vorgang wird sauber beendet. Bereits gelesene Originaldateien bleiben unverändert.\n\nWirklich abbrechen?",
+            QMessageBox.StandardButton.Yes | QMessageBox.StandardButton.No,
+            QMessageBox.StandardButton.No,
+        )
+        if answer != QMessageBox.StandardButton.Yes:
             return
         self.cancel_button.setEnabled(False)
         self.pause_button.setEnabled(False)
@@ -690,12 +708,19 @@ class MainWindow(QMainWindow):
         self.counter_label.setText(message)
 
     def _on_process_progress(self, info: ProgressInfo) -> None:
-        self.progress_bar.setRange(0, 100)
-        self.progress_bar.setValue(info.percent)
         self.step_label.setText(f"Schritt: {info.step}")
+        if info.total <= 0:
+            self.progress_bar.setRange(0, 0)
+            self.progress_bar.setFormat("Dateien werden erfasst …")
+            self.eta_label.setText("Restzeit: wird nach der Erfassung berechnet")
+            if info.current > 0:
+                self.counter_label.setText(f"{info.current} Dateien bisher erfasst")
+            return
+        self.progress_bar.setRange(0, 100)
+        self.progress_bar.setFormat("%p %")
+        self.progress_bar.setValue(info.percent)
         self.eta_label.setText("Restzeit: " + format_eta(info.eta_seconds))
-        if info.total > 0:
-            self.counter_label.setText(f"{info.current} von {info.total} verarbeitet")
+        self.counter_label.setText(f"{info.current} von {info.total} verarbeitet")
 
     def _set_process_idle(self) -> None:
         self.pause_button.setEnabled(False)

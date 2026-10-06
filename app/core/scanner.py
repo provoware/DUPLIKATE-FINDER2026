@@ -1,12 +1,12 @@
 from __future__ import annotations
 
 import os
-from collections.abc import Iterator
+from collections.abc import Callable, Iterator
 from dataclasses import dataclass, field
 from pathlib import Path
 
 from app.models.entities import FileRecord
-from app.process_control import ProcessControl
+from app.process_control import ProcessControl, ProgressInfo, ProgressTracker
 from app.safety.policy import SafetyPolicy
 
 
@@ -20,6 +20,8 @@ DEFAULT_PYTHON_PROJECT_DIRS = frozenset({
     ".mypy_cache", ".ruff_cache", ".tox", ".nox", "build", "dist",
     "site-packages", ".provoware-dev", "runtime", "node_modules",
 })
+
+ProgressCallback=Callable[[ProgressInfo],None]
 
 
 @dataclass(frozen=True)
@@ -42,14 +44,19 @@ class FileScanner:
         policy: SafetyPolicy | None = None,
         options: ScanOptions | None = None,
         control: ProcessControl | None = None,
+        progress: ProgressCallback | None = None,
     ) -> None:
         self.policy = policy or SafetyPolicy()
         self.options = options or ScanOptions()
         self.control = control
+        self.progress = progress
 
     def _checkpoint(self)->None:
         if self.control is not None:
             self.control.checkpoint()
+
+    def _paused_seconds(self)->float:
+        return self.control.paused_seconds if self.control is not None else 0.0
 
     def iter_files(self, root: Path) -> Iterator[FileRecord]:
         """Liefert reguläre Dateien ausschließlich lesend und ohne Symlink-Folgen."""
@@ -62,6 +69,8 @@ class FileScanner:
             excluded_dirs.update(DEFAULT_PYTHON_PROJECT_DIRS)
         excluded_dirs_cf={name.casefold() for name in excluded_dirs}
         excluded_ext=self.options.normalized_extensions()
+        discovered=0
+        tracker=ProgressTracker(0,"Dateien erfassen",self._paused_seconds)
 
         for dirpath, dirnames, filenames in os.walk(
             safe_root, followlinks=self.policy.follow_symlinks
@@ -89,9 +98,15 @@ class FileScanner:
                     if not path.is_file():
                         continue
                     stat=path.stat()
+                    discovered+=1
+                    if self.progress and (discovered == 1 or discovered % 25 == 0):
+                        self.progress(tracker.update(discovered,f"Dateien erfassen · {discovered} gefunden"))
                     yield FileRecord(path=path,size=stat.st_size,mtime_ns=stat.st_mtime_ns)
                 except (OSError,PermissionError):
                     continue
+
+        if self.progress:
+            self.progress(tracker.update(discovered,f"Dateiliste fertig · {discovered} Dateien"))
 
     def iter_text_files(self, root: Path) -> Iterator[FileRecord]:
         for record in self.iter_files(root):

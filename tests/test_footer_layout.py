@@ -9,8 +9,8 @@ def test_footer_uses_independent_rows_not_shared_grid_columns():
     start=source.index('footer = QVBoxLayout()')
     end=source.index('self.nav.currentRowChanged',start)
     block=source[start:end]
-    assert "status_row = QHBoxLayout()" in block
+    assert "status_row = QGridLayout()" in block
     assert "control_row = QHBoxLayout()" in block
     assert 'self.pause_button.setProperty("compact", True)' in block
     assert 'self.cancel_button.setProperty("compact", True)' in block
-    assert "footer = QGridLayout()" not in block
+    assert "footer = QVBoxLayout()" in block

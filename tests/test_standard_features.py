@@ -50,3 +50,22 @@ def test_invalid_import_is_rejected():
         pass
     else:
         raise AssertionError("Ungültiger Import wurde akzeptiert")
+
+
+def test_wrong_export_version_is_rejected():
+    payload={
+        "format":"PROVOWARE-DUPLIKATE-FINDER-STATE",
+        "version":"999.0",
+        "settings":{},
+        "virtual_state":{"collections":[],"virtual_items":[]},
+    }
+    with __import__("pytest").raises(ValueError):
+        validate_import_payload(payload)
+
+
+def test_ui_source_contains_safe_import_backup_and_cpu_presets():
+    root=Path(__file__).resolve().parents[1]
+    source=(root/"app/gui/enhancements.py").read_text(encoding="utf-8")
+    assert "PROVOWARE-vor-Import-" in source
+    for percent in ("25","50","75"):
+        assert percent in source

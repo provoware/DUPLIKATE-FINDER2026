@@ -49,7 +49,7 @@ class SearchWorker(BaseControlledWorker):
 
     def run(self)->None:
         try:
-            scanner=FileScanner(options=self.options,control=self.control)
+            scanner=FileScanner(options=self.options,control=self.control,progress=self._progress)
             hits=TextSearcher(scanner,progress=self._progress).search(self.job)
             self.completed.emit(self.job,hits)
         except ProcessCancelled as exc:
@@ -70,7 +70,7 @@ class DuplicateWorker(BaseControlledWorker):
 
     def run(self)->None:
         try:
-            scanner=FileScanner(options=self.options,control=self.control)
+            scanner=FileScanner(options=self.options,control=self.control,progress=self._progress)
             scanned,groups=scan_duplicate_groups(self.root,scanner=scanner,progress=self._progress)
             self.completed.emit(scanned,groups)
         except ProcessCancelled as exc:
