@@ -12,6 +12,18 @@
 ### Geplant
 - weitere Dateiformate und spätere, separat freizugebende Schreibfunktionen
 
+## [0.5.0] – 2026-10-06
+
+### Leistung und Überwachung
+- Suchtreffer, Duplikatmitglieder und Sammlungseinträge auf virtuelle Qt-Tabellenmodelle umgestellt
+- keine Tabellenzeilen-Widgets mehr für jeden einzelnen Treffer
+- Regressionstest mit 100.000 Suchtreffern und 20.000 Sammlungseinträgen
+- CPU-, RAM- und SWAP-Anzeige ohne zusätzliche externe Bibliothek
+- Verarbeitungsgeschwindigkeit in Dateien pro Sekunde
+- verarbeitete Datenmenge im laufenden Prozess
+- datenmengengewichtete Restzeitschätzung bei Dateiinhalt- und Hash-Prüfungen
+- Markierungszustände für große Trefferlisten gebündelt aus SQLite geladen
+
 ## [0.4.0] – 2026-10-06
 
 ### Verbessert

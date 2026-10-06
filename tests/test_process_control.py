@@ -79,3 +79,11 @@ def test_scanner_reports_inventory_phase(tmp_path:Path):
     list(scanner.iter_files(tmp_path))
     assert any(event.total == 0 and "erfassen" in event.step for event in events)
     assert any("Dateiliste fertig" in event.step for event in events)
+
+
+def test_progress_tracker_prefers_byte_weighted_eta_for_mixed_file_sizes():
+    tracker=ProgressTracker(10,"Test",total_bytes=1_000)
+    tracker.started-=10
+    info=tracker.update(1,processed_bytes=500)
+    assert info.eta_seconds is not None
+    assert 8 <= info.eta_seconds <= 12

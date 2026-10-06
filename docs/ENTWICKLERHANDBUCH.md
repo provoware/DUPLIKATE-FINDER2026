@@ -81,3 +81,16 @@ Scanner-Ausschlüsse werden zentral über `ScanOptions` definiert und dadurch vo
 Benutzereinstellungen liegen unter `config/benutzer-einstellungen.json`. Virtuelle Organisation bleibt in SQLite. Import/Export transportiert ausschließlich virtuelle Zustände und Einstellungen.
 
 CPU-Affinität wird nur auf den laufenden PROVOWARE-Prozess bzw. dessen Threads angewendet.
+
+
+## Leistungs-/Monitoring-Vertrag 0.5.0
+
+Große Tabellen verwenden `QTableView` plus `QAbstractTableModel`. Das Erzeugen eines `QTableWidgetItem` pro Treffer ist für große Ergebnislisten verboten.
+
+Die Suchtrefferliste hält weiterhin die fachlichen Treffer im Speicher, erzeugt aber keine Oberflächenobjekte für jede Zeile. Qt fordert die sichtbaren Zellen bedarfsgerecht über das Modell an.
+
+Der Ressourcenmonitor liest unter Linux `/proc` direkt und benötigt keine zusätzliche Laufzeitbibliothek. Angezeigt werden CPU-Verbrauch des PROVOWARE-Prozesses, RAM des Prozesses und SWAP-Nutzung.
+
+Fortschrittsdaten umfassen Dateien pro Sekunde und verarbeitete Datenmenge. Wenn eine bekannte Gesamtdatenmenge vorhanden ist, wird die Restzeit bevorzugt nach Bytes statt nur nach Dateianzahl geschätzt.
+
+Diese Regeln gehören zum Bedien-/Prozessbereich und dürfen nach dessen Freeze nur mit eigener Regression und ausdrücklicher Entsperrung verändert werden.

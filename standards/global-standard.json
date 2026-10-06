@@ -22,13 +22,23 @@
       "alternating_rows": true,
       "hover_feedback": true,
       "high_contrast": true,
-      "action_button_neon_border": true
+      "action_button_neon_border": true,
+      "virtualized_large_lists": true
     },
     "progress": {
       "pause": true,
       "cancel": true,
       "current_step": true,
-      "estimated_remaining_time": true
+      "estimated_remaining_time": true,
+      "items_per_second": true,
+      "processed_bytes": true,
+      "byte_weighted_eta": true
+    },
+    "resource_dashboard": {
+      "process_cpu": true,
+      "process_ram": true,
+      "swap": true,
+      "external_dependency_required": false
     }
   },
   "development": {

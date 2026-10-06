@@ -739,7 +739,7 @@ class MainWindow(QMainWindow):
         self.progress_bar.setFormat("%p %")
         self.progress_bar.setValue(info.percent)
         self.eta_label.setText("Restzeit: " + format_eta(info.eta_seconds))
-        rate=f"{info.items_per_second:.1f} Datei/s" if info.items_per_second>0 else "Geschwindigkeit wird ermittelt"
+        rate=f"{info.items_per_second:.1f} Dateien/s" if info.items_per_second>0 else "Geschwindigkeit wird ermittelt"
         amount=self._human_size(info.processed_bytes) if info.processed_bytes>0 else "nur Metadaten"
         self.counter_label.setText(f"{info.current}/{info.total} · {rate} · {amount}")
         self.dashboard_process_value.setText(f"{rate} · {amount} · Rest {format_eta(info.eta_seconds)}")
