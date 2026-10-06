@@ -220,3 +220,86 @@ class Database:
             CollectionItem(int(row["collection_id"]), Path(row["path"]), row["note"])
             for row in rows
         ]
+
+
+    def export_virtual_state(self) -> dict:
+        with self.connect() as connection:
+            virtual_rows = connection.execute(
+                "SELECT path,marked,note FROM virtual_items ORDER BY path COLLATE NOCASE"
+            ).fetchall()
+            collection_rows = connection.execute(
+                "SELECT id,name,note FROM collections ORDER BY name COLLATE NOCASE"
+            ).fetchall()
+            collections = []
+            for row in collection_rows:
+                items = connection.execute(
+                    "SELECT path,note FROM collection_items WHERE collection_id=? ORDER BY path COLLATE NOCASE",
+                    (row["id"],),
+                ).fetchall()
+                collections.append({
+                    "name": row["name"],
+                    "note": row["note"],
+                    "items": [{"path": item["path"], "note": item["note"]} for item in items],
+                })
+        return {
+            "schema_version": "1.0.0",
+            "virtual_items": [
+                {"path": row["path"], "marked": bool(row["marked"]), "note": row["note"]}
+                for row in virtual_rows
+            ],
+            "collections": collections,
+        }
+
+    def import_virtual_state(self, payload: dict) -> tuple[int, int]:
+        if payload.get("schema_version") != "1.0.0":
+            raise ValueError("Unbekannte Version der virtuellen Daten.")
+        virtual_items = payload.get("virtual_items", [])
+        collections = payload.get("collections", [])
+        if not isinstance(virtual_items, list) or not isinstance(collections, list):
+            raise ValueError("Virtuelle Daten sind beschädigt.")
+
+        for item in virtual_items:
+            if not isinstance(item, dict) or not isinstance(item.get("path"), str):
+                raise ValueError("Eine Markierung besitzt keinen gültigen Pfad.")
+        for collection in collections:
+            if not isinstance(collection, dict) or not str(collection.get("name", "")).strip():
+                raise ValueError("Eine Sammlung besitzt keinen gültigen Namen.")
+            if not isinstance(collection.get("items", []), list):
+                raise ValueError("Sammlungseinträge sind beschädigt.")
+
+        imported_items = 0
+        with self.connect() as connection:
+            connection.execute("DELETE FROM collection_items")
+            connection.execute("DELETE FROM collections")
+            connection.execute("DELETE FROM virtual_items")
+
+            for item in virtual_items:
+                connection.execute(
+                    "INSERT INTO virtual_items(path,marked,note) VALUES(?,?,?)",
+                    (
+                        item["path"],
+                        int(bool(item.get("marked", False))),
+                        str(item.get("note", "")),
+                    ),
+                )
+
+            for collection in collections:
+                cur = connection.execute(
+                    "INSERT INTO collections(name,note) VALUES(?,?)",
+                    (
+                        str(collection["name"]).strip(),
+                        str(collection.get("note", "")).strip(),
+                    ),
+                )
+                collection_id = int(cur.lastrowid)
+                for item in collection.get("items", []):
+                    path = item.get("path")
+                    if not isinstance(path, str) or not path:
+                        raise ValueError("Ein Sammlungseintrag besitzt keinen gültigen Pfad.")
+                    connection.execute(
+                        "INSERT INTO collection_items(collection_id,path,note) VALUES(?,?,?)",
+                        (collection_id, path, str(item.get("note", "")).strip()),
+                    )
+                    imported_items += 1
+
+        return len(collections), imported_items
