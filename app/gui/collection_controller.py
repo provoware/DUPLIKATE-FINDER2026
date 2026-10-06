@@ -1,6 +1,7 @@
 from __future__ import annotations
 
 from typing import Any
+import sqlite3
 
 from PySide6.QtCore import Qt
 from PySide6.QtWidgets import QListWidgetItem, QMessageBox
@@ -28,7 +29,7 @@ class CollectionController:
                 str(exc),
             )
             return
-        except Exception as exc:
+        except sqlite3.Error as exc:
             report_ui_error(
                 self.window,
                 area="sammlungen",
@@ -50,7 +51,7 @@ class CollectionController:
     def refresh(self, select_id: int | None = None) -> None:
         try:
             collections = self.window.database.collections()
-        except Exception as exc:
+        except sqlite3.Error as exc:
             report_ui_error(
                 self.window,
                 area="sammlungen",
@@ -100,7 +101,7 @@ class CollectionController:
 
         try:
             collections = self.window.database.collections()
-        except Exception as exc:
+        except sqlite3.Error as exc:
             report_ui_error(
                 self.window,
                 area="sammlungen",
@@ -125,7 +126,7 @@ class CollectionController:
 
         try:
             count = self.window.database.collection_item_count(collection_id)
-        except Exception as exc:
+        except sqlite3.Error as exc:
             report_ui_error(
                 self.window,
                 area="sammlungen",
@@ -163,7 +164,7 @@ class CollectionController:
         try:
             self.window.database.remove_collection_item(collection_id, path)
             self.show(self.window.collection_list.currentRow())
-        except Exception as exc:
+        except sqlite3.Error as exc:
             report_ui_error(
                 self.window,
                 area="sammlungen",
