@@ -105,7 +105,7 @@ def apply_accessible_theme(app:QApplication,zoom:int|None=None)->int:
         QPushButton#process_pause { border:2px solid #f5cf58; background:#332b14; color:#fff2bd; }
 
         QLineEdit, QComboBox, QSpinBox {
-            background:#07131b;
+            background:__INPUT_BG__;
             color:#ffffff;
             border:1px solid #6e98ac;
             border-radius:6px;
@@ -116,7 +116,7 @@ def apply_accessible_theme(app:QApplication,zoom:int|None=None)->int:
         QTableView:focus, QListWidget:focus { border:2px solid __FOCUS__; }
 
         QListWidget, QTableView, QTableWidget {
-            background:#07131b;
+            background:__INPUT_BG__;
             alternate-background-color:#102834;
             color:#f7fcff;
             border:1px solid #6b93a8;
@@ -134,7 +134,7 @@ def apply_accessible_theme(app:QApplication,zoom:int|None=None)->int:
             border-bottom-color:#3d7188;
         }
         QListWidget::item:selected, QTableWidget::item:selected {
-            background:#075f75;
+            background:__SELECTION_BG__;
             color:#ffffff;
             border-left:3px solid #61f3ff;
         }
@@ -148,7 +148,7 @@ def apply_accessible_theme(app:QApplication,zoom:int|None=None)->int:
         QListWidget#main_navigation::item:hover { background:#173b49; }
         QTableView::item { padding:6px; border-bottom:1px solid #263b49; }
         QTableView::item:hover { background:#183d4c; }
-        QTableView::item:selected { background:#075f75; color:#ffffff; }
+        QTableView::item:selected { background:__SELECTION_BG__; color:#ffffff; }
 
         QHeaderView::section {
             background:#183545;
@@ -191,7 +191,7 @@ def apply_accessible_theme(app:QApplication,zoom:int|None=None)->int:
             font-weight:900;
         }
         QLabel#step_label, QLabel#eta_label, QLabel#activity_label {
-            color:#d7e6ef;
+            color:__MUTED_TEXT__;
         }
         QLabel#status_label {
             font-weight:900;
@@ -262,6 +262,9 @@ def apply_accessible_theme(app:QApplication,zoom:int|None=None)->int:
     """
     replacements = {
         "__FOCUS__": THEME_COLORS["focus"],
+        "__INPUT_BG__": THEME_COLORS["input_bg"],
+        "__SELECTION_BG__": THEME_COLORS["selection_bg"],
+        "__MUTED_TEXT__": THEME_COLORS["muted_text"],
         "__PROGRESS_FILL__": THEME_COLORS["progress_fill"],
         "__PROGRESS_EDGE__": THEME_COLORS["progress_edge"],
         "__STATUS_OK_TEXT__": THEME_COLORS["status_ok_text"],
