@@ -7,6 +7,17 @@ on:
       - main
       - "feature/automatische-entwicklungsabhaengigkeiten-*"
       - "feature/provoware-autonomie-standard-*"
+    paths:
+      - "app/**"
+      - "tools/**"
+      - "tests/**"
+      - "pyproject.toml"
+      - "dependencies.env"
+      - "ENTWICKLUNG_STARTEN.sh"
+      - ".github/workflows/development-full-bundle.yml"
+      - "manifest/**"
+      - "schemas/**"
+      - "standards/**"
 
 permissions:
   contents: read
@@ -19,17 +30,24 @@ jobs:
   vollpaket:
     name: Linux x86_64 Entwicklungs-Vollpaket
     runs-on: ubuntu-24.04
-    env:
-      PYTHON_ARCHIVE: cpython-3.12.15+20261003-x86_64-unknown-linux-gnu-install_only_stripped.tar.gz
-      PYTHON_URL: https://github.com/astral-sh/python-build-standalone/releases/download/20261003/cpython-3.12.15%2B20261003-x86_64-unknown-linux-gnu-install_only_stripped.tar.gz
-      PYTHON_SHA256: 731af898886c5f821890dc901eca3c651cca8e51fa7308c159d12a1194aeac91
     steps:
       - uses: actions/checkout@v4
-      - name: Projektversion automatisch lesen
+      - name: Zentrale Versions- und Laufzeitvorgaben lesen
         run: |
+          set -euo pipefail
+          source dependencies.env
           VERSION="$(python3 -c 'import pathlib,tomllib; print(tomllib.loads(pathlib.Path("pyproject.toml").read_text(encoding="utf-8"))["project"]["version"])')"
-          echo "VERSION=$VERSION" >> "$GITHUB_ENV"
-          echo "PACKAGE=PROVOWARE-DUPLIKATE-FINDER-2026-DEV-v${VERSION}-linux-x86_64" >> "$GITHUB_ENV"
+          {
+            echo "VERSION=$VERSION"
+            echo "PACKAGE=PROVOWARE-DUPLIKATE-FINDER-2026-DEV-v${VERSION}-linux-x86_64"
+            echo "PYTHON_ARCHIVE=$PYTHON_ARCHIVE"
+            echo "PYTHON_URL=$PYTHON_URL"
+            echo "PYTHON_SHA256=$PYTHON_SHA256"
+            echo "PYSIDE6_VERSION=$PYSIDE6_VERSION"
+            echo "PYTEST_SPEC=$PYTEST_SPEC"
+            echo "SETUPTOOLS_SPEC=$SETUPTOOLS_SPEC"
+            echo "WHEEL_SPEC=$WHEEL_SPEC"
+          } >> "$GITHUB_ENV"
       - name: Qt-Grundlagen nur fuer den Pruefrechner
         run: |
           sudo apt-get update
@@ -61,11 +79,11 @@ jobs:
           PY="$P/.provoware-dev/runtime/bin/python3"
           "$PY" -m ensurepip --upgrade || true
           mkdir -p "$P/.provoware-dev/wheelhouse" "$GITHUB_WORKSPACE/.build-cache/wheels"
-          if ! compgen -G "$GITHUB_WORKSPACE/.build-cache/wheels/pyside6-6.11.2-*.whl" >/dev/null; then
-            "$PY" -m pip download --disable-pip-version-check --only-binary=:all: --dest "$GITHUB_WORKSPACE/.build-cache/wheels" "PySide6==6.11.2" "pytest>=8,<9" "setuptools>=68" "wheel>=0.45"
+          if ! compgen -G "$GITHUB_WORKSPACE/.build-cache/wheels/pyside6-$PYSIDE6_VERSION-*.whl" >/dev/null; then
+            "$PY" -m pip download --disable-pip-version-check --only-binary=:all: --dest "$GITHUB_WORKSPACE/.build-cache/wheels" "PySide6==$PYSIDE6_VERSION" "$PYTEST_SPEC" "$SETUPTOOLS_SPEC" "$WHEEL_SPEC"
           fi
           cp -a "$GITHUB_WORKSPACE/.build-cache/wheels/." "$P/.provoware-dev/wheelhouse/"
-          "$PY" -m pip install --disable-pip-version-check --no-index --find-links "$P/.provoware-dev/wheelhouse" "PySide6==6.11.2" "pytest>=8,<9" "setuptools>=68" "wheel>=0.45"
+          "$PY" -m pip install --disable-pip-version-check --no-index --find-links "$P/.provoware-dev/wheelhouse" "PySide6==$PYSIDE6_VERSION" "$PYTEST_SPEC" "$SETUPTOOLS_SPEC" "$WHEEL_SPEC"
           chmod +x "$P/ENTWICKLUNG_STARTEN.sh"
       - name: Vollpaket ohne Paket-Internet pruefen
         env:

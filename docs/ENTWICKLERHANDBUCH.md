@@ -26,7 +26,7 @@ Vor Merge:
 
 ## Zweistufige Prüfstrategie
 
-Auf Feature-Zweigen läuft zuerst die **gezielte Entwicklungsprüfung**. Sie leitet aus den geänderten Dateien die betroffenen Bereiche ab und vermeidet unnötige UI-/Gesamtprüfungen.
+Auf Arbeitszweigen läuft zuerst die **gezielte Entwicklungsprüfung**. Bei einem vorhandenen Git-Vergleich werden nur die geänderten Dateipfade ausgewertet; ein unnötiges erneutes Hashen des gesamten Projektbaums entfällt. Der einmal erzeugte Prüfplan wird anschließend direkt wiederverwendet.
 
 Auf jedem Pull Request und auf `main` bleiben die vollständigen Kern-, 100/150/200-%- und autonomen Prüfungen Pflicht. Damit wird Geschwindigkeit nur während der Iteration optimiert, nicht bei der Freigabe.
 
@@ -55,7 +55,7 @@ Keine Nebenrefaktorisierung. Gleiche Stelle bevorzugt einmal gezielt ändern. Un
 
 ## Netzwerkregel
 
-Downloads nur, wenn lokaler Bestand fehlt oder sein Fingerabdruck nicht mehr zum Vertrag passt. GitHub-Abhängigkeiten werden gecacht. Veraltete Workflow-Läufe werden abgebrochen.
+Downloads nur, wenn lokaler Bestand fehlt oder sein Fingerabdruck nicht mehr zum Vertrag passt. Python-Laufzeit und Paketdateien werden in GitHub Actions gecacht. Versionen kommen zentral aus `dependencies.env`. Veraltete Workflow-Läufe werden abgebrochen und große Entwicklungs-Vollpakete nur bei relevanten Änderungen gebaut.
 
 ## Oberfläche
 
@@ -87,7 +87,7 @@ CPU-Affinität wird nur auf den laufenden PROVOWARE-Prozess bzw. dessen Threads 
 
 Große Tabellen verwenden `QTableView` plus `QAbstractTableModel`. Das Erzeugen eines `QTableWidgetItem` pro Treffer ist für große Ergebnislisten verboten.
 
-Die Suchtrefferliste hält weiterhin die fachlichen Treffer im Speicher, erzeugt aber keine Oberflächenobjekte für jede Zeile. Qt fordert die sichtbaren Zellen bedarfsgerecht über das Modell an.
+Suchtreffer, Sammlungsinhalte und Duplikatmitglieder werden SQLite-seitenweise geladen. Die Oberfläche hält nur einen begrenzten Seitenpuffer und nicht mehr den vollständigen Datenbestand im Arbeitsspeicher.
 
 Der Ressourcenmonitor liest unter Linux `/proc` direkt und benötigt keine zusätzliche Laufzeitbibliothek. Angezeigt werden CPU-Verbrauch des PROVOWARE-Prozesses, RAM des Prozesses und SWAP-Nutzung.
 

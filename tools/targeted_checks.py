@@ -30,10 +30,11 @@ def main()->int:
     parser=argparse.ArgumentParser()
     parser.add_argument("--base")
     parser.add_argument("--full",action="store_true")
+    parser.add_argument("--plan",type=Path)
     args=parser.parse_args()
 
     run([sys.executable,"tools/validate_manifests.py"])
-    current=plan(args.base)
+    current=(json.loads(args.plan.read_text(encoding="utf-8")) if args.plan and args.plan.is_file() else plan(args.base))
     checks=set(current["checks"])
     changed=current["changed_files"]
     print("Betroffene Bereiche:",", ".join(current["areas"]) or "keine")

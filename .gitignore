@@ -16,12 +16,8 @@ artifacts/
 *.sqlite3
 *.sqlite3-shm
 *.sqlite3-wal
-logs/*
-!logs/.gitkeep
-data/*
-!data/.gitkeep
-recovery/*
-!recovery/.gitkeep
-quarantine/*
-!quarantine/.gitkeep
+logs/
+data/
+recovery/
+quarantine/
 .DS_Store

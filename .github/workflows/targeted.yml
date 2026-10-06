@@ -2,7 +2,7 @@ name: Gezielte Entwicklungsprüfung
 
 on:
   push:
-    branches: ["feature/**", "chore/**"]
+    branches: ["feature/**", "chore/**", "fix/**", "release/**"]
 
 permissions:
   contents: read
@@ -44,7 +44,7 @@ jobs:
       - name: Python-Abhängigkeiten aus Cache
         run: python -m pip install -e ".[test]"
       - name: Gezielte Prüfungen
-        run: python tools/targeted_checks.py --base origin/main
+        run: python tools/targeted_checks.py --base origin/main --plan artifacts/pruefplan.json
       - name: Prüfplan sichern
         if: always()
         uses: actions/upload-artifact@v4

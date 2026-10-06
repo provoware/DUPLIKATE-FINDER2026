@@ -5,6 +5,33 @@
 ### Geplant
 - weitere Dateiformate und spätere, separat freizugebende Schreibfunktionen
 
+## [0.7.1] – 2026-10-06
+
+### Wartbarkeit und Entwicklung
+- wiederverwendbare Byte-/Größenformatierung zentralisiert
+- Dashboard-Karten auf eine gemeinsame Erzeugungsfunktion vereinheitlicht
+- gezielte Entwicklungsprüfung verwendet denselben Prüfplan nur einmal
+- Git-Diff-Schnellpfad vermeidet unnötiges Hashen des gesamten Projektbaums
+- Entwicklungs-Vollpaket läuft nur noch bei relevanten Dateiänderungen
+- Laufzeit-/Paketversionen in CI aus `dependencies.env` zentralisiert
+- einmaligen v0.7.0-Promotionsworkflow nach erfolgreichem Release entfernt
+- Laufzeitordner-Platzhalter aus dem Quellrepository entfernt
+
+### Portable Pakete
+- konservatives `Lite`-Profil ohne doppelten PySide6-Reparaturvorrat
+- `Recovery`-Profil mit Offline-Reparatur bleibt erhalten
+- Python- und Wheel-Bausteine werden im Build gecacht
+- Lite und Recovery werden automatisch auf Startfähigkeit und Funktionsgleichheit geprüft
+- Lite zusätzlich als ZIP
+- `STARTEN_VOM_STICK.sh` mit Fallback für Linux-`noexec`-Datenträger
+- keine aggressive Beschneidung der Python-/Qt-Laufzeit
+
+### Bedienung und Sichtbarkeit
+- Arbeitsablauf direkt auf der Übersicht sichtbar
+- stärkere Navigation-, Fokus-, Tabellen- und Statuskontraste
+- Primäraktionen deutlicher hervorgehoben
+- Bedienoberfläche für diesen gezielten Auftrag kontrolliert wieder geöffnet; erneute vollständige Abnahme vor Re-Freeze
+
 ## [0.7.0] – 2026-10-06
 
 ### Robustheit

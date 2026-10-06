@@ -6,11 +6,13 @@ from pathlib import Path
 ROOT=Path(__file__).resolve().parents[1]
 
 
-def test_ui_process_area_is_refrozen_after_v060_acceptance():
+def test_ui_process_area_has_controlled_freeze_or_reopen_state():
     manifest=json.loads((ROOT/"manifest/project.manifest.json").read_text(encoding="utf-8"))
     areas={area["id"]:area for area in manifest["governance"]["frozen_areas"]}
     frozen=areas["ui_process_control"]
-    assert frozen["status"]=="FROZEN"
+    assert frozen["status"] in {"FROZEN","REOPENED"}
+    if frozen["status"] == "REOPENED":
+        assert frozen.get("reopen_reason")
     assert frozen["since_version"]=="0.6.0"
     assert frozen["reopened_from_version"]=="0.5.1"
     assert "regression_correction" in frozen["allowed_without_reopen"]

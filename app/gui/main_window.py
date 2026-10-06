@@ -40,6 +40,7 @@ from app.validation import validate_scan_root, validate_search_request
 from app.gui.design_tokens import BASE_SPACING, OUTER_MARGIN
 from app.texts import text as ui_text
 from app.error_management import record_error
+from app.formatting import format_bytes
 
 
 class MainWindow(QMainWindow):
@@ -85,44 +86,52 @@ class MainWindow(QMainWindow):
         label.setWordWrap(True)
         return label
 
-    def _card(self, title: str, value: str) -> QFrame:
+    def _build_card(
+        self,
+        title: str,
+        value: str,
+        *,
+        object_name: str | None = None,
+        live: bool = False,
+    ) -> tuple[QFrame, QLabel]:
         frame = QFrame()
         frame.setProperty("card", True)
         layout = QVBoxLayout(frame)
         layout.setContentsMargins(12, 10, 12, 10)
         layout.setSpacing(2)
-        a = QLabel(title)
-        a.setProperty("cardTitle", True)
-        a.setStyleSheet("font-weight: 700;")
-        a.setWordWrap(True)
-        b = QLabel(value)
-        b.setProperty("cardValue", True)
-        b.setWordWrap(True)
-        font = b.font()
-        font.setBold(True)
-        font.setPointSize(font.pointSize() + 2)
-        b.setFont(font)
-        layout.addWidget(a)
-        layout.addWidget(b)
-        return frame
 
-    def _live_card(self, title: str, value: str, object_name: str) -> tuple[QFrame, QLabel]:
-        frame = QFrame()
-        frame.setProperty("card", True)
-        layout = QVBoxLayout(frame)
-        layout.setContentsMargins(12, 10, 12, 10)
-        layout.setSpacing(2)
         heading = QLabel(title)
         heading.setProperty("cardTitle", True)
         heading.setStyleSheet("font-weight:700;")
+        heading.setWordWrap(True)
+
         label = QLabel(value)
         label.setProperty("cardValue", True)
-        label.setObjectName(object_name)
         label.setWordWrap(True)
-        label.setToolTip("Wird während laufender Vorgänge automatisch aktualisiert.")
+        if object_name:
+            label.setObjectName(object_name)
+        if live:
+            label.setToolTip("Wird während laufender Vorgänge automatisch aktualisiert.")
+
+        font = label.font()
+        font.setBold(True)
+        font.setPointSize(font.pointSize() + 2)
+        label.setFont(font)
         layout.addWidget(heading)
         layout.addWidget(label)
         return frame, label
+
+    def _card(self, title: str, value: str) -> QFrame:
+        frame, _label = self._build_card(title, value)
+        return frame
+
+    def _live_card(self, title: str, value: str, object_name: str) -> tuple[QFrame, QLabel]:
+        return self._build_card(
+            title,
+            value,
+            object_name=object_name,
+            live=True,
+        )
 
     def _build_ui(self) -> None:
         central = QWidget()
@@ -282,7 +291,14 @@ class MainWindow(QMainWindow):
     def _update_dashboard_card_layout(self) -> None:
         if not hasattr(self, "dashboard_card_layout"):
             return
-        columns = 2 if int(self.property("uiZoom") or 100) >= 150 else 4
+        zoom = int(self.property("uiZoom") or 100)
+        columns = 2 if zoom >= 150 else 4
+        if hasattr(self, "workflow_guide"):
+            self.workflow_guide.setText(
+                "Ordner → Prüfen → Treffer → Sammlung"
+                if zoom >= 150
+                else "Ablauf: Ordner → Prüfen → Treffer → Sammlung"
+            )
         for index, card in enumerate(self.dashboard_cards):
             self.dashboard_card_layout.removeWidget(card)
             self.dashboard_card_layout.addWidget(card, index // columns, index % columns)
@@ -300,7 +316,21 @@ class MainWindow(QMainWindow):
         layout = QVBoxLayout(page)
         layout.setContentsMargins(2, 2, 2, 2)
         layout.setSpacing(4)
-        layout.addWidget(self._heading("Übersicht"))
+
+        dashboard_head = QHBoxLayout()
+        dashboard_head.addWidget(self._heading("Übersicht"))
+        dashboard_head.addStretch(1)
+        self.workflow_guide = QLabel("Ablauf: Ordner → Prüfen → Treffer → Sammlung")
+        self.workflow_guide.setObjectName("workflow_guide")
+        self.workflow_guide.setProperty("workflowGuide", True)
+        self.workflow_guide.setWordWrap(False)
+        self.workflow_guide.setAccessibleName("Kurzanleitung für den Arbeitsablauf")
+        self.workflow_guide.setToolTip(
+            "1. Ordner wählen · 2. Suche oder Duplikatprüfung starten · "
+            "3. Treffer ansehen · 4. Virtuell organisieren"
+        )
+        dashboard_head.addWidget(self.workflow_guide)
+        layout.addLayout(dashboard_head)
 
         cards = QGridLayout()
         self.dashboard_card_layout = cards
@@ -846,7 +876,7 @@ class MainWindow(QMainWindow):
         self.progress_bar.setValue(info.percent)
         self.eta_label.setText("Restzeit: " + format_eta(info.eta_seconds))
         rate=f"{info.items_per_second:.1f} Dateien/s" if info.items_per_second>0 else "Geschwindigkeit wird ermittelt"
-        amount=self._human_size(info.processed_bytes) if info.processed_bytes>0 else "nur Metadaten"
+        amount=format_bytes(info.processed_bytes) if info.processed_bytes>0 else "nur Metadaten"
         self.counter_label.setText(f"{info.current}/{info.total} · {rate} · {amount}")
         self.dashboard_process_value.setText(f"{rate} · {amount} · Rest {format_eta(info.eta_seconds)}")
 
@@ -1002,7 +1032,7 @@ class MainWindow(QMainWindow):
             wasted = size * (members - 1)
             text = (
                 f"Gruppe {index} · {members} Dateien · "
-                f"{self._human_size(wasted)} mehrfach"
+                f"{format_bytes(wasted)} mehrfach"
             )
             self.duplicate_group_list.addItem(text)
         if self.duplicate_groups_cache:
@@ -1022,7 +1052,7 @@ class MainWindow(QMainWindow):
         )
         self.duplicate_summary.setText(
             f"Gruppe {row + 1}: {members} vollständig identische Dateien · "
-            f"je {self._human_size(size)} · SHA-256 {digest[:16]}…"
+            f"je {format_bytes(size)} · SHA-256 {digest[:16]}…"
         )
 
     def _create_collection(self) -> None:
@@ -1097,11 +1127,3 @@ class MainWindow(QMainWindow):
         self._show_collection(self.collection_list.currentRow())
         self.status_label.setText("OK · Eintrag nur aus der virtuellen Sammlung entfernt")
 
-    @staticmethod
-    def _human_size(size: int) -> str:
-        value = float(size)
-        for unit in ("B", "KB", "MB", "GB", "TB"):
-            if value < 1024.0 or unit == "TB":
-                return f"{value:.1f} {unit}" if unit != "B" else f"{int(value)} B"
-            value /= 1024.0
-        return f"{size} B"

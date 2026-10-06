@@ -2,65 +2,68 @@
 
 ## Ziel
 
-Der Endnutzer soll keine Python-Pakete und keine Linux-Systempakete installieren müssen.
+Der Endnutzer soll keine Python-Pakete und keine Linux-Systempakete installieren müssen. Gleichzeitig soll das normale Paket keinen unnötigen Entwicklungs- oder Reparaturballast enthalten.
 
-## Release-Aufbau
+## Zwei Paketprofile
 
-```text
-PROVOWARE-DUPLIKATE-FINDER-2026/
-├── runtime/          eigene Python-Laufzeit + PySide6
-├── app/
-├── docs/
-├── agents/
-├── manifest/ standards/ schemas/ resources/
-├── data/
-├── logs/
-├── recovery/
-├── quarantine/       nur im Paket für Kompatibilität; Nutzerdaten liegen im Projektordner
-├── STARTEN.sh
-└── STARTEN.desktop
-```
+### Lite
 
-## Laufzeit
+Für normale Nutzung. Enthalten bleiben:
 
-Der automatische Release-Bau verwendet eine fest definierte portable CPython-3.12-Laufzeit und prüft deren SHA-256 vor dem Entpacken.
+- vollständige geprüfte Python-Laufzeit,
+- vollständige installierte PySide6/Qt-Laufzeit,
+- Anwendungscode und Laufzeitressourcen,
+- Laien-, Portable- und Sicherheitsdokumentation,
+- Startskripte einschließlich USB-Start.
 
-Anschließend wird PySide6 direkt in diese Laufzeit installiert.
+Bewusst entfernt werden nur eindeutig unnötige Distributionsbestandteile:
 
-## Startvertrag
+- `wheelhouse/` mit der zweiten Kopie der PySide6-Installationspakete,
+- Agenten- und Entwicklungsstandards,
+- JSON-Schemata und Vorlagen, die zur Laufzeit nicht benötigt werden,
+- Prüf-/Build-Werkzeuge nach abgeschlossener Paketabnahme,
+- Python-Zwischendateien.
 
-`STARTEN.sh` akzeptiert ausschließlich `runtime/bin/python3`.
+Die eigentliche Python-/Qt-Laufzeit wird **nicht aggressiv beschnitten**.
 
-Fehlt die Datei, wird beendet. Kein Fallback auf `/usr/bin/python`, keine Paketinstallation, kein `sudo`.
+### Recovery
 
-## Paketprüfung
+Enthält dieselben Programmfunktionen wie Lite, zusätzlich aber den lokalen PySide6-Reparaturvorrat und die für die E2E-Abnahme notwendigen Unterlagen.
 
-Vor Erzeugung des Archivs läuft der Selbsttest mit genau der gebündelten Laufzeit.
+## Funktionsgleichheit
 
-Danach folgt die End-to-End-Abnahme des **wirklich erzeugten Archivs**:
+Lite und Recovery werden aus demselben Runtime-Stand erzeugt. Vor der endgültigen Lite-Bereinigung werden für beide Profile geprüft:
 
-1. SHA-256 des Archivs prüfen.
-2. Archiv in einen frischen Ordner entpacken.
-3. `STARTEN.sh` mit echtem PySide6/Qt im unsichtbaren Starttest ausführen.
-4. `STARTEN_KONSOLE.sh --selftest` ausführen.
-5. PySide6 im entpackten Paket absichtlich entfernen.
-6. Internetzugriff für pip deaktivieren und `STARTEN.sh` erneut ausführen.
-7. prüfen, dass PySide6 ausschließlich aus dem mitgelieferten `wheelhouse/` repariert wurde.
-8. die vollständige autonome Abnahme direkt mit der entpackten portablen Laufzeit ausführen; die Mindestzahl wird aus dem Projektmanifest gelesen.
-9. HTML-Prüfraster, JSON-Bericht, Startprotokolle und Paket-Prüfsumme als Evidenz sichern.
+1. benötigte PySide6-Module sind importierbar,
+2. keine direkte Python-Laufzeitbibliothek fehlt,
+3. echter GUI-Start funktioniert,
+4. Konsolen-Selbsttest funktioniert,
+5. vollständige autonome Abnahme ist grün,
+6. Zahl und Ergebnis der automatischen Funktionsprüfungen stimmen überein.
 
-Erst danach gilt der portable Stand als abgenommen.
+Nach der endgültigen Lite-Bereinigung werden GUI und Konsole erneut gestartet.
 
-Danach werden erzeugt:
+## USB-Stick
 
-- `.tar.gz`
-- `.tar.gz.sha256`
+`STARTEN_VOM_STICK.sh` setzt den Arbeitsordner standardmäßig auf `PROVOWARE-DATEN` neben dem Programm.
 
-## Plattform
+- Ist die Laufzeit auf dem Stick ausführbar, startet das Programm direkt vom Stick.
+- Ist das Dateisystem mit `noexec` eingehängt, wird die Programmlaufzeit einmalig in den lokalen Benutzer-Cache kopiert. Nutzerdaten können weiterhin auf dem Stick liegen.
+- Das System-Python wird dabei nicht als Ersatz verwendet.
 
-Die jeweils in `pyproject.toml` registrierte Projektversion baut zunächst Linux `x86_64`. Weitere Rechner derselben Architektur werden über System-/Startprüfung automatisch erkannt. Weitere Architekturen erhalten erst nach eigenem E2E-Test ein freigegebenes Paket. Weitere Architekturen werden erst nach eigenem Testpfad ergänzt.
+Damit kann der entpackte Ordner auf einen USB-Stick kopiert und auf einem kompatiblen Linux-x86_64-System gestartet werden.
 
+## ZIP und tar.gz
 
-## Versionsquelle
+Lite wird zusätzlich als ZIP erzeugt. Das ZIP ist für einfaches Kopieren und Entpacken gedacht. `tar.gz` bleibt die Linux-nahe Variante mit zuverlässig erhaltenen Dateirechten.
 
-Paketname, Build-Nachweis und E2E-Artefakt lesen die Version automatisch aus `pyproject.toml`. Eine zweite fest eingetragene Paketversion ist verboten, damit Release-Metadaten nicht vom Programmstand abweichen.
+## Verkehr und Build-Effizienz
+
+- portable Python-Archive und Python-Pakete werden in GitHub Actions gecacht,
+- Versionsvorgaben werden aus `dependencies.env` gelesen,
+- unnötige Mehrfachdownloads werden vermieden,
+- Entwicklungs-Vollpakete laufen nur bei relevanten Dateiänderungen.
+
+## Sicherheitsgrenze
+
+Kein Paketprofil aktiviert physische Dateiänderungen. Löschen, Verschieben, Umbenennen und Quarantäne bleiben gesperrt.
