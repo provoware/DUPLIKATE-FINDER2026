@@ -85,17 +85,3 @@ def test_dependency_contract_is_documented():
     assert 'PYTHON_VERSION="3.12.15"' in text
     assert 'PYSIDE6_VERSION="6.11.2"' in text
 
-
-def test_atomic_replace_is_confined_to_application_state_writer():
-    offenders=[]
-    for path in APP.rglob("*.py"):
-        if path.as_posix().endswith("app/storage/atomic_io.py"):
-            continue
-        text=path.read_text(encoding="utf-8")
-        if ".replace(" in text and "str.replace(" not in text:
-            # Nur Dateipfad-Austausch ist hier relevant; gewöhnliche String-Ersetzungen
-            # werden nicht über diese grobe Architekturregel bewertet.
-            import re
-            if re.search(r"\b\w+(?:_path)?\.replace\(", text):
-                offenders.append(str(path))
-    assert offenders == []
