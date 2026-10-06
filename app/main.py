@@ -58,7 +58,11 @@ def main() -> int:
         logger.info("Interner GUI-Starttest aktiv")
         QTimer.singleShot(500, app.quit)
 
-    return app.exec()
+    exit_code = app.exec()
+    window._ui_enhancements.dispose()
+    window.close()
+    logger.info("Oberfläche sauber beendet")
+    return exit_code
 
 
 if __name__ == "__main__":
