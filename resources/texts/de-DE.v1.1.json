@@ -1,0 +1,55 @@
+{
+  "catalog_version": "1.1.0",
+  "locale": "de-DE",
+  "startup": {
+    "title": "PROVOWARE startet",
+    "activity": "Prüfung läuft …",
+    "ready": "Alles bereit.",
+    "failed": "Start sicher gestoppt.",
+    "workspace": "Projektordner",
+    "dependencies": "Abhängigkeiten",
+    "database": "Datenbank",
+    "safety": "Sicherheit",
+    "gui": "Oberfläche"
+  },
+  "status": {
+    "green": "Bereit",
+    "yellow": "Prüfung nötig",
+    "red": "Fehler – sicher gestoppt",
+    "running": "Verarbeitung läuft",
+    "paused": "Pausiert",
+    "cancel_requested": "Abbruch angefordert",
+    "cancelled": "Vorgang abgebrochen · Originaldateien unverändert"
+  },
+  "process": {
+    "pause": "⏸ Pause",
+    "resume": "▶ Fortsetzen",
+    "cancel": "■ Abbrechen",
+    "current_step": "Aktueller Schritt",
+    "eta": "Restzeit",
+    "eta_calculating": "wird berechnet",
+    "eta_after_resume": "nach Fortsetzen",
+    "ready": "bereit"
+  },
+  "filters": {
+    "button": "⚙ Prüfoptionen",
+    "project_skip": "Entwicklungsordner werden ausgelassen",
+    "project_include": "Entwicklungsordner werden mitgeprüft",
+    "hidden_skip": "versteckte Ordner werden ausgelassen",
+    "hidden_include": "versteckte Ordner werden mitgeprüft"
+  },
+  "autosave": {
+    "label": "Autospeichern 5 min",
+    "detail": "Einstellungen und virtuelle PROVOWARE-Daten werden alle fünf Minuten im Wiederherstellungsordner gesichert."
+  },
+  "help": {
+    "level1": "Kurz erklärt",
+    "level2": "Mehr dazu",
+    "level3": "Ausführliche Hilfe",
+    "search_short": "Hier wählst du einen Ordner und suchst nach Text oder Dateinamen.",
+    "duplicates_short": "Hier werden nur vollständig identische Dateien gruppiert. Es wird nichts gelöscht.",
+    "collections_short": "Sammlungen ordnen Treffer nur virtuell. Originaldateien bleiben unverändert.",
+    "process_short": "Laufende Prüfungen können pausiert, fortgesetzt und sicher abgebrochen werden.",
+    "export_short": "Export und Import betreffen nur PROVOWARE-Einstellungen und virtuelle Organisation."
+  }
+}

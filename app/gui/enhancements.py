@@ -156,7 +156,7 @@ class UiEnhancements(QObject):
         self.autosave_info = QLabel()
         self.autosave_info.setObjectName("autosave_info")
         self.autosave_info.setToolTip(
-            "Einstellungen werden alle fünf Minuten zusätzlich gesichert. Virtuelle Änderungen landen sofort in SQLite."
+            "Einstellungen und virtuelle PROVOWARE-Daten werden alle fünf Minuten im Wiederherstellungsordner gesichert."
         )
         grid.addWidget(self.autosave_info, 2, 2)
 
@@ -276,8 +276,8 @@ class UiEnhancements(QObject):
 
     def _autosave(self) -> None:
         try:
-            self.window.save_settings()
-        except OSError:
+            self.window.autosave_provoware_state()
+        except (OSError, ValueError):
             self._autosave_label("Fehler")
             return
         self._autosave_label("gesichert")
@@ -349,8 +349,8 @@ class UiEnhancements(QObject):
         self.timer.stop()
         self.autosave_timer.stop()
         try:
-            self.window.save_settings()
-        except OSError:
+            self.window.autosave_provoware_state()
+        except (OSError, ValueError):
             pass
         if self.app is not None and self.install_global_filter:
             self.app.removeEventFilter(self)

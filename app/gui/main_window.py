@@ -1051,6 +1051,19 @@ class MainWindow(QMainWindow):
             self.settings.last_root = str(self.selected_root)
         return self.settings_store.save(self.settings)
 
+    def autosave_provoware_state(self) -> Path:
+        self.save_settings()
+        payload = build_export(self.settings.to_dict(), self.database.export_virtual_state())
+        validate_import(payload)
+        target = self.base_dir / "recovery" / "autosave-state.json"
+        target.parent.mkdir(parents=True, exist_ok=True)
+        target.write_text(
+            json.dumps(payload, ensure_ascii=False, indent=2) + "\n",
+            encoding="utf-8",
+        )
+        validate_import(json.loads(target.read_text(encoding="utf-8")))
+        return target
+
     def export_provoware_state(self) -> None:
         stamp = datetime.now().strftime("%Y%m%d-%H%M")
         default = self.base_dir / "exports" / f"provoware-zustand-{stamp}.json"
@@ -1064,10 +1077,12 @@ class MainWindow(QMainWindow):
             return
         payload = build_export(self.settings.to_dict(), self.database.export_virtual_state())
         try:
+            validate_import(payload)
             Path(path).write_text(
                 json.dumps(payload, ensure_ascii=False, indent=2) + "\n",
                 encoding="utf-8",
             )
+            validate_import(json.loads(Path(path).read_text(encoding="utf-8")))
         except OSError as exc:
             QMessageBox.critical(self, "Export fehlgeschlagen", str(exc))
             return

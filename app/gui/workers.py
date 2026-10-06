@@ -25,6 +25,8 @@ class ManagedWorker(QThread):
         self.control = ProcessControl()
         self._phase = ""
         self._phase_started = time.monotonic()
+        self._phase_start_count = 0
+        self._last_current = 0
 
     def request_pause(self) -> None:
         self.control.pause()
@@ -33,6 +35,7 @@ class ManagedWorker(QThread):
     def request_resume(self) -> None:
         self.control.resume()
         self._phase_started = time.monotonic()
+        self._phase_start_count = self._last_current
         self.pause_changed.emit(False)
 
     def request_cancel(self) -> None:
@@ -42,10 +45,13 @@ class ManagedWorker(QThread):
         if phase != self._phase:
             self._phase = phase
             self._phase_started = time.monotonic()
+            self._phase_start_count = current
+        self._last_current = current
         eta = -1
-        if total > 0 and current > 0 and current < total:
+        processed = max(0, current - self._phase_start_count)
+        if total > 0 and processed > 0 and current < total:
             elapsed = max(0.001, time.monotonic() - self._phase_started)
-            eta = max(0, round((elapsed / current) * (total - current)))
+            eta = max(0, round((elapsed / processed) * (total - current)))
         elif total > 0 and current >= total:
             eta = 0
         self.progress.emit(current, total, phase, eta)
