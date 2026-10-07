@@ -15,6 +15,7 @@ from unittest.mock import MagicMock, patch
 
 from app.gui.enhancements import UiEnhancements
 from app.gui.result_controller import ResultController
+from app.gui.state_portability_controller import StatePortabilityController
 
 
 class _Index:
@@ -90,3 +91,39 @@ def test_sqlite_write_error_does_not_update_result_model(tmp_path: Path):
     report.assert_called_once()
     assert report.call_args.kwargs["area"] == "ergebnisstatus"
     results_model.set_marked.assert_not_called()
+
+
+def test_state_export_disk_full_is_reported_at_gui_boundary(tmp_path: Path):
+    window = SimpleNamespace(
+        base_dir=tmp_path,
+        status_label=MagicMock(),
+    )
+    controller = StatePortabilityController(
+        window=window,
+        base_dir=tmp_path,
+        database=MagicMock(),
+        store=MagicMock(),
+        settings={},
+        collect_settings=lambda: {"zoom_percent": 100},
+        apply_loaded_settings=lambda: None,
+    )
+
+    target = tmp_path / "exports" / "state.json"
+    with (
+        patch(
+            "app.gui.state_portability_controller.QFileDialog.getSaveFileName",
+            return_value=(str(target), "JSON-Datei (*.json)"),
+        ),
+        patch(
+            "app.gui.state_portability_controller.export_state",
+            side_effect=OSError(errno.ENOSPC, "Datenträger voll"),
+        ),
+        patch(
+            "app.gui.state_portability_controller.report_ui_error"
+        ) as report,
+    ):
+        controller.export()
+
+    report.assert_called_once()
+    assert report.call_args.kwargs["area"] == "zustandsexport"
+    assert report.call_args.kwargs["title"] == "Export fehlgeschlagen"

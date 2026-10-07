@@ -112,11 +112,35 @@ def run_requested_testlab(args: argparse.Namespace, base: Path) -> int | None:
                 if comparison.rate_change_percent is not None
                 else "–"
             )
+            elapsed = (
+                f"{comparison.elapsed_change_percent:+.1f} %"
+                if comparison.elapsed_change_percent is not None
+                else "–"
+            )
             print(
                 "Vergleich",
                 f"Dateien/s {rate}",
+                f"Zeit {elapsed}",
                 f"RAM {comparison.peak_rss_change_mib:+.1f} MiB",
             )
+            print(
+                "Vergleichbarkeit",
+                (
+                    "Umgebung gleich"
+                    if comparison.environment_matches
+                    else "Umgebung unterschiedlich"
+                ),
+                (
+                    "Arbeitslast bestätigt"
+                    if comparison.workload_verified
+                    else "Arbeitslast nur eingeschränkt verifiziert"
+                ),
+            )
+            if comparison.regression_warning:
+                print(
+                    "WARNUNG",
+                    " · ".join(comparison.regression_reasons),
+                )
         return 0 if result.ok else 1
 
     return None

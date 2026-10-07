@@ -64,3 +64,43 @@ Automatische Architekturtests verhindern:
 ## Visueller Stand
 
 Der visuelle Stand bleibt FROZEN. Diese Runde verändert keine Theme-, Layout- oder MainWindow-Struktur.
+
+
+## Ergebnis der erneuten Prüfung
+
+Die aktuelle Trennung bleibt bestehen. Für den jetzigen Funktionsumfang ist keine weitere
+Klassenzerlegung sinnvoll.
+
+Zusätzlich geprüft:
+
+- Fehler-Injektion bleibt vollständig in `app/testing/`
+- Leistungs-Messung und Berichtserzeugung bleiben getrennte Module
+- die Hauptkonsole kennt weiterhin nur den Testlabor-Adapter
+- GUI-Fehlergrenzen werden in GUI-Tests geprüft, ohne das Testlabor von der GUI abhängig zu machen
+- Produktionskern und Speicher bleiben frei von Testlabor-Abhängigkeiten
+
+Der Selbsttest darf das kleine Mini-Profil bewusst als Diagnose verwenden. Das ist eine
+gezielte Diagnose-Abhängigkeit der Startprüfung, keine Rückkopplung des Produktivkerns.
+
+## Leistungsbericht
+
+Ein Performance-Vergleich ist nur belastbar, wenn die Arbeitslast identisch ist. Neue
+Berichte tragen deshalb:
+
+- Kennung des Leistungstests
+- Version der Arbeitslast
+- Arbeitslast-Fingerabdruck
+- Python-Version
+- Plattform
+- Dateianzahl
+- Laufzeit
+- Dateien pro Sekunde
+- RAM-Spitze
+
+Bei geänderter Arbeitslast wird ein Vergleich abgelehnt. Abweichende Systemumgebungen
+werden sichtbar als eingeschränkt vergleichbar markiert.
+
+## Regressionswarnungen
+
+Die Berichte markieren auffällige Verschlechterungen als Warnung, nicht als automatische
+Release-Sperre. Damit führen normale Messschwankungen nicht zu falschen roten Gates.

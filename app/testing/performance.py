@@ -1,5 +1,6 @@
 from __future__ import annotations
 
+import hashlib
 import resource
 import sys
 import time
@@ -10,8 +11,15 @@ from app.core.scanner import FileScanner
 from app.testing.sandbox import TestSandbox
 
 
+BENCHMARK_ID = "filesystem-scan"
+WORKLOAD_VERSION = "1"
+
+
 @dataclass(frozen=True)
 class PerformanceResult:
+    benchmark_id: str
+    workload_version: str
+    workload_fingerprint: str
     files: int
     elapsed_seconds: float
     files_per_second: float
@@ -20,12 +28,22 @@ class PerformanceResult:
     detail: str
 
 
+def workload_fingerprint(file_count: int) -> str:
+    payload = (
+        f"{BENCHMARK_ID}|{WORKLOAD_VERSION}|files={int(file_count)}|"
+        "content=Testdatei-{index}|buckets=min(1000,file_count//100)"
+    )
+    return hashlib.sha256(payload.encode("utf-8")).hexdigest()[:16]
+
+
 def run_performance_profile(
     *,
     file_count: int = 100_000,
     sandbox_parent: Path | None = None,
 ) -> PerformanceResult:
     file_count = max(1, int(file_count))
+    fingerprint = workload_fingerprint(file_count)
+
     with TestSandbox.create(sandbox_parent) as sandbox:
         root = sandbox.files_dir
         buckets = max(1, min(1000, file_count // 100 or 1))
@@ -49,6 +67,9 @@ def run_performance_profile(
         )
         ok = scanned == file_count
         return PerformanceResult(
+            benchmark_id=BENCHMARK_ID,
+            workload_version=WORKLOAD_VERSION,
+            workload_fingerprint=fingerprint,
             files=scanned,
             elapsed_seconds=elapsed,
             files_per_second=rate,
@@ -57,6 +78,7 @@ def run_performance_profile(
             detail=(
                 f"{scanned}/{file_count} Dateien · "
                 f"{elapsed:.2f} s · {rate:.1f} Dateien/s · "
-                f"RAM-Spitze {peak_rss_mib:.1f} MiB"
+                f"RAM-Spitze {peak_rss_mib:.1f} MiB · "
+                f"Arbeitslast {fingerprint}"
             ),
         )
