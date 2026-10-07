@@ -127,7 +127,10 @@
       "event_driven_status_styling",
       "wcag_contrast_regression_checks",
       "central_gui_error_feedback",
-      "precise_gui_exception_boundaries"
+      "precise_gui_exception_boundaries",
+      "testlab_cli_adapter",
+      "core_storage_dependency_guards",
+      "documented_testlab_architecture_boundary"
     ],
     "file_browser": [
       "lazy_qt_filesystem_model",
@@ -170,7 +173,15 @@
       "explicit_performance_profile",
       "file_change_disturbance",
       "cancel_disturbance",
-      "pause_resume_disturbance"
+      "pause_resume_disturbance",
+      "fault_injection_sqlite",
+      "fault_injection_disk_full",
+      "fault_injection_write_permission",
+      "performance_peak_rss",
+      "performance_json_report",
+      "performance_html_report",
+      "performance_baseline_comparison",
+      "performance_same_workload_guard"
     ]
   },
   "governance": {
@@ -270,7 +281,9 @@
           "appimage_ubuntu_24_04_success",
           "appimage_usb_path_success",
           "contrast_regression_tests_success"
-        ]
+        ],
+        "latest_visual_freeze_confirmation_on": "2026-10-07",
+        "latest_visual_freeze_confirmation_reason": "Testlabor-/Architekturrunde ohne Änderungen an Theme, Layout oder MainWindow-Struktur."
       },
       {
         "id": "robustness_scaling",

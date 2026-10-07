@@ -1,5 +1,7 @@
 from __future__ import annotations
 
+import resource
+import sys
 import time
 from dataclasses import dataclass
 from pathlib import Path
@@ -13,6 +15,7 @@ class PerformanceResult:
     files: int
     elapsed_seconds: float
     files_per_second: float
+    peak_rss_mib: float
     ok: bool
     detail: str
 
@@ -38,14 +41,22 @@ def run_performance_profile(
         scanned = sum(1 for _ in FileScanner().iter_files(root))
         elapsed = max(0.000001, time.perf_counter() - started)
         rate = scanned / elapsed
+        max_rss = float(resource.getrusage(resource.RUSAGE_SELF).ru_maxrss)
+        peak_rss_mib = (
+            max_rss / (1024 * 1024)
+            if sys.platform == "darwin"
+            else max_rss / 1024
+        )
         ok = scanned == file_count
         return PerformanceResult(
             files=scanned,
             elapsed_seconds=elapsed,
             files_per_second=rate,
+            peak_rss_mib=peak_rss_mib,
             ok=ok,
             detail=(
                 f"{scanned}/{file_count} Dateien · "
-                f"{elapsed:.2f} s · {rate:.1f} Dateien/s"
+                f"{elapsed:.2f} s · {rate:.1f} Dateien/s · "
+                f"RAM-Spitze {peak_rss_mib:.1f} MiB"
             ),
         )

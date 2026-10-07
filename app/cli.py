@@ -11,7 +11,10 @@ from app.startup.selftest import run_selftest
 from app.storage.database import Database
 from app.core.search_pipeline import run_search_to_database
 from app.validation import validate_scan_root, validate_search_request
-from app.testing import available_profiles, run_disturbance_suite, run_performance_profile, run_profile
+from app.testing.cli import (
+    configure_testlab_arguments,
+    run_requested_testlab,
+)
 from app.workspace import ensure_workspace
 
 
@@ -243,37 +246,13 @@ class ConsoleUI:
 def main() -> int:
     parser = argparse.ArgumentParser()
     parser.add_argument("--selftest", action="store_true")
-    parser.add_argument(
-        "--testlab",
-        choices=available_profiles(),
-        help="Automatisches Dateisystem-Testprofil ausführen.",
-    )
-    parser.add_argument(
-        "--testlab-performance",
-        type=int,
-        metavar="DATEIEN",
-        help="Expliziten Leistungstest mit der angegebenen Dateianzahl ausführen.",
-    )
-    parser.add_argument(
-        "--testlab-disturbances",
-        action="store_true",
-        help="Störungstests für Dateiänderung, Abbruch und Pause/Fortsetzen ausführen.",
-    )
+    configure_testlab_arguments(parser)
     args = parser.parse_args()
     base = ensure_workspace()
     ui = ConsoleUI(base)
-    if args.testlab:
-        result = run_profile(args.testlab)
-        print(("OK" if result.ok else "FEHLER"), f"Testlabor {result.profile}", result.detail)
-        return 0 if result.ok else 1
-    if args.testlab_performance is not None:
-        result = run_performance_profile(file_count=args.testlab_performance)
-        print(("OK" if result.ok else "FEHLER"), "Leistungstest", result.detail)
-        return 0 if result.ok else 1
-    if args.testlab_disturbances:
-        result = run_disturbance_suite()
-        print(("OK" if result.ok else "FEHLER"), "Störungstest", result.detail)
-        return 0 if result.ok else 1
+    testlab_exit = run_requested_testlab(args, base)
+    if testlab_exit is not None:
+        return testlab_exit
     if args.selftest:
         checks = run_selftest(base, require_gui=False)
         for check in checks:
