@@ -11,7 +11,14 @@ from app.startup.selftest import run_selftest
 from app.storage.database import Database
 from app.core.search_pipeline import run_search_to_database
 from app.validation import validate_scan_root, validate_search_request
-from app.testing import available_profiles, run_disturbance_suite, run_performance_profile, run_profile
+from app.testing import (
+    available_profiles,
+    run_disturbance_suite,
+    run_fault_injection_suite,
+    run_performance_profile,
+    run_profile,
+    write_performance_report,
+)
 from app.workspace import ensure_workspace
 
 
@@ -259,6 +266,23 @@ def main() -> int:
         action="store_true",
         help="Störungstests für Dateiänderung, Abbruch und Pause/Fortsetzen ausführen.",
     )
+    parser.add_argument(
+        "--testlab-faults",
+        action="store_true",
+        help="Fehler-Injektion für SQLite, vollen Datenträger und Schreibrechte ausführen.",
+    )
+    parser.add_argument(
+        "--testlab-performance-report",
+        type=int,
+        metavar="DATEIEN",
+        help="Leistungstest ausführen und JSON-/HTML-Bericht erzeugen.",
+    )
+    parser.add_argument(
+        "--testlab-baseline",
+        type=Path,
+        metavar="JSON",
+        help="Früheren JSON-Leistungsbericht als Vergleichsbasis verwenden.",
+    )
     args = parser.parse_args()
     base = ensure_workspace()
     ui = ConsoleUI(base)
@@ -273,6 +297,34 @@ def main() -> int:
     if args.testlab_disturbances:
         result = run_disturbance_suite()
         print(("OK" if result.ok else "FEHLER"), "Störungstest", result.detail)
+        return 0 if result.ok else 1
+    if args.testlab_faults:
+        result = run_fault_injection_suite()
+        print(("OK" if result.ok else "FEHLER"), "Fehler-Injektion", result.detail)
+        return 0 if result.ok else 1
+    if args.testlab_performance_report is not None:
+        result = run_performance_profile(file_count=args.testlab_performance_report)
+        try:
+            json_path, html_path, snapshot = write_performance_report(
+                result,
+                base / "reports",
+                baseline_path=args.testlab_baseline,
+            )
+        except (OSError, ValueError) as exc:
+            print("FEHLER", "Leistungsbericht", exc)
+            return 1
+        print(("OK" if result.ok else "FEHLER"), "Leistungsbericht", result.detail)
+        print("JSON", json_path)
+        print("HTML", html_path)
+        if snapshot.comparison is not None:
+            comparison = snapshot.comparison
+            print(
+                "Vergleich",
+                f"Dateien/s {comparison.rate_change_percent:+.1f} %"
+                if comparison.rate_change_percent is not None
+                else "Dateien/s –",
+                f"RAM {comparison.peak_rss_change_mib:+.1f} MiB",
+            )
         return 0 if result.ok else 1
     if args.selftest:
         checks = run_selftest(base, require_gui=False)
