@@ -3,6 +3,13 @@ from __future__ import annotations
 import errno
 import sqlite3
 from pathlib import Path
+
+import pytest
+
+pytest.importorskip(
+    "PySide6.QtGui",
+    reason="GUI-Fehlergrenzen benötigen die Qt-Systembibliotheken.",
+)
 from types import SimpleNamespace
 from unittest.mock import MagicMock, patch
 
