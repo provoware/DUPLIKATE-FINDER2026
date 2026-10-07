@@ -181,7 +181,12 @@
       "performance_json_report",
       "performance_html_report",
       "performance_baseline_comparison",
-      "performance_same_workload_guard"
+      "performance_same_workload_guard",
+      "fault_injection_sqlite_read_write",
+      "fault_injection_settings_and_state_export",
+      "performance_workload_fingerprint",
+      "performance_environment_comparison",
+      "performance_regression_warning_thresholds"
     ]
   },
   "governance": {
@@ -283,7 +288,7 @@
           "contrast_regression_tests_success"
         ],
         "latest_visual_freeze_confirmation_on": "2026-10-07",
-        "latest_visual_freeze_confirmation_reason": "Testlabor-/Architekturrunde ohne Änderungen an Theme, Layout oder MainWindow-Struktur."
+        "latest_visual_freeze_confirmation_reason": "Fehler-Injektions-, Performance- und Architekturrunde ohne Änderungen an Theme, Layout, MainWindow oder sichtbarer Prozesssteuerung."
       },
       {
         "id": "robustness_scaling",
@@ -371,7 +376,9 @@
           "tests/test_final_main_window_refactor.py"
         ],
         "latest_reopened_on": "2026-10-07",
-        "latest_reopen_reason": "Nicht wieder geöffnet: nur sichtbare Statuskennzeichnung in MainWindow, keine strukturelle Controller-/Klassenänderung."
+        "latest_reopen_reason": "Nicht wieder geöffnet: nur sichtbare Statuskennzeichnung in MainWindow, keine strukturelle Controller-/Klassenänderung.",
+        "latest_architecture_review_on": "2026-10-07",
+        "latest_architecture_review_result": "Aufteilung für aktuellen Umfang optimal: weitere Zerlegung würde keine Mehrfachverwendung oder messbare Kopplungsreduktion erzeugen."
       }
     ]
   }
