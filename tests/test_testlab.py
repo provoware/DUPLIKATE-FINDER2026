@@ -5,8 +5,10 @@ import pytest
 from app.testing import (
     available_profiles,
     run_disturbance_suite,
+    run_fault_injection_suite,
     run_performance_profile,
     run_profile,
+    write_performance_report,
 )
 from app.testing.sandbox import MARKER, TestSandbox
 
@@ -30,8 +32,50 @@ def test_small_performance_profile_counts_all_files():
     assert result.ok
     assert result.files == 250
     assert result.files_per_second > 0
+    assert result.peak_rss_mib > 0
 
 
 def test_disturbance_suite_detects_change_cancel_and_pause():
     result = run_disturbance_suite()
     assert result.ok, result.detail
+
+
+def test_fault_injection_suite_handles_all_expected_failures():
+    result = run_fault_injection_suite()
+    assert result.ok, result.detail
+
+
+def test_performance_report_writes_json_html_and_comparison(tmp_path: Path):
+    first = run_performance_profile(file_count=40)
+    json_path, html_path, snapshot = write_performance_report(
+        first,
+        tmp_path,
+    )
+    assert json_path.is_file()
+    assert html_path.is_file()
+    assert snapshot.files == 40
+    assert snapshot.peak_rss_mib > 0
+
+    second = run_performance_profile(file_count=40)
+    second_json, second_html, compared = write_performance_report(
+        second,
+        tmp_path,
+        baseline_path=json_path,
+    )
+    assert second_json != json_path
+    assert second_html.is_file()
+    assert compared.comparison is not None
+    assert compared.comparison.baseline_version == snapshot.project_version
+
+
+def test_performance_report_rejects_different_file_counts(tmp_path: Path):
+    first = run_performance_profile(file_count=20)
+    json_path, _html_path, _snapshot = write_performance_report(first, tmp_path)
+    second = run_performance_profile(file_count=21)
+
+    with pytest.raises(ValueError, match="dieselbe Dateianzahl"):
+        write_performance_report(
+            second,
+            tmp_path,
+            baseline_path=json_path,
+        )
