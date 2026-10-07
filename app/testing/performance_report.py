@@ -3,7 +3,6 @@ from __future__ import annotations
 import html
 import json
 import platform
-import sys
 from dataclasses import asdict, dataclass
 from datetime import datetime
 from importlib.metadata import PackageNotFoundError, version
@@ -98,6 +97,11 @@ def snapshot_from_result(
 ) -> PerformanceSnapshot:
     comparison = None
     if baseline is not None:
+        if baseline.files != result.files:
+            raise ValueError(
+                "Vergleich abgelehnt: Basis und aktueller Test müssen "
+                "dieselbe Dateianzahl verwenden."
+            )
         comparison = PerformanceComparison(
             baseline_version=baseline.project_version,
             rate_change_percent=_percent_change(
