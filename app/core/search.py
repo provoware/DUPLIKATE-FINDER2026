@@ -1,6 +1,7 @@
 from __future__ import annotations
 
 from collections.abc import Callable, Iterable
+from contextlib import suppress
 
 from app.core.hashing import FileChangedError, ensure_record_unchanged
 from app.core.scanner import FileScanner
@@ -55,6 +56,15 @@ class TextSearcher:
         )
         processed_bytes = 0
 
+        try:
+            self._scan_records(job, source, hits, tracker, query, total_records, total_bytes)
+        except BaseException:
+            job.status = JobStatus.FAILED
+            raise
+        else:
+    
+    def _scan_records(self, job, source, hits, tracker, query, total_records, total_bytes):
+        processed_bytes = 0
         for index, record in enumerate(source, start=1):
             self.scanner.checkpoint()
             job.scanned_files += 1
