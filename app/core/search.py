@@ -55,7 +55,7 @@ class TextSearcher:
         )
         try:
             self._scan_records(job, source, hits, tracker, query, total_records, total_bytes)
-        except BaseException:
+        except Exception:
             job.status = JobStatus.FAILED
             raise
         else:
@@ -152,5 +152,3 @@ class TextSearcher:
         if self.collect_hits:
             job.hits = len(hits)
         job.error_count = self.scanner.error_count
-        job.status = JobStatus.DONE
-        return hits
