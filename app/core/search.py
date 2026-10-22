@@ -1,7 +1,6 @@
 from __future__ import annotations
 
 from collections.abc import Callable, Iterable
-from contextlib import suppress
 
 from app.core.hashing import FileChangedError, ensure_record_unchanged
 from app.core.scanner import FileScanner
@@ -54,8 +53,6 @@ class TextSearcher:
             self.scanner.paused_seconds,
             total_bytes=max(0, int(total_bytes)) if job.search_contents else 0,
         )
-        processed_bytes = 0
-
         try:
             self._scan_records(job, source, hits, tracker, query, total_records, total_bytes)
         except BaseException:
