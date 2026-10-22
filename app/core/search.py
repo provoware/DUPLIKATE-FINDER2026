@@ -53,8 +53,15 @@ class TextSearcher:
             self.scanner.paused_seconds,
             total_bytes=max(0, int(total_bytes)) if job.search_contents else 0,
         )
+        try:
+            self._scan_records(job, source, hits, tracker, query, total_records, total_bytes)
+        except Exception:
+            job.status = JobStatus.FAILED
+            raise
+        else:
+    
+    def _scan_records(self, job, source, hits, tracker, query, total_records, total_bytes):
         processed_bytes = 0
-
         for index, record in enumerate(source, start=1):
             self.scanner.checkpoint()
             job.scanned_files += 1
@@ -145,5 +152,3 @@ class TextSearcher:
         if self.collect_hits:
             job.hits = len(hits)
         job.error_count = self.scanner.error_count
-        job.status = JobStatus.DONE
-        return hits
